@@ -77,7 +77,7 @@ window.DATOS_POKEMON = [
   // Megaevolución con la Metagrossita X
   { nombre: 'Metagross-Mega-X', base: 'Metagross-Mega', tipos: ['Water', 'Rock'],
     stats: [80, 145, 150, 105, 110, 110], habilidades: ['Tough Claws'],
-    megaPiedra: 'Metagrossita X', sprite: 'MEGA METAGROSS' },
+    megaPiedra: 'Metagrossita X', spritePiedra: 'METAGROSSITEX', sprite: 'MEGA METAGROSS' },
 
   // ===== Cineret · Aracamara (Bicho/Fantasma) — PROVISIONAL ====================
   { nombre: 'Cineret', tipos: ['Bug', 'Ghost'], stats: [50, 50, 45, 70, 50, 65],

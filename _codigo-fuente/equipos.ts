@@ -6,7 +6,7 @@ import {INFO} from './mod';
 export interface SetPkm {
   name: string; species: string; item: string; ability: string; moves: string[];
   nature: string; evs: {[k: string]: number}; ivs: {[k: string]: number};
-  level: number; gender: string; shiny: boolean; teraType: string;
+  level: number; gender: string; shiny: boolean; teraType: string; gigantamax?: boolean;
 }
 export interface Equipo { id: string; nombre: string; formato: 'singles' | 'doubles'; sets: SetPkm[]; }
 
@@ -73,6 +73,7 @@ export function importarTexto(texto: string): SetPkm[] {
       gender: s.gender || '',
       shiny: !!s.shiny,
       teraType: s.teraType || base.teraType,
+      gigantamax: !!s.gigantamax,
     };
   });
 }

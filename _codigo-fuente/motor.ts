@@ -160,7 +160,11 @@ export class IA {
       }
       if (req.active.length > 1 && tgtTipo === 'adjacentAlly') e += ` -${slot === 0 ? 2 : 1}`;
       if (req.active.length > 1 && tgtTipo === 'adjacentAllyOrSelf') e += ` -${slot + 1}`;
-      if (act.canMegaEvo && !megaUsada) { e += ' mega'; megaUsada = true; } else if (act.canTerastallize && !teraUsada && Math.random() < 0.3) { e += ' terastallize'; teraUsada = true; }
+      const singles = req.active.length === 1;
+      if (act.canMegaEvo && !megaUsada) { e += ' mega'; megaUsada = true; }
+      else if (singles && act.canZMove?.[+mejor - 1] && Math.random() < 0.5) e += ' zmove';
+      else if (singles && act.canDynamax && Math.random() < 0.25) e += ' dynamax';
+      else if (act.canTerastallize && !teraUsada && Math.random() < 0.3) { e += ' terastallize'; teraUsada = true; }
       // Si sus ataques no hacen nada, cambia
       if (mejorScore <= 1 && !act.trapped && !act.maybeTrapped && pokes.some((p: any, i: number) => !p.active && !p.condition.endsWith(' fnt') && !usados.has(i))) {
         e = elegirCambio();

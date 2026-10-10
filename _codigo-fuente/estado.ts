@@ -9,6 +9,7 @@ export interface Pkm {
   boosts: {[k: string]: number}; volatiles: Set<string>;
   item?: string; ability?: string; tera?: string; types?: string[];
   conocido: boolean;
+  movesVistos?: string[]; itemPerdido?: boolean;
 }
 export interface Lado {
   id: LadoId; nombre: string; equipo: Pkm[]; activos: (Pkm | null)[]; condiciones: Map<string, number>; tamano: number;
@@ -131,6 +132,17 @@ export class Estado {
     const n = (i: string) => this.nombre(i);
     const efecto = (e: string) => limpiaEfecto(e);
     const desde = kw.from ? limpiaEfecto(kw.from) : '';
+    // Información descubierta: habilidades y objetos que se revelan con [from]
+    if (kw.from && cmd !== '-enditem') {
+      const m = /^(ability|item): ?(.*)$/.exec(kw.from);
+      const esPos = (x: string) => /^p[12][a-c]: /.test(x || '');
+      const ident = esPos(kw.of) ? kw.of : esPos(pos[0]) ? pos[0] : '';
+      const dueno = m && ident ? this.pkm(ident) : null;
+      if (m && dueno) {
+        if (m[1] === 'ability') { if (!/^(Trace|Receiver|Power of Alchemy)$/.test(m[2])) dueno.ability = m[2]; }
+        else if (cmd !== '-item') { dueno.item = m[2]; dueno.itemPerdido = false; }
+      }
+    }
 
     switch (cmd) {
     case 'player': {
@@ -186,6 +198,12 @@ export class Estado {
     }
     case 'move': {
       const mov = nomMov(pos[1]);
+      const quien = this.pkm(pos[0]);
+      const mvd = dex().moves.get(pos[1]);
+      if (quien && !kw.from && mvd.exists && !mvd.isZ && !mvd.isMax && mvd.id !== 'struggle') {
+        quien.movesVistos = quien.movesVistos || [];
+        if (!quien.movesVistos.includes(mvd.name)) quien.movesVistos.push(mvd.name);
+      }
       const ext = kw.from ? ` (por ${desde})` : '';
       return {texto: `¡${N(pos[0])} usó ${mov}!${ext}`, clase: 'mov', anim: {tipo: 'move', ident: pos[0], target: pos[2], move: mov, still: 'still' in kw}};
     }
@@ -373,7 +391,7 @@ export class Estado {
     case '-block': return {texto: `¡${N(pos[0])} bloqueó el efecto! (${efecto(pos[1])})`};
     case '-item': {
       const mon = this.pkm(pos[0]);
-      if (mon) mon.item = pos[1];
+      if (mon) { mon.item = pos[1]; mon.itemPerdido = false; }
       const obj = nomObj(pos[1]);
       if (kw.from && /frisk/i.test(kw.from)) return {texto: `${N(pos[0])} lleva ${obj}. (Cacheo)`};
       if (kw.from) return {texto: `¡${N(pos[0])} obtuvo ${obj}! (${desde})`};
@@ -381,7 +399,7 @@ export class Estado {
     }
     case '-enditem': {
       const mon = this.pkm(pos[0]);
-      if (mon) mon.item = '';
+      if (mon) { mon.item = ''; mon.itemPerdido = true; }
       const obj = nomObj(pos[1]);
       if ('eat' in kw) return {texto: `¡${N(pos[0])} se comió su ${obj}!`};
       if (kw.from && /stealeat|bugbite|pluck/i.test(kw.from)) return {texto: `¡Se comieron la ${obj} de ${n(pos[0])}!`};
@@ -400,7 +418,7 @@ export class Estado {
       if (mon && tgt) { mon.species = tgt.species; }
       return {texto: `¡${N(pos[0])} se transformó en ${tgt?.species || pos[1]}!`, anim: {tipo: 'forma', ident: pos[0]}};
     }
-    case '-mega': return {texto: `¡${N(pos[0])} ha megaevolucionado en Mega-${pos[1]}!`, clase: 'especial', anim: {tipo: 'mega', ident: pos[0]}};
+    case '-mega': return {texto: `¡${N(pos[0])} ha megaevolucionado!`, clase: 'especial', anim: {tipo: 'mega', ident: pos[0]}};
     case '-primal': return {texto: `¡${N(pos[0])} ha recuperado su forma primigenia!`, clase: 'especial'};
     case '-terastallize': {
       const mon = this.pkm(pos[0]);
@@ -413,6 +431,7 @@ export class Estado {
       if (mon) mon.volatiles.add(id);
       if (id === 'typechange' && mon) { mon.types = pos[2].split('/'); return {texto: `¡${N(pos[0])} ahora es de tipo ${pos[2].split('/').map(t => TIPOS_ES[t] || t).join('/')}!`}; }
       const t: {[k: string]: string} = {
+        dynamax: pos[2] === 'Gmax' ? `¡${N(pos[0])} se ha gigamaximizado!` : `¡${N(pos[0])} se ha dinamaximizado!`,
         substitute: `¡${N(pos[0])} creó un sustituto!`, confusion: `¡${N(pos[0])} está confuso!`,
         leechseed: `¡${N(pos[0])} ha sido infectado!`, taunt: `¡${N(pos[0])} se ha dejado engañar por la Mofa!`,
         encore: `¡${N(pos[0])} recibió un Otra Vez!`, attract: `¡${N(pos[0])} se ha enamorado!`,
@@ -432,6 +451,7 @@ export class Estado {
       const id = toID(pos[1].replace(/^(move|ability|item): ?/, ''));
       if (mon) mon.volatiles.delete(id);
       const t: {[k: string]: string} = {
+        dynamax: `¡${N(pos[0])} ha vuelto a su tamaño normal!`,
         substitute: `¡El sustituto de ${n(pos[0])} se debilitó!`, confusion: `¡${N(pos[0])} ya no está confuso!`,
         taunt: `¡${N(pos[0])} ya no está bajo los efectos de la Mofa!`, encore: `¡${N(pos[0])} ya no está bajo los efectos de Otra Vez!`,
         disable: `¡${N(pos[0])} ya puede usar todos sus movimientos!`,
@@ -464,7 +484,8 @@ export class Estado {
     }
     case '-prepare': return {texto: `¡${N(pos[0])} se está preparando para usar ${nomMov(pos[1])}!`};
     case '-mustrecharge': return {};
-    case '-zpower': case '-zbroken': return {};
+    case '-zpower': return {texto: `¡${N(pos[0])} se ha rodeado de su Poder Z!`, clase: 'especial', anim: {tipo: 'mega', ident: pos[0]}};
+    case '-zbroken': return {texto: `¡${N(pos[0])} no ha podido protegerse del todo!`};
     case '-center': return {texto: '¡Los Pokémon se movieron al centro!'};
     case '-combine': return {texto: '¡Los movimientos se combinaron!'};
     case '-waiting': return {texto: `${N(pos[0])} espera a su compañero…`};

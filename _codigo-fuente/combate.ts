@@ -1,6 +1,7 @@
 // Pantalla de combate: dibuja el campo, anima el protocolo y recoge las elecciones.
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
+import {adjuntarInfo, fichaPokemon, fichaMovimiento, tiposEfectivos, ocultarInfo} from './ficha';
 import {
   dex, h, tipoBadge, spriteImg, iconImg, itemIcon, nombreVisible, sleep, storage,
   TIPOS_ES, TIPO_COLOR, CATEGORIA_ES, ESTADOS_ES, ESTADO_COLOR, STATS_CORTO,
@@ -18,6 +19,7 @@ export interface OpcionesCombate {
 
 const BOOST_CORTO: {[k: string]: string} = {...STATS_CORTO, accuracy: 'Pre', evasion: 'Eva'};
 const VOLATILES_ES: {[k: string]: string} = {
+  dynamax: 'Dinamax',
   substitute: 'Sustituto', confusion: 'Confuso', leechseed: 'Drenadoras', taunt: 'Mofa', encore: 'Otra vez',
   attract: 'Enamorado', yawn: 'Somnoliento', curse: 'Maldición', nightmare: 'Pesadilla', focusenergy: 'Foco energía',
   perish3: 'Canto mortal 3', perish2: 'Canto mortal 2', perish1: 'Canto mortal 1', disable: 'Anulación',
@@ -238,8 +240,9 @@ export class PantallaCombate {
         const pos = h('div', {class: `posicion pos-${i}`});
         if (mon) {
           const spr = spriteImg(mon.species, esYo ? 'back' : 'front', mon.shiny, mon.fainted ? 'debilitado' : '');
-          const wrap = h('div', {class: 'sprite-wrap' + (mon.fainted ? ' anim-debilitado' : '')}, h('div', {class: 'sombra'}), spr);
+          const wrap = h('div', {class: 'sprite-wrap' + (mon.fainted ? ' anim-debilitado' : '') + (mon.volatiles.has('dynamax') ? ' dinamax' : '')}, h('div', {class: 'sombra'}), spr);
           this.spriteEls.set(`${ladoId}-${i}`, wrap);
+          adjuntarInfo(wrap, () => fichaPokemon(mon, esYo));
           pos.append(this.hud(mon, esYo, `${ladoId}-${i}`), wrap);
         }
         ladoEl.append(pos);
@@ -260,6 +263,7 @@ export class PantallaCombate {
         h('span', {class: 'hud-nombre'}, mon.name),
         mon.tera ? h('span', {class: 'tera-tag', style: {background: TIPO_COLOR[mon.tera]}, title: 'Teracristalizado'}, '◆ ' + (TIPOS_ES[mon.tera] || mon.tera)) : null,
         h('span', {class: 'hud-nivel'}, 'Nv. ' + mon.level)),
+      h('div', {class: 'hud-tipos'}, ...tiposEfectivos(mon).map(t => tipoBadge(t, true))),
       h('div', {class: 'barra-ps'}, h('div', {class: 'relleno ' + color, style: {width: (pct * 100).toFixed(1) + '%'}})),
       h('div', {class: 'hud-fila hud-sub'},
         mon.status ? h('span', {class: 'estado-tag', style: {background: ESTADO_COLOR[mon.status]}}, ESTADOS_ES[mon.status] || mon.status) : null,
@@ -267,7 +271,7 @@ export class PantallaCombate {
       boosts.length || vols.length ? h('div', {class: 'hud-extras'},
         ...boosts.map(([k, v]) => h('span', {class: 'boost ' + (v > 0 ? 'pos' : 'neg')}, `${BOOST_CORTO[k] || k} ${v > 0 ? '+' : ''}${v}`)),
         ...vols.map(v => h('span', {class: 'vol'}, v))) : null);
-    hud.title = this.tooltip(mon, esYo);
+    adjuntarInfo(hud, () => fichaPokemon(mon, esYo));
     return hud;
   }
 
@@ -290,6 +294,8 @@ export class PantallaCombate {
     const viejo = this.campoEl.querySelector(`.hud[data-clave="${clave}"]`);
     const mon = p.lado.activos[p.pos];
     if (viejo && mon) viejo.replaceWith(this.hud(mon, p.lado.id === this.estado.yo, clave));
+    const spr = this.spriteEls.get(clave);
+    if (spr && mon) spr.classList.toggle('dinamax', mon.volatiles.has('dynamax'));
   }
 
   dibujarInfoCampo() {
@@ -363,13 +369,19 @@ export class PantallaCombate {
       c.append(
         h('div', {class: 'preview'},
           h('div', {class: 'preview-titulo'}, `Equipo rival`),
-          h('div', {class: 'preview-rival'}, ...rival.map(m => h('div', {class: 'preview-poke'}, spriteImg(m.species, 'front', m.shiny, 'mini'),
-            h('span', {}, nombreVisible(m.species)), h('span', {class: 'tipos'}, ...dex().species.get(m.species).types.map(t => tipoBadge(t, true)))))),
+          h('div', {class: 'preview-rival'}, ...rival.map(m => {
+            const el = h('div', {class: 'preview-poke'}, spriteImg(m.species, 'front', m.shiny, 'mini'),
+              h('span', {}, nombreVisible(m.species)), h('span', {class: 'tipos'}, ...dex().species.get(m.species).types.map(t => tipoBadge(t, true))));
+            adjuntarInfo(el, () => fichaPokemon(m, false));
+            return el;
+          })),
           h('div', {class: 'preview-titulo'}, nLideres > 1 ? `Elige tus 2 Pokémon iniciales (${orden.length}/2)` : 'Elige tu Pokémon inicial'),
           h('div', {class: 'botones-cambio'}, ...pokes.map((p: any, i: number) => {
             const sp = p.details.split(',')[0];
             const idx = orden.indexOf(i);
-            return h('button', {class: 'btn-cambio' + (idx >= 0 ? ' elegido' : ''), onclick: () => {
+            const nombreP = p.ident.replace(/^p[12]: /, '');
+            const btn = h('button', {class: 'btn-cambio' + (idx >= 0 ? ' elegido' : ''), onclick: () => {
+              ocultarInfo();
               if (idx >= 0) orden.splice(idx, 1); else orden.push(i);
               if (orden.length >= nLideres) {
                 const resto = pokes.map((_: any, j: number) => j).filter((j: number) => !orden.includes(j));
@@ -379,6 +391,11 @@ export class PantallaCombate {
               pintar();
             }}, iconImg(sp), h('span', {}, p.ident.replace(/^p[12]: /, '')), idx >= 0 ? h('b', {class: 'orden'}, String(idx + 1)) : null,
             p.item ? h('small', {class: 'tenue'}, nomObj(p.item)) : null);
+            adjuntarInfo(btn, () => {
+              const mon = this.estado.lados[this.estado.yo].equipo.find(x => x.name === nombreP);
+              return mon ? fichaPokemon(mon, true) : null;
+            });
+            return btn;
           }))));
     };
     pintar();
@@ -412,69 +429,95 @@ export class PantallaCombate {
     });
   }
 
-  pintarMovimientos(req: any, slot: number) {
+  pintarMovimientos(req: any, slot: number, poderInicial = '') {
     const c = this.controlesEl;
     c.innerHTML = '';
+    ocultarInfo();
     const act = req.active[slot];
     const mon = req.side.pokemon[slot];
     const d = dex();
     const dobles = req.active.length > 1;
-    let mega = false, tera = false;
     const nombre = mon.ident.replace(/^p[12]: /, '');
+    const yaDinamax = !!act.maxMoves && !act.canDynamax;
+    const usados = this.elecciones.join(' ');
+    // Poderes disponibles (solo uno por Pokémon y turno)
+    const poderes: [string, string, string][] = [];
+    if (act.canMegaEvo && !usados.includes('mega')) poderes.push(['mega', 'Megaevolución', '#c86bff']);
+    if (act.canMegaEvoX && !usados.includes('mega')) poderes.push(['megax', 'Megaevolución X', '#c86bff']);
+    if (act.canMegaEvoY && !usados.includes('mega')) poderes.push(['megay', 'Megaevolución Y', '#c86bff']);
+    if (act.canUltraBurst && !usados.includes('ultra')) poderes.push(['ultra', 'Ultraexplosión', '#ffd34d']);
+    if (act.canZMove && !usados.includes('zmove')) poderes.push(['zmove', 'Movimiento Z', '#ffcf3a']);
+    if (act.canDynamax && !usados.includes('dynamax')) poderes.push(['dynamax', act.maxMoves?.gigantamax ? 'Gigamax' : 'Dinamax', '#ff4d6d']);
+    if (act.canTerastallize && !usados.includes('terastallize')) poderes.push(['terastallize', `Teracristal (${TIPOS_ES[act.canTerastallize] || act.canTerastallize})`, TIPO_COLOR[act.canTerastallize] || '#5bd']);
+    let poder = poderes.some(p => p[0] === poderInicial) ? poderInicial : '';
+
     const cab = h('div', {class: 'controles-cab'},
       h('span', {}, dobles ? `¿Qué hará ${nombre}? (${slot + 1}/${req.active.length})` : `¿Qué hará ${nombre}?`),
       slot > 0 ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => { this.elecciones.pop(); this.siguienteSlot(req); }}, '← Atrás') : null);
     const extras = h('div', {class: 'extras-mov'});
-    if (act.canMegaEvo && !this.elecciones.some(e => e.includes('mega'))) {
-      const cb = h('input', {type: 'checkbox'});
-      cb.addEventListener('change', () => { mega = cb.checked; });
-      extras.append(h('label', {class: 'toggle toggle-mega'}, cb, ' Megaevolucionar'));
-    }
-    if (act.canTerastallize && !this.elecciones.some(e => e.includes('terastallize'))) {
-      const cb = h('input', {type: 'checkbox'});
-      cb.addEventListener('change', () => { tera = cb.checked; });
-      extras.append(h('label', {class: 'toggle toggle-tera', style: {'--tera': TIPO_COLOR[act.canTerastallize]}},
-        cb, ' Teracristalizar (', TIPOS_ES[act.canTerastallize] || act.canTerastallize, ')'));
+    if (poderes.length) {
+      extras.append(h('span', {class: 'tenue'}, 'Poder: '));
+      for (const [id, txt, color] of poderes) {
+        const b = h('button', {class: 'btn-poder' + (poder === id ? ' activo' : ''), style: {'--poder': color}, onclick: () => {
+          this.pintarMovimientos(req, slot, poder === id ? '' : id);
+        }}, txt);
+        extras.append(b);
+      }
+      extras.append(h('small', {class: 'tenue'}, 'Solo puedes usar un poder por combate.'));
     }
     const rivales = this.estado.lados[this.estado.rival].activos;
     const movs = h('div', {class: 'botones-mov'}, ...act.moves.map((m: any, i: number) => {
       const mv = d.moves.get(m.id);
-      const tipo = mv.exists ? mv.type : 'Normal';
-      const deshabilitado = m.disabled || m.pp === 0;
+      // Movimiento que se usará realmente (Z o Max)
+      let usar = m.move, objetivo = m.target, disabled = m.disabled || m.pp === 0, potencia: number | undefined;
+      let idReal = m.id;
+      if (poder === 'zmove') {
+        const z = act.canZMove?.[i];
+        if (!z) disabled = true; else { usar = z.move; objetivo = z.target; idReal = toID(z.move.replace(/^Z-/, '')); }
+        if (z && !z.move.startsWith('Z-')) { potencia = mv.zMove?.basePower; }
+      } else if (poder === 'dynamax' || yaDinamax) {
+        const mx = act.maxMoves?.maxMoves?.[i];
+        if (mx) { usar = d.moves.get(mx.move).name; objetivo = mx.target; if (mx.disabled) disabled = true; idReal = mx.move; potencia = mv.maxMove?.basePower; }
+      }
+      const mvReal = d.moves.get(idReal);
+      const tipo = mvReal.exists && mvReal.type !== '???' ? mvReal.type : (mv.exists ? mv.type : 'Normal');
       let efi: HTMLElement | null = null;
       const rival = rivales.find(r => r && !r.fainted);
-      if (rival && mv.exists && mv.category !== 'Status' && !dobles) {
-        const tipos = rival.tera ? [rival.tera] : (rival.types || d.species.get(rival.species).types);
+      const cat = mvReal.exists ? mvReal.category : mv.category;
+      if (rival && mv.exists && cat !== 'Status' && !dobles) {
+        const tipos = tiposEfectivos(rival);
         const inm = !d.getImmunity(tipo, tipos);
         const ef = inm ? 0 : Math.pow(2, d.getEffectiveness(tipo, tipos));
         const txt = inm ? 'Sin efecto' : ef >= 4 ? '×4' : ef >= 2 ? '×2' : ef <= 0.25 ? '×¼' : ef < 1 ? '×½' : '';
         if (txt) efi = h('span', {class: 'efic ' + (ef >= 2 ? 'buena' : 'mala')}, txt);
       }
-      const titulo = mv.exists ? `${nomMov(mv.name)} — ${TIPOS_ES[tipo]} · ${CATEGORIA_ES[mv.category]}` +
-        `${mv.basePower ? ' · Potencia ' + mv.basePower : ''}${mv.accuracy !== true ? ' · Precisión ' + mv.accuracy + '%' : ''}\n${descMov(mv.name)}` : nomMov(m.move);
-      return h('button', {class: 'btn-movimiento', disabled: deshabilitado, title: titulo, style: {'--tipo': TIPO_COLOR[tipo]},
+      const boton = h('button', {class: 'btn-movimiento' + (poder ? ' con-poder' : ''), disabled, style: {'--tipo': TIPO_COLOR[tipo]},
         onclick: () => {
+          ocultarInfo();
           let e = `move ${i + 1}`;
-          const tgt = m.target;
           const finalizar = (sufijo = '') => {
             e += sufijo;
-            if (mega) e += ' mega';
-            else if (tera) e += ' terastallize';
+            if (poder) e += ' ' + poder;
             this.elecciones.push(e);
             this.siguienteSlot(req);
           };
-          if (dobles && tgt && ['normal', 'any', 'adjacentFoe', 'adjacentAlly', 'adjacentAllyOrSelf'].includes(tgt)) {
-            this.pintarObjetivo(req, slot, tgt, sufijo => finalizar(sufijo));
+          if (dobles && objetivo && ['normal', 'any', 'adjacentFoe', 'adjacentAlly', 'adjacentAllyOrSelf'].includes(objetivo)) {
+            this.pintarObjetivo(req, slot, objetivo, sufijo => finalizar(sufijo), poder);
           } else finalizar();
         }},
-      h('span', {class: 'mov-nombre'}, nomMov(m.move)),
+      h('span', {class: 'mov-nombre'}, nomMov(usar)),
       h('span', {class: 'mov-sub'}, h('span', {class: 'mov-tipo'}, TIPOS_ES[tipo] || tipo),
         m.maxpp ? h('span', {class: 'mov-pp'}, `${m.pp}/${m.maxpp}`) : null, efi));
+      adjuntarInfo(boton, () => {
+        if (idReal !== m.id && mvReal.exists) return fichaMovimiento(idReal, {pp: m.pp, maxpp: m.maxpp, nombre: nomMov(usar), potencia});
+        return fichaMovimiento(m.id, {pp: m.pp, maxpp: m.maxpp});
+      });
+      return boton;
     }));
     c.append(cab, movs, extras, this.botonesCambio(req, slot, !!(act.trapped)));
   }
 
-  pintarObjetivo(req: any, slot: number, tgt: string, ok: (sufijo: string) => void) {
+  pintarObjetivo(req: any, slot: number, tgt: string, ok: (sufijo: string) => void, poder = '') {
     const c = this.controlesEl;
     c.innerHTML = '';
     const e = this.estado;
@@ -495,7 +538,7 @@ export class PantallaCombate {
         iconImg(m.species), m.name, h('small', {}, i === slot ? ' (sí mismo)' : ' (aliado)')));
     });
     c.append(h('div', {class: 'controles-cab'}, h('span', {}, '¿A quién?'),
-      h('button', {class: 'btn btn-sec btn-sm', onclick: () => this.pintarMovimientos(req, slot)}, '← Atrás')),
+      h('button', {class: 'btn btn-sec btn-sm', onclick: () => this.pintarMovimientos(req, slot, poder)}, '← Atrás')),
     h('div', {class: 'botones-objetivo'}, ...botones));
   }
 
@@ -508,13 +551,18 @@ export class PantallaCombate {
         const fnt = p.condition.endsWith(' fnt');
         const pct = fnt ? 0 : (hp / max) * 100;
         const st = p.condition.split(' ')[1];
-        return h('button', {class: 'btn-cambio' + (p.active ? ' activo' : '') + (fnt ? ' fnt' : ''), disabled: atrapado || !disp.has(i),
-          title: `${p.details.split(',')[0]}\n${fnt ? 'Debilitado' : `${hp}/${max} PS`}${p.item ? '\nObjeto: ' + nomObj(p.item) : ''}\n${p.moves.map((m: string) => nomMov(m)).join(' · ')}`,
-          onclick: () => { this.elecciones.push(`switch ${i + 1}`); this.siguienteSlot(req); }},
+        const boton = h('button', {class: 'btn-cambio' + (p.active ? ' activo' : '') + (fnt ? ' fnt' : ''), disabled: atrapado || !disp.has(i),
+          onclick: () => { ocultarInfo(); this.elecciones.push(`switch ${i + 1}`); this.siguienteSlot(req); }},
         iconImg(p.details.split(',')[0]),
         h('span', {class: 'cambio-nombre'}, p.ident.replace(/^p[12]: /, '')),
         h('span', {class: 'mini-ps'}, h('span', {style: {width: pct + '%'}, class: pct > 50 ? 'verde' : pct > 20 ? 'amarillo' : 'rojo'})),
         st && st !== 'fnt' ? h('span', {class: 'estado-tag', style: {background: ESTADO_COLOR[st]}}, ESTADOS_ES[st]) : null);
+        const nombreP = p.ident.replace(/^p[12]: /, '');
+        adjuntarInfo(boton, () => {
+          const mon = this.estado.lados[this.estado.yo].equipo.find(x => x.name === nombreP);
+          return mon ? fichaPokemon(mon, true) : null;
+        });
+        return boton;
       })));
   }
 
@@ -526,7 +574,7 @@ export class PantallaCombate {
     this.botonesCambio(req, slot, false));
   }
 
-  destruir() { this.destruido = true; }
+  destruir() { this.destruido = true; ocultarInfo(); }
 }
 
 export {itemIcon, toID};

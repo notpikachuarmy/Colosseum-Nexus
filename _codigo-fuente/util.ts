@@ -125,10 +125,10 @@ export function itemIcon(item: string) {
   const d = dex();
   const it = d.items.get(id);
   if (!it.exists) return null;
-  if (INFO.objetos.has(id)) {
-    if (id === 'metagrossitax') return h('img', {class: 'item-icono', src: 'sprites/custom/items/metagrossitex.png'});
-    return h('span', {class: 'item-icono item-custom', title: it.name}, '✦');
+  if (INFO.spritesObjeto[id]) {
+    return h('img', {class: 'item-icono', src: `sprites/custom/items/${fileKey(INFO.spritesObjeto[id])}.png`, title: it.name, alt: ''});
   }
+  if (INFO.objetos.has(id)) return h('span', {class: 'item-icono item-custom', title: it.name}, '✦');
   const n = (it as any).spritenum || 0;
   const el = h('span', {class: 'item-icono item-sheet', title: it.name});
   el.style.backgroundPosition = `-${(n % 16) * 24}px -${Math.floor(n / 16) * 24}px`;

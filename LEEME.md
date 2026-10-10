@@ -17,6 +17,12 @@ Funciona con GitHub Pages: no hace falta servidor ni pagar nada.
 
 El combate se calcula en el navegador del anfitrión, así que debe tener la pestaña abierta durante la partida.
 
+## Novedades
+
+- **Poderes:** en combate puedes elegir Megaevolución, Movimiento Z, Dinamax/Gigamax o Teracristal. Solo uno por combate y jugador. Si el Pokémon lleva una megapiedra o un cristal Z, ese es su poder.
+- **Fichas de información:** pasa el ratón por encima de un Pokémon, de un movimiento o de un botón de cambio (en el móvil, mantén pulsado). Del rival se ve lo que se ha descubierto: habilidad, objeto y movimientos usados.
+- **Equipos aleatorios parejos:** en "Practicar" y en las salas online. Los Pokémon se reparten por parejas de poder parecido, uno para cada jugador.
+
 ## Cómo cambiar los datos
 
 Todo lo personalizado está en la carpeta `datos/` y se edita con cualquier editor de texto:

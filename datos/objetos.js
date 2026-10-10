@@ -1,5 +1,6 @@
 /* =============================================================================
  *  OBJETOS PERSONALIZADOS
+ *  sprite: nombre del archivo en sprites/custom/items/ (sin .png).
  *  Traducción del plugin "Objetos Equipables Personalizados" (Essentials 21.1)
  *  al formato de Pokémon Showdown. Los valores de balance están arriba para
  *  poder retocarlos fácilmente.
@@ -32,6 +33,7 @@
 
     // ---------------------------------------------------------------- DAÑO --
     'Shuko': {
+      sprite: 'SHUKO',
       desc: 'Aumenta un 20% el poder de los ataques de garra e ignora las subidas de Defensa del rival.',
       fling: { basePower: 30 },
       onBasePowerPriority: 15,
@@ -49,6 +51,7 @@
     },
 
     'Chaleco Antidisturbios': {
+      sprite: 'RIOTVEST',
       desc: 'Aumenta la Defensa un 50%, pero impide usar movimientos de estado.',
       fling: { basePower: 80 },
       onModifyDefPriority: 1,
@@ -64,6 +67,7 @@
     },
 
     'Pararrayos Portátil': {
+      sprite: 'PORTABLEROD',
       desc: 'Atrae los ataques Eléctricos hacia el portador y reduce su daño a la mitad.',
       fling: { basePower: 60 },
       onAnyRedirectTarget(target, source, source2, move) {
@@ -83,6 +87,7 @@
     },
 
     'Banda Kamikaze': {
+      sprite: 'HAZARDBAND',
       desc: 'Aumenta un 50% el daño de los movimientos de sacrificio, que además ignoran las pantallas.',
       fling: { basePower: 10 },
       onBasePowerPriority: 15,
@@ -95,6 +100,7 @@
     },
 
     'Brazal Inversor': {
+      sprite: 'INVERSIONBAND',
       desc: 'Invierte las debilidades y resistencias de tipo del portador.',
       fling: { basePower: 30 },
       onNegateImmunity: false,
@@ -109,6 +115,7 @@
 
     // ---------------------------------------------------------- PROTECCIÓN --
     'Casco de Pruebas': {
+      sprite: 'IMPACTHELMET',
       desc: 'Evita una vez el daño de retroceso o el daño por confusión. Se consume tras usarse.',
       fling: { basePower: 30 },
       onDamagePriority: 2,
@@ -127,6 +134,7 @@
     },
 
     'Falso Sustituto': {
+      sprite: 'FAKESUB',
       desc: 'Anula por completo el daño del primer ataque recibido. Se consume al romperse.',
       fling: { basePower: 10 },
       onDamagePriority: 1,
@@ -141,6 +149,7 @@
     },
 
     'Ancla': {
+      sprite: 'AEROANCHOR',
       desc: 'Evita que el portador sea forzado a cambiarse por ataques u objetos del rival.',
       fling: { basePower: 100 },
       onDragOutPriority: 1,
@@ -151,6 +160,7 @@
     },
 
     'Capa Térmica': {
+      sprite: 'THERMALCLOAK',
       desc: 'Protege del daño del granizo y evita las quemaduras.',
       fling: { basePower: 10 },
       onImmunity(type) {
@@ -170,6 +180,7 @@
     },
 
     'Sello del Guardián': {
+      sprite: 'WARDSEAL',
       desc: 'Impide que el rival reduzca las características del portador.',
       fling: { basePower: 30 },
       onTryBoostPriority: 2,
@@ -187,6 +198,7 @@
 
     // ----------------------------------------------- BAJADAS DE CARACTERÍSTICAS --
     'Piedra Espejo': {
+      sprite: 'REFLECTMIRROR',
       desc: 'Devuelve al rival la primera bajada de características que provoque. Se consume.',
       fling: { basePower: 30 },
       onTryBoostPriority: 1,
@@ -206,6 +218,7 @@
     },
 
     'Piedra del Caos': {
+      sprite: 'CHAOSSTONE',
       desc: 'Sube al azar una característica cuando el rival baja las del portador.',
       fling: { basePower: 30 },
       onAfterEachBoost(boost, target, source, effect) {
@@ -223,6 +236,7 @@
 
     // ------------------------------------------------------------- CAMBIOS --
     'Abrojo Trampa': {
+      sprite: 'CALTROPS',
       desc: 'Pone una capa de Púas en el campo rival si el portador se retira con un movimiento de relevo.',
       fling: { basePower: 30 },
       onAfterMove(pokemon, target, move) {
@@ -239,12 +253,14 @@
     // La Banda de Relevo se gestiona en el motor (ver 'relayband' en mod.js):
     // al cambiar manualmente, el Pokémon que entra recibe las mejoras.
     'Banda de Relevo': {
+      sprite: 'RELAYBAND',
       desc: 'Al cambiar de Pokémon manualmente, el que entra recibe las mejoras de características.',
       fling: { basePower: 10 },
     },
 
     // ------------------------------------------------------ TRAS GOLPEAR --
     'Filtro Absorbente': {
+      sprite: 'ABSORBFILTER',
       desc: 'Cura al portador un 15% del daño que causa con movimientos de tipo Agua.',
       fling: { basePower: 10 },
       onAfterMoveSecondarySelfPriority: -1,
@@ -256,6 +272,7 @@
     },
 
     'Anillo Espinado': {
+      sprite: 'THORNRING',
       desc: 'Los ataques de contacto quitan un 5% extra al rival, pero cuestan un 3% de los PS del portador.',
       fling: { basePower: 30 },
       onSourceDamagingHit(damage, target, source, move) {
@@ -283,6 +300,7 @@
     },
 
     'Filtro de Éter': {
+      sprite: 'ETHERFILTER',
       desc: 'Anula los drenajes del rival y le inflige la mitad de lo que iba a curarse.',
       fling: { basePower: 10 },
       onSourceTryHeal(damage, target, source, effect) {

@@ -415,3 +415,35 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
 @media (max-width: 680px) {
   .lado.dobles.lado-yo .sprite-wrap .sprite { width: 100px; height: 100px; }
 }
+
+/* ------------------------------------------------- fichas al pasar el ratón */
+.info-flotante {
+  position: fixed; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .12s;
+  background: #0f111a; border: 1px solid var(--borde); border-radius: 12px; box-shadow: var(--sombra);
+  padding: 10px 12px; width: max-content; max-width: min(330px, 92vw); font-size: 13px; left: -999px; top: -999px;
+}
+.info-flotante.visible { opacity: 1; }
+.ficha { display: grid; gap: 5px; }
+.ficha-cab { display: flex; gap: 8px; align-items: center; }
+.ficha-nombre { font: 700 16px 'Fredoka', sans-serif; }
+.ficha-tipos { margin-top: 2px; display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.tachado { opacity: .5; text-decoration: line-through; }
+.ficha-fila { line-height: 1.35; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ficha-fila .estado-tag { margin-right: 0; }
+.ficha-desc { color: var(--tenue); font-size: 12px; width: 100%; line-height: 1.35; }
+.ficha-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.ficha-stats small { color: var(--tenue); }
+.ficha-stats .sube { color: #8ef0aa; } .ficha-stats .baja { color: #ffa6a6; }
+.ficha-movs { display: grid; gap: 3px; margin-top: 2px; }
+.ficha-mov { display: flex; gap: 6px; align-items: center; }
+.hud-tipos { display: flex; gap: 2px; margin-top: 1px; }
+.hud-tipos .tipo { font-size: 10px; padding: 0 5px; }
+.btn-poder {
+  --poder: #888; background: var(--bg2); border: 2px solid var(--poder); color: var(--texto); border-radius: 999px;
+  padding: 5px 12px; font-weight: 800; font-size: 13px; cursor: pointer;
+}
+.btn-poder.activo { background: var(--poder); color: #15121d; box-shadow: 0 0 12px var(--poder); }
+.extras-mov { flex-wrap: wrap; align-items: center; gap: 8px; }
+.btn-movimiento.con-poder { box-shadow: 0 0 0 2px rgba(255,255,255,.75), 0 3px 0 rgba(0,0,0,.4); }
+.sprite-wrap.dinamax { transform: scale(1.35); transform-origin: bottom center; filter: drop-shadow(0 0 14px #ff2d55) drop-shadow(0 0 4px #ff2d55); }
+.lado-rival .sprite-wrap.dinamax { transform-origin: center bottom; }

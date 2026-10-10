@@ -23,9 +23,11 @@ export interface InfoCustom {
   nombresForma: {[id: string]: string};
   /** ids de objetos personalizados */
   objetos: Set<string>;
+  /** id de objeto -> archivo de sprite */
+  spritesObjeto: {[id: string]: string};
 }
 
-export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, objetos: new Set()};
+export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, objetos: new Set(), spritesObjeto: {}};
 
 let cached: any = null;
 
@@ -75,9 +77,10 @@ export function buildMod() {
   // --------------------------------------------------------------------- objetos
   num = 5001;
   for (const [name, data] of Object.entries<AnyObj>(W.DATOS_OBJETOS || {})) {
-    const {desc, ...handlers} = data;
+    const {desc, sprite, ...handlers} = data;
     const id = toID(name);
     Items[id] = {name, num: num++, gen: 9, desc, shortDesc: desc, ...handlers};
+    if (sprite) INFO.spritesObjeto[id] = sprite;
     INFO.objetos.add(id);
   }
 
@@ -207,6 +210,7 @@ export function buildMod() {
         desc: `Permite megaevolucionar a ${quien} en combate.`, shortDesc: `Megaevoluciona a ${quien}.`,
       };
       INFO.objetos.add(toID(p.megaPiedra));
+      if (p.spritePiedra) INFO.spritesObjeto[toID(p.megaPiedra)] = p.spritePiedra;
       learnset = {};
     } else if (p.forma) {
       const dash = name.indexOf('-');
@@ -251,6 +255,39 @@ export function buildMod() {
   const Scripts: AnyObj = {
     inherit: 'gen9',
     gen: 9,
+    // Dinamax permitido en Gen 9 (una vez por combate, como en la 8.ª gen)
+    side: {
+      canDynamaxNow(this: any) { return !this.dynamaxUsed; },
+    },
+    // Solo UN poder especial por combate y jugador: Mega, Movimiento Z, Dinamax o Teracristal
+    pokemon: {
+      getMoveRequestData(this: any) {
+        const data = Object.getPrototypeOf(this).getMoveRequestData.call(this);
+        const side = this.side;
+        if (side.poderUsado || side.zMoveUsed || side.dynamaxUsed) {
+          delete data.canMegaEvo; delete data.canMegaEvoX; delete data.canMegaEvoY; delete data.canUltraBurst;
+          delete data.canZMove; delete data.canTerastallize;
+          if (!this.volatiles['dynamax']) { delete data.canDynamax; delete data.maxMoves; }
+          delete data.canDynamax;
+        }
+        return data;
+      },
+    },
+    actions: {
+      runMegaEvo(this: any, pokemon: any) {
+        const r = Object.getPrototypeOf(this).runMegaEvo.call(this, pokemon);
+        if (r) pokemon.side.poderUsado = true;
+        return r;
+      },
+      terastallize(this: any, pokemon: any) {
+        pokemon.side.poderUsado = true;
+        return Object.getPrototypeOf(this).terastallize.call(this, pokemon);
+      },
+    },
+    start(this: any) {
+      for (const side of this.sides) if (side) side.dynamaxUsed = false;
+      return (Battle.prototype as any).start.call(this);
+    },
     // Banda de Relevo: al cambiar manualmente, el que entra recibe las subidas.
     runAction(this: any, action: any) {
       let guardado: AnyObj | null = null;

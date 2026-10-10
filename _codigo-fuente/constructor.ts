@@ -90,7 +90,7 @@ function opcionesObjeto(): Opcion[] {
   const d = dex();
   const out: Opcion[] = [{id: '', nombre: '(ninguno)', buscar: 'ninguno', render: () => h('div', {class: 'fila-obj'}, h('span', {class: 'nombre'}, '(Sin objeto)'))}];
   for (const it of d.items.all()) {
-    if (!it.exists || it.zMove || (it.isNonstandard && !['Past', 'Unobtainable'].includes(it.isNonstandard))) continue;
+    if (!it.exists || (it.isNonstandard && !['Past', 'Unobtainable'].includes(it.isNonstandard))) continue;
     if (it.isPokeball || it.id.endsWith('mail')) continue;
     const custom = INFO.objetos.has(it.id);
     out.push({
@@ -232,6 +232,11 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
             inp.addEventListener('change', () => { s.shiny = inp.checked; cambiar(); });
             return inp;
           })()),
+          sp.canGigantamax ? campo('Gigamax', (() => {
+            const inp = h('input', {type: 'checkbox', checked: !!s.gigantamax});
+            inp.addEventListener('change', () => { s.gigantamax = inp.checked; cambiar(); });
+            return inp;
+          })()) : null,
           campo('Teratipo', (() => {
             const sel = h('select', {class: 'select'}, ...Object.keys(TIPOS_ES).filter(t => t !== '???').map(t =>
               h('option', {value: t, selected: s.teraType === t}, TIPOS_ES[t])));

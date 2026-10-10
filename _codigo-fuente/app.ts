@@ -2,7 +2,8 @@
 import {buildMod, INFO, FORMATOS} from './mod';
 import {h, toast, dex, tipoBadge, spriteImg, nombreVisible, STATS_CORTO, storage, CATEGORIA_ES, TIPOS_ES, nomMov, nomHab, descHab} from './util';
 import {pantallaEquipos, colorStat, modalTexto} from './constructor';
-import {cargarEquipos, validarEquipo, empaquetar, Equipo, movimientosDe} from './equipos';
+import {cargarEquipos, guardarEquipos, validarEquipo, empaquetar, Equipo, movimientosDe} from './equipos';
+import {equiposParejos, RESERVAS, Reserva} from './aleatorio';
 import {PantallaCombate} from './combate';
 import {Motor, IA} from './motor';
 import {crearSala, unirseSala, Canal, Sala} from './red';
@@ -69,54 +70,58 @@ function practica() {
   const sel = selectorEquipo(null);
   const rival = selectorEquipo(null);
   const formato = h('select', {class: 'select'}, h('option', {value: 'singles'}, 'Individual'), h('option', {value: 'doubles'}, 'Dobles'));
-  const rivalAleatorio = h('input', {type: 'checkbox', checked: true});
+  const modo = h('select', {class: 'select'},
+    h('option', {value: 'parejos'}, 'Los dos con equipos aleatorios parejos'),
+    sel.vacio ? null : h('option', {value: 'mio-vs-aleatorio'}, 'Mi equipo contra un equipo aleatorio'),
+    sel.vacio ? null : h('option', {value: 'mio-vs-mio'}, 'Mi equipo contra otro de mis equipos'));
+  modo.value = storage.get('arena.modoPractica', 'parejos');
+  if (!modo.value) modo.value = 'parejos';
+  const reserva = selectorReserva();
+  const campoMio = h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el);
+  const campoRival = h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Equipo de la IA'), rival.el);
+  const campoReserva = h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Pokémon de los equipos aleatorios'), reserva.el);
+  const actualizar = () => {
+    storage.set('arena.modoPractica', modo.value);
+    campoMio.style.display = modo.value === 'parejos' ? 'none' : '';
+    campoRival.style.display = modo.value === 'mio-vs-mio' ? '' : 'none';
+    campoReserva.style.display = modo.value === 'mio-vs-mio' ? 'none' : '';
+  };
+  modo.addEventListener('change', actualizar);
   app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(inicio)}, '← Inicio'), h('h2', {}, 'Practicar contra la IA')),
-    sel.vacio ? sinEquipos() : h('div', {class: 'tarjeta formulario'},
-      h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
+    h('div', {class: 'tarjeta formulario'},
+      h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Modo'), modo),
+      campoReserva, campoMio, campoRival,
       h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Formato'), formato),
-      h('label', {class: 'campo campo-check'}, rivalAleatorio, ' La IA usa un equipo aleatorio de Pokémon personalizados'),
-      h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Equipo de la IA (si no es aleatorio)'), rival.el),
       h('button', {class: 'btn btn-grande', onclick: () => {
-        const eq = sel.equipo();
-        if (!eq) return;
-        const errs = validarEquipo({...eq, formato: formato.value as any});
-        if (errs.length) { toast(errs[0], 5000); return; }
-        const eqIA = rivalAleatorio.checked ? equipoAleatorio(formato.value === 'doubles' ? 6 : 6) : rival.equipo()!;
         const f = formato.value as 'singles' | 'doubles';
-        cambiarPantalla(() => combateLocal(eq, eqIA, f));
+        const m = modo.value;
+        const r = reserva.valor();
+        let generar: () => [Equipo, Equipo];
+        if (m === 'parejos') generar = () => equiposParejos(r);
+        else {
+          const eq = sel.equipo();
+          if (!eq) return;
+          const errs = validarEquipo({...eq, formato: f});
+          if (errs.length) { toast(errs[0], 5000); return; }
+          if (m === 'mio-vs-mio') { const otro = rival.equipo(); if (!otro) return; generar = () => [eq, otro]; }
+          else generar = () => [eq, equiposParejos(r, eq.sets.length)[1]];
+        }
+        cambiarPantalla(() => combateLocal(generar, f));
       }}, '¡A combatir!')));
+  actualizar();
 }
 
-function equipoAleatorio(n: number): Equipo {
-  const d = dex();
-  const ids = [...INFO.custom].filter(id => !d.species.get(id).battleOnly && !d.species.get(id).nfe);
-  const usados = new Set<string>();
-  const sets: any[] = [];
-  const objetos = [...INFO.objetos].filter(i => i !== 'metagrossitax');
-  while (sets.length < n && usados.size < ids.length) {
-    const sp = d.species.get(ids[Math.floor(Math.random() * ids.length)]);
-    if (usados.has(sp.baseSpecies)) continue;
-    usados.add(sp.baseSpecies);
-    const legales = movimientosDe(sp.name).map(m => d.moves.get(m));
-    const atk = sp.baseStats.atk >= sp.baseStats.spa ? 'Physical' : 'Special';
-    const ataques = legales.filter(m => m.category === atk && m.basePower >= 60 && !m.flags['charge'] && !m.selfdestruct)
-      .sort(() => Math.random() - 0.5);
-    const stab = ataques.filter(m => sp.types.includes(m.type));
-    const cobertura = ataques.filter(m => !sp.types.includes(m.type));
-    const estado = legales.filter(m => m.category === 'Status').sort(() => Math.random() - 0.5);
-    const moves = [...new Set([...stab.slice(0, 2), ...cobertura.slice(0, 1), ...(estado.length ? [estado[0]] : cobertura.slice(1, 2))]
-      .map(m => m.name))].slice(0, 4);
-    const ev = atk === 'Physical' ? {hp: 4, atk: 252, def: 0, spa: 0, spd: 0, spe: 252} : {hp: 4, atk: 0, def: 0, spa: 252, spd: 0, spe: 252};
-    sets.push({name: '', species: sp.name, item: d.items.get('Metagrossita X').itemUser?.includes(sp.name) ? 'Metagrossita X' : (Math.random() < 0.6 ? d.items.get(objetos[Math.floor(Math.random() * objetos.length)]).name : 'Leftovers'),
-      ability: Object.values(sp.abilities)[0], moves, nature: atk === 'Physical' ? 'Jolly' : 'Timid', evs: ev,
-      ivs: {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31}, level: 100, gender: '', shiny: Math.random() < 0.05, teraType: sp.types[0]});
-  }
-  return {id: 'ia', nombre: 'IA', formato: 'singles', sets};
+function selectorReserva() {
+  const el = h('select', {class: 'select'}, ...Object.entries(RESERVAS).map(([k, v]) => h('option', {value: k}, v)));
+  el.value = storage.get('arena.reserva', 'mezcla');
+  el.addEventListener('change', () => storage.set('arena.reserva', el.value));
+  return {el, valor: () => el.value as Reserva};
 }
 
-function combateLocal(eq: Equipo, eqIA: Equipo, formato: 'singles' | 'doubles') {
+function combateLocal(generar: () => [Equipo, Equipo], formato: 'singles' | 'doubles') {
   app.innerHTML = '';
   const yo = nombreJugador() || 'Tú';
+  const [eq, eqIA] = generar();
   const motor = new Motor(formato, {nombre: yo, equipo: empaquetar(eq)}, {nombre: 'IA', equipo: empaquetar(eqIA)});
   new IA(motor, 'p2');
   const raiz = h('div', {});
@@ -127,12 +132,20 @@ function combateLocal(eq: Equipo, eqIA: Equipo, formato: 'singles' | 'doubles') 
     elegir: e => motor.elegir('p1', e),
     rendirse: () => motor.rendirse('p1'),
     alTerminar: () => [
-      h('button', {class: 'btn', onclick: () => cambiarPantalla(() => combateLocal(eq, eqIA.id === 'ia' ? equipoAleatorio(6) : eqIA, formato))}, 'Otra vez'),
+      h('button', {class: 'btn', onclick: () => cambiarPantalla(() => combateLocal(generar, formato))}, 'Otra vez'),
+      eq.id.startsWith('aleatorio') ? h('button', {class: 'btn btn-sec', onclick: () => guardarComoEquipo(eq, formato)}, 'Guardar mi equipo') : null,
       h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(practica)}, 'Volver'),
-    ],
+    ].filter(Boolean) as HTMLElement[],
   });
   motor.escuchar('p1', c => pantalla.recibir(c));
   limpiar = () => { pantalla.destruir(); motor.destruir(); };
+}
+
+function guardarComoEquipo(eq: Equipo, formato: 'singles' | 'doubles') {
+  const lista = cargarEquipos();
+  lista.push({...eq, id: Math.random().toString(36).slice(2, 10), nombre: 'Aleatorio ' + new Date().toLocaleDateString('es-ES'), formato});
+  guardarEquipos(lista);
+  toast('Equipo guardado en "Mis equipos"');
 }
 
 // --------------------------------------------------------------------- online --
@@ -142,15 +155,15 @@ function online() {
   const codigoIn = h('input', {class: 'input input-codigo', placeholder: 'CÓDIGO', maxlength: '5', autocomplete: 'off', spellcheck: 'false'});
   codigoIn.addEventListener('input', () => { codigoIn.value = codigoIn.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
   app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(inicio)}, '← Inicio'), h('h2', {}, 'Combatir online')),
-    sel.vacio ? sinEquipos() : h('div', {class: 'online-grid'},
+    h('div', {class: 'online-grid'},
       h('div', {class: 'tarjeta formulario'},
-        h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
-        h('p', {class: 'tenue'}, 'Podrás cambiar de equipo en la sala antes de empezar.')),
+        sel.vacio ? h('p', {}, 'Aún no tienes equipos: podréis jugar con ', h('b', {}, 'equipos aleatorios parejos'), ' o crear uno en "Mis equipos".')
+          : [h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
+            h('p', {class: 'tenue'}, 'Podrás cambiar de equipo en la sala antes de empezar. También se puede jugar con equipos aleatorios.')]),
       h('div', {class: 'tarjeta'},
         h('h3', {}, 'Crear sala'),
         h('p', {}, 'Recibirás un código para pasárselo a tu amigo.'),
         h('button', {class: 'btn btn-grande', onclick: () => {
-          const eq = sel.equipo(); if (!eq) return;
           cambiarPantalla(() => salaAnfitrion());
         }}, 'Crear sala')),
       h('div', {class: 'tarjeta'},
@@ -159,12 +172,11 @@ function online() {
         codigoIn,
         h('button', {class: 'btn btn-grande', onclick: () => {
           if (codigoIn.value.length < 4) { toast('Escribe el código de la sala'); return; }
-          const eq = sel.equipo(); if (!eq) return;
           cambiarPantalla(() => salaInvitado(codigoIn.value));
         }}, 'Unirse'))));
 }
 
-interface InfoRival { nombre: string; equipo: string; resumen: string[]; version: string }
+interface InfoRival { nombre: string; equipo: string | null; resumen: string[]; version: string }
 
 function resumenEquipo(eq: Equipo) { return eq.sets.map(s => s.species); }
 
@@ -177,7 +189,10 @@ function salaAnfitrion() {
   let sala: Sala | null = null;
   let codigo = '';
   let formato: 'singles' | 'doubles' = storage.get('arena.formatoOnline', 'singles');
+  let aleatorio: boolean = storage.get('arena.aleatorioOnline', cargarEquipos().length === 0);
+  let reserva: Reserva = storage.get('arena.reserva', 'mezcla');
   let sel = selectorEquipo(null, () => pintarLobby());
+  const avisarModo = () => canal?.enviar({t: 'formato', formato, aleatorio, reserva});
 
   const fin = () => { pantalla?.destruir(); motor?.destruir(); canal?.cerrar(); sala?.cancelar(); };
   limpiar = fin;
@@ -188,7 +203,14 @@ function salaAnfitrion() {
     sel = selectorEquipo(null, () => pintarLobby());
     const fSel = h('select', {class: 'select'}, h('option', {value: 'singles', selected: formato === 'singles'}, 'Individual'),
       h('option', {value: 'doubles', selected: formato === 'doubles'}, 'Dobles'));
-    fSel.addEventListener('change', () => { formato = fSel.value as any; storage.set('arena.formatoOnline', formato); canal?.enviar({t: 'formato', formato}); });
+    fSel.addEventListener('change', () => { formato = fSel.value as any; storage.set('arena.formatoOnline', formato); avisarModo(); });
+    const mSel = h('select', {class: 'select'},
+      h('option', {value: 'propios', selected: !aleatorio}, 'Cada uno con su equipo'),
+      h('option', {value: 'aleatorio', selected: aleatorio}, 'Equipos aleatorios parejos'));
+    mSel.addEventListener('change', () => { aleatorio = mSel.value === 'aleatorio'; storage.set('arena.aleatorioOnline', aleatorio); avisarModo(); pintarLobby(estado); });
+    const rSel = selectorReserva();
+    rSel.el.value = reserva;
+    rSel.el.addEventListener('change', () => { reserva = rSel.valor(); avisarModo(); });
     app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(online)}, '← Salir'), h('h2', {}, 'Tu sala')),
       h('div', {class: 'lobby'},
         h('div', {class: 'tarjeta codigo-tarjeta'},
@@ -197,9 +219,12 @@ function salaAnfitrion() {
           codigo ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => { navigator.clipboard?.writeText(codigo); toast('Código copiado'); }}, 'Copiar código') : null,
           h('p', {class: 'tenue'}, codigo ? 'Pásale este código a tu amigo. Mantén esta pestaña abierta.' : 'Creando la sala…')),
         h('div', {class: 'tarjeta formulario'},
-          h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
+          h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Equipos'), mSel),
+          aleatorio ? h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Pokémon de los equipos aleatorios'), rSel.el)
+            : sel.vacio ? h('div', {class: 'avisos'}, 'No tienes equipos guardados: elige "Equipos aleatorios parejos" o crea uno.')
+            : h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
           h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Formato del combate'), fSel),
-          h('div', {class: 'rival-info'}, rival ? [h('b', {}, `${rival.nombre} está en la sala`), h('div', {class: 'eq-iconos'}, ...rival.resumen.map(s => spriteImg(s, 'front', false, 'mini')))]
+          h('div', {class: 'rival-info'}, rival ? [h('b', {}, `${rival.nombre} está en la sala`), aleatorio ? null : rival.resumen.length ? h('div', {class: 'eq-iconos'}, ...rival.resumen.map(s => spriteImg(s, 'front', false, 'mini'))) : h('span', {class: 'tenue'}, 'Tu amigo no tiene equipo: usad equipos aleatorios.')]
             : h('span', {class: 'tenue pulso'}, 'Esperando a que se una alguien…')),
           estado ? h('div', {class: 'avisos'}, estado) : null,
           h('button', {class: 'btn btn-grande', disabled: !rival, onclick: empezar}, '¡Empezar combate!'))));
@@ -207,16 +232,24 @@ function salaAnfitrion() {
 
   function empezar() {
     if (!rival || !canal) return;
-    const eq = sel.equipo();
-    if (!eq) return;
-    const errs = validarEquipo({...eq, formato});
-    if (errs.length) { toast('Tu equipo: ' + errs[0], 5000); return; }
-    if (formato === 'doubles' && rival.resumen.length < 2) { toast('El equipo de tu rival necesita al menos 2 Pokémon para dobles'); return; }
+    let eqMio: string, eqRival: string;
+    if (aleatorio) {
+      const [a, b] = equiposParejos(reserva);
+      eqMio = empaquetar(a); eqRival = empaquetar(b);
+    } else {
+      const eq = sel.equipo();
+      if (!eq) { toast('Elige un equipo o usad equipos aleatorios'); return; }
+      const errs = validarEquipo({...eq, formato});
+      if (errs.length) { toast('Tu equipo: ' + errs[0], 5000); return; }
+      if (!rival.equipo) { toast('Tu amigo no tiene equipo: elegid "Equipos aleatorios parejos"', 5000); return; }
+      if (formato === 'doubles' && rival.resumen.length < 2) { toast('El equipo de tu rival necesita al menos 2 Pokémon para dobles'); return; }
+      eqMio = empaquetar(eq); eqRival = rival.equipo;
+    }
     const yo = nombreJugador() || 'Anfitrión';
     let nombreRival = rival.nombre || 'Invitado';
     if (nombreRival === yo) nombreRival += ' (2)';
     motor?.destruir();
-    motor = new Motor(formato, {nombre: yo, equipo: empaquetar(eq)}, {nombre: nombreRival, equipo: rival.equipo});
+    motor = new Motor(formato, {nombre: yo, equipo: eqMio}, {nombre: nombreRival, equipo: eqRival});
     canal.enviar({t: 'inicio', formato, nombres: [yo, nombreRival]});
     const m = motor;
     m.escuchar('p2', c => canal?.enviar({t: 'p', d: c}));
@@ -238,7 +271,7 @@ function salaAnfitrion() {
   function conectar(c: Canal) {
     if (canal) { c.enviar({t: 'llena'}); setTimeout(() => c.cerrar(), 500); return; }
     canal = c;
-    c.enviar({t: 'formato', formato});
+    avisarModo();
     c.onMensaje(msg => {
       switch (msg.t) {
       case 'hola':
@@ -267,14 +300,16 @@ function salaInvitado(codigo: string) {
   let canal: Canal | null = null;
   let pantalla: PantallaCombate | null = null;
   let formato = 'singles';
+  let aleatorio = false;
+  let reservaHost = '';
   let sel = selectorEquipo(null, () => { enviarEquipo(); pintar(); });
   const sala = unirseSala(codigo, c => { canal = c; configurar(c); pintar(); }, err => pintar(err));
   limpiar = () => { pantalla?.destruir(); canal?.cerrar(); sala.cancelar(); };
 
   function enviarEquipo() {
+    if (!canal) return;
     const eq = sel.equipo();
-    if (!eq || !canal) return;
-    canal.enviar({t: 'hola', nombre: nombreJugador() || 'Invitado', equipo: empaquetar(eq), resumen: resumenEquipo(eq), version: VERSION_DATOS});
+    canal.enviar({t: 'hola', nombre: nombreJugador() || 'Invitado', equipo: eq ? empaquetar(eq) : null, resumen: eq ? resumenEquipo(eq) : [], version: VERSION_DATOS});
   }
 
   function pintar(error = '') {
@@ -282,13 +317,15 @@ function salaInvitado(codigo: string) {
     app.innerHTML = '';
     sel = selectorEquipo(null, () => { enviarEquipo(); pintar(); });
     const eq = sel.equipo();
-    const errs = eq ? validarEquipo({...eq, formato: formato as any}) : [];
+    const errs = eq && !aleatorio ? validarEquipo({...eq, formato: formato as any}) : [];
     app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(online)}, '← Salir'), h('h2', {}, `Sala ${codigo}`)),
       h('div', {class: 'lobby'},
         h('div', {class: 'tarjeta formulario'},
           h('div', {class: 'rival-info'}, error ? h('div', {class: 'avisos'}, error) :
             canal ? h('b', {}, '✓ Conectado. Esperando a que el anfitrión empiece…') : h('span', {class: 'tenue pulso'}, 'Conectando…')),
-          h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
+          aleatorio ? h('div', {}, 'Equipos: ', h('b', {}, 'aleatorios parejos'), reservaHost ? ` (${RESERVAS[reservaHost as Reserva] || ''})` : '')
+            : sel.vacio ? h('div', {class: 'avisos'}, 'No tienes equipos: pídele al anfitrión que elija "Equipos aleatorios parejos".')
+            : h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
           h('div', {}, 'Formato elegido por el anfitrión: ', h('b', {}, formato === 'doubles' ? 'Dobles' : 'Individual')),
           errs.length ? h('div', {class: 'avisos'}, '⚠ ' + errs[0]) : null,
           error ? h('button', {class: 'btn', onclick: () => cambiarPantalla(() => salaInvitado(codigo))}, 'Reintentar') : null)));
@@ -298,7 +335,7 @@ function salaInvitado(codigo: string) {
     enviarEquipo();
     c.onMensaje(msg => {
       switch (msg.t) {
-      case 'formato': formato = msg.formato; if (!pantalla) pintar(); break;
+      case 'formato': formato = msg.formato; aleatorio = !!msg.aleatorio; reservaHost = msg.reserva || ''; if (!pantalla) pintar(); break;
       case 'llena': pintar('Esa sala ya tiene dos jugadores.'); break;
       case 'inicio': {
         app.innerHTML = '';
