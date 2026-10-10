@@ -1,15 +1,16 @@
 // Equipos aleatorios "parejos": se reparten los Pokémon por parejas de poder parecido,
 // uno para cada jugador, y se les crea un set razonable con el mismo método.
+import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {INFO} from './mod';
 import {dex} from './util';
-import {Equipo, SetPkm, movimientosDe} from './equipos';
+import {Equipo, SetPkm, movimientosDe, objetosRequeridos} from './equipos';
 
 export type Reserva = 'custom' | 'mezcla' | 'todos';
 export const RESERVAS: {[k in Reserva]: string} = {
-  custom: 'Solo personalizados',
-  mezcla: 'Mitad personalizados, mitad oficiales',
-  todos: 'Cualquier Pokémon',
+  custom: tr('Solo personalizados', 'Custom only'),
+  mezcla: tr('Mitad personalizados, mitad oficiales', 'Half custom, half official'),
+  todos: tr('Cualquier Pokémon', 'Any Pokémon'),
 };
 
 const MALOS_NOSTD = new Set(['CAP', 'LGPE', 'Custom', 'Future', 'Gigantamax', 'Unobtainable']);
@@ -42,7 +43,8 @@ function candidatas(): {custom: any[], oficiales: any[]} {
   for (const sp of d.species.all()) {
     if (!sp.exists || sp.battleOnly || sp.nfe || (sp.isNonstandard && MALOS_NOSTD.has(sp.isNonstandard))) continue;
     if (sp.name.endsWith('-Totem') || sp.name.includes('-Gmax') || sp.requiredMove) continue;
-    if (sp.requiredItem && !d.items.get(sp.requiredItem).exists) continue;
+    const req = objetosRequeridos(sp);
+    if (req.length && !d.items.get(req[0]).exists) continue;
     const bst = bstDe(sp);
     if (bst < 420 || bst > 720) continue;
     const habs = Object.values(sp.abilities).map(a => toID(a as string));
@@ -111,17 +113,8 @@ export function setAleatorio(species: string): SetPkm {
   habs.sort((a, b) => (d.abilities.get(b).rating || 0) - (d.abilities.get(a).rating || 0) + (Math.random() - 0.5) * 0.4);
   const ability = habs[0] || (Object.values(sp.abilities)[0] as string);
 
-  // Objeto
-  const estado = elegidos.filter(m => m.category === 'Status').length;
-  const customs = [...INFO.objetos].filter(i => !d.items.get(i).megaStone);
-  let item: string;
-  const mega = d.items.all().find(i => i.megaStone && Object.keys(i.megaStone).includes(sp.name) && INFO.objetos.has(i.id));
-  if (sp.requiredItem) item = sp.requiredItem;
-  else if (mega) item = mega.name;
-  else if (customs.length && Math.random() < 0.35) item = d.items.get(rnd(customs)).name;
-  else if (!estado) item = rnd(fisico ? ['Choice Band', 'Life Orb', 'Choice Scarf', 'Expert Belt'] : ['Choice Specs', 'Life Orb', 'Choice Scarf', 'Expert Belt']);
-  else if (setup.length && elegidos.some(m => setup.includes(m.id))) item = rnd(['Life Orb', 'Leftovers', 'Lum Berry', 'Weakness Policy']);
-  else item = rnd(['Leftovers', 'Leftovers', 'Heavy-Duty Boots', 'Rocky Helmet', 'Sitrus Berry']);
+  // Objeto: según el Pokémon, sus movimientos y su papel
+  const item = elegirObjeto(sp, elegidos, fisico, nivelPara(bstDe(sp)));
 
   const rapido = sp.baseStats.spe >= 70;
   const nature = fisico ? (rapido ? 'Jolly' : 'Adamant') : (rapido ? 'Timid' : 'Modest');
@@ -163,6 +156,83 @@ export function equiposParejos(reserva: Reserva, n = 6): [Equipo, Equipo] {
     equipos[0].push(setAleatorio(p0.name));
     equipos[1].push(setAleatorio(p1.name));
   }
-  const mk = (sets: SetPkm[], i: number): Equipo => ({id: 'aleatorio' + i, nombre: 'Equipo aleatorio', formato: 'singles', sets});
+  const mk = (sets: SetPkm[], i: number): Equipo => ({id: 'aleatorio' + i, nombre: tr('Equipo aleatorio', 'Random team'), formato: 'singles', sets});
   return [mk(equipos[0], 1), mk(equipos[1], 2)];
+}
+
+/** Elige un objeto que tenga sentido para el set (oficiales y personalizados). */
+function elegirObjeto(sp: any, movs: any[], fisico: boolean, nivel: number): string {
+  const d = dex();
+  const req = objetosRequeridos(sp);
+  if (req.length) return req[0];
+  const mega = d.items.all().find(i => i.megaStone && Object.keys(i.megaStone).includes(sp.name) && INFO.objetos.has(i.id));
+  if (mega) return mega.name;
+  const ids = movs.map(m => m.id);
+  const tiene = (...l: string[]) => l.some(x => ids.includes(toID(x)));
+  const ataques = movs.filter(m => m.category !== 'Status');
+  const estado = movs.length - ataques.length;
+  const setupF = tiene(...SETUP_FIS), setupE = tiene(...SETUP_ESP);
+  const cura = tiene(...CURACION);
+  const relevo = tiene('U-turn', 'Volt Switch', 'Flip Turn', 'Parting Shot', 'Baton Pass');
+  const prioridad = ataques.some(m => m.priority > 0);
+  const contacto = ataques.filter(m => m.flags['contact']).length >= 2;
+  const garra = tiene('Crush Claw', 'Shadow Claw', 'Dragon Claw', 'Slash', 'Metal Claw', 'Cross Poison');
+  const retroceso = ataques.some(m => m.recoil || m.hasCrashDamage);
+  const agua = ataques.some(m => m.type === 'Water');
+  const imprecisos = ataques.filter(m => m.accuracy !== true && m.accuracy < 90).length;
+  const bs = sp.baseStats;
+  const fragil = bs.hp + bs.def + bs.spd < 230;
+  const tanque = bs.hp + bs.def + bs.spd >= 300;
+  const rapido = bs.spe >= 95;
+  const tipos = sp.types;
+  const efe = (t: string) => Math.pow(2, d.getEffectiveness(t, tipos)) * (d.getImmunity(t, tipos) ? 1 : 0);
+  const debilidades = Object.keys(d.data.TypeChart).map(t => d.types.get(t).name).filter(t => efe(t) >= 2).length;
+  const cuadruple = Object.keys(d.data.TypeChart).map(t => d.types.get(t).name).some(t => efe(t) >= 4);
+
+  const c: [string, number][] = [];
+  const add = (n: string, w: number, ok = true) => { if (ok && w > 0 && d.items.get(n).exists) c.push([n, w]); };
+  // Oficiales
+  add(fisico ? 'Choice Band' : 'Choice Specs', 9, estado === 0 && !setupF && !setupE);
+  add('Choice Scarf', 7, estado === 0 && !rapido && !setupF && !setupE);
+  add('Life Orb', 5, (setupF || setupE || estado <= 1) && !tanque);
+  add('Expert Belt', 3, estado === 0);
+  add('Leftovers', 6, tanque || cura || estado >= 2);
+  add('Heavy-Duty Boots', 4, efe('Rock') >= 2 || relevo);
+  add('Assault Vest', 5, estado === 0 && tanque);
+  add('Rocky Helmet', 4, tanque && bs.def >= bs.spd && estado >= 1);
+  add('Sitrus Berry', 3, tanque);
+  add('Lum Berry', 4, setupF || setupE);
+  add('Weakness Policy', 4, (setupF || setupE) && tanque && !cuadruple);
+  add('Focus Sash', 4, fragil && !setupF && !setupE);
+  add('Black Sludge', 6, tipos.includes('Poison') && (tanque || cura));
+  add('Eviolite', 6, !!sp.nfe);
+  // Personalizados (solo cuando encajan)
+  add('Shuko', 9, garra);
+  add('Casco de Pruebas', 7, retroceso);
+  add('Chaleco Antidisturbios', 6, estado === 0 && tanque && bs.def >= bs.spd);
+  add('Ancla', 3, setupF || setupE);
+  add('Falso Sustituto', 4, setupF || setupE || fragil);
+  add('Abrojo Trampa', 8, relevo);
+  add('Piedra Espejo', 3, fisico);
+  add('Brazal Inversor', 4, cuadruple || debilidades >= 6);
+  add('Pararrayos Portátil', 4, efe('Electric') >= 2);
+  add('Capa Térmica', 3, fisico && efe('Fire') <= 1);
+  add('Filtro Absorbente', 7, agua);
+  add('Anillo Espinado', 5, contacto && fisico && !fragil);
+  add('Banda de Relevo', 6, (setupF || setupE) && relevo);
+  add('Filtro de Éter', 3, tanque);
+  add('Sello del Guardián', 3, fisico && (setupF || estado === 0));
+  add('Piedra del Caos', 3, tanque);
+  add('Bebida Energética', 6, fragil && !rapido && estado <= 1);
+  add('Bomba de Humo', 4, tanque && bs.def >= bs.spd);
+  add('Pluma Vendaval', 8, prioridad);
+  add('Farol Revelador', 7, imprecisos >= 2);
+  add('Fragmento Meteorito', 7, tipos.includes('Rock'));
+  add('Lana Suave', 4, tanque && bs.def < bs.spd);
+  add('Medalla de Mérito', 6, nivel < 95);
+  if (!c.length) return tanque ? 'Leftovers' : 'Life Orb';
+  const total = c.reduce((a, [, w]) => a + w, 0);
+  let r = Math.random() * total;
+  for (const [n, w] of c) { r -= w; if (r <= 0) return n; }
+  return c[0][0];
 }

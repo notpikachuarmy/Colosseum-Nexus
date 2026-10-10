@@ -1,4 +1,5 @@
 // Constructor de equipos.
+import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {INFO} from './mod';
 import {
@@ -8,7 +9,7 @@ import {
 } from './util';
 import {
   Equipo, SetPkm, cargarEquipos, guardarEquipos, nuevoId, nuevoSet, movimientosDe,
-  exportarEquipo, importarTexto, validarEquipo,
+  exportarEquipo, importarTexto, validarEquipo, formaPorObjeto, objetosRequeridos, maxPokemon,
 } from './equipos';
 
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
@@ -18,7 +19,7 @@ interface Opcion { id: string; nombre: string; buscar: string; render: () => HTM
 
 export function abrirSelector(titulo: string, opciones: Opcion[], onPick: (id: string) => void, filtros?: {[k: string]: (o: Opcion) => boolean}) {
   const fondo = h('div', {class: 'modal-fondo'});
-  const input = h('input', {class: 'buscador', placeholder: 'Buscar…', autocomplete: 'off', spellcheck: 'false'});
+  const input = h('input', {class: 'buscador', placeholder: tr('Buscar…', 'Search…'), autocomplete: 'off', spellcheck: 'false'});
   const lista = h('div', {class: 'selector-lista'});
   let filtroActivo = '';
   const chips = filtros ? h('div', {class: 'chips'}, ...Object.keys(filtros).map(k => {
@@ -42,16 +43,16 @@ export function abrirSelector(titulo: string, opciones: Opcion[], onPick: (id: s
     for (const o of opciones) {
       if (q && !o.buscar.includes(q)) continue;
       if (filtroActivo && filtros && !filtros[filtroActivo](o)) continue;
-      if (n++ > 250) { lista.append(h('div', {class: 'mas'}, 'Escribe para filtrar más…')); break; }
+      if (n++ > 250) { lista.append(h('div', {class: 'mas'}, tr('Escribe para filtrar más…', 'Type to filter more…'))); break; }
       const row = h('button', {class: 'opcion', onclick: () => { cerrar(); onPick(o.id); }}, o.render());
       lista.append(row);
     }
-    if (!n) lista.append(h('div', {class: 'mas'}, 'Sin resultados'));
+    if (!n) lista.append(h('div', {class: 'mas'}, tr('Sin resultados', 'No results')));
   }
   input.addEventListener('input', pintar);
   fondo.addEventListener('click', e => { if (e.target === fondo) cerrar(); });
   fondo.append(h('div', {class: 'modal selector'},
-    h('div', {class: 'modal-cab'}, h('h3', {}, titulo), h('button', {class: 'btn-x', onclick: cerrar, 'aria-label': 'Cerrar'}, '×')),
+    h('div', {class: 'modal-cab'}, h('h3', {}, titulo), h('button', {class: 'btn-x', onclick: cerrar, 'aria-label': tr('Cerrar', 'Close')}, '×')),
     input, chips, lista));
   document.body.append(fondo);
   pintar();
@@ -72,7 +73,7 @@ function opcionesEspecie(): Opcion[] {
     out.push({
       id: sp.name, nombre: sp.name, buscar: sp.id + toID(nombreVisible(sp.name)), grupo: custom ? 'custom' : '',
       render: () => h('div', {class: 'fila-especie'}, iconImg(sp.name),
-        h('span', {class: 'nombre'}, custom ? h('b', {class: 'estrella', title: 'Personalizado'}, '★ ') : null, nombreVisible(sp.name)),
+        h('span', {class: 'nombre'}, custom ? h('b', {class: 'estrella', title: tr('Personalizado', 'Custom')}, '★ ') : null, nombreVisible(sp.name)),
         h('span', {class: 'tipos'}, ...sp.types.map(t => tipoBadge(t, true))),
         h('span', {class: 'stats-mini'}, ...STATS.map(s => h('span', {}, h('small', {}, STATS_CORTO[s]), ' ', (sp.baseStats as any)[s]))),
         h('span', {class: 'bst'}, String(bst))),
@@ -88,7 +89,7 @@ let opcionesObjetoCache: Opcion[] | null = null;
 function opcionesObjeto(): Opcion[] {
   if (opcionesObjetoCache) return opcionesObjetoCache;
   const d = dex();
-  const out: Opcion[] = [{id: '', nombre: '(ninguno)', buscar: 'ninguno', render: () => h('div', {class: 'fila-obj'}, h('span', {class: 'nombre'}, '(Sin objeto)'))}];
+  const out: Opcion[] = [{id: '', nombre: '(ninguno)', buscar: 'ninguno', render: () => h('div', {class: 'fila-obj'}, h('span', {class: 'nombre'}, tr('(Sin objeto)', '(No item)')))}];
   for (const it of d.items.all()) {
     if (!it.exists || (it.isNonstandard && !['Past', 'Unobtainable'].includes(it.isNonstandard))) continue;
     if (it.isPokeball || it.id.endsWith('mail')) continue;
@@ -128,36 +129,36 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
   function render() {
     raiz.innerHTML = '';
     const cab = h('header', {class: 'barra'},
-      h('button', {class: 'btn btn-sec', onclick: volver}, '← Inicio'),
-      h('h2', {}, 'Mis equipos'));
+      h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')),
+      h('h2', {}, tr('Mis equipos', 'My teams')));
     const lado = h('aside', {class: 'lista-equipos'},
       h('div', {class: 'acciones'},
         h('button', {class: 'btn', onclick: () => {
-          const eq: Equipo = {id: nuevoId(), nombre: 'Equipo ' + (equipos.length + 1), formato: 'singles', sets: []};
+          const eq: Equipo = {id: nuevoId(), nombre: tr('Equipo ', 'Team ') + (equipos.length + 1), formato: 'singles', sets: []};
           equipos.push(eq); actual = eq; slot = -1; guardar(); render();
-        }}, '+ Nuevo equipo'),
-        h('button', {class: 'btn btn-sec', onclick: dialogoImportar}, 'Importar')),
+        }}, tr('+ Nuevo equipo', '+ New team')),
+        h('button', {class: 'btn btn-sec', onclick: dialogoImportar}, tr('Importar', 'Import'))),
       ...equipos.map(eq => h('button', {class: 'item-equipo' + (eq === actual ? ' activo' : ''), onclick: () => { actual = eq; slot = -1; render(); }},
-        h('div', {class: 'eq-nombre'}, eq.nombre, h('span', {class: 'formato-tag'}, eq.formato === 'doubles' ? 'Dobles' : 'Individual')),
+        h('div', {class: 'eq-nombre'}, eq.nombre, h('span', {class: 'formato-tag'}, eq.formato === 'doubles' ? tr('Dobles', 'Doubles') : eq.formato === 'draft' ? `Draft · ${eq.sets.length}` : tr('Individual', 'Singles'))),
         h('div', {class: 'eq-iconos'}, ...eq.sets.map(s => iconImg(s.species))))),
-      !equipos.length ? h('p', {class: 'vacio'}, 'Aún no tienes equipos. Crea uno nuevo o importa uno en formato Showdown.') : null);
+      !equipos.length ? h('p', {class: 'vacio'}, tr('Aún no tienes equipos. Crea uno nuevo o importa uno en formato Showdown.', "You don't have any teams yet. Create a new one or import one in Showdown format.")) : null);
     const main = h('main', {class: 'editor-equipo'});
     if (actual) pintarEditor(main, actual);
     raiz.append(cab, h('div', {class: 'equipos-layout'}, lado, main));
   }
 
   function dialogoImportar() {
-    const ta = h('textarea', {class: 'texto-equipo', placeholder: 'Pega aquí un equipo en formato Showdown…'});
-    modalTexto('Importar equipo', ta, [
-      ['Importar', () => {
+    const ta = h('textarea', {class: 'texto-equipo', placeholder: tr('Pega aquí un equipo en formato Showdown…', 'Paste a team in Showdown format here…')});
+    modalTexto(tr('Importar equipo', 'Import team'), ta, [
+      [tr('Importar', 'Import'), () => {
         try {
           const sets = importarTexto(ta.value);
-          if (!sets.length) { toast('No se encontró ningún Pokémon en el texto'); return false; }
-          const eq: Equipo = {id: nuevoId(), nombre: 'Importado ' + (equipos.length + 1), formato: 'singles', sets: sets.slice(0, 6)};
+          if (!sets.length) { toast(tr('No se encontró ningún Pokémon en el texto', 'No Pokémon found in the text')); return false; }
+          const eq: Equipo = {id: nuevoId(), nombre: tr('Importado ', 'Imported ') + (equipos.length + 1), sets: sets.slice(0, 12), formato: sets.length > 6 ? 'draft' : 'singles'};
           equipos.push(eq); actual = eq; slot = -1; guardar(); render();
           const errs = validarEquipo(eq);
-          if (errs.length) toast('Importado con avisos: ' + errs[0], 5000);
-        } catch (e) { toast('No se pudo leer el texto'); return false; }
+          if (errs.length) toast(tr('Importado con avisos: ', 'Imported with warnings: ') + errs[0], 5000);
+        } catch (e) { toast(tr('No se pudo leer el texto', "Couldn't read the text")); return false; }
         return true;
       }],
     ]);
@@ -165,35 +166,36 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
 
   function pintarEditor(main: HTMLElement, eq: Equipo) {
     const nombre = h('input', {class: 'input-nombre', value: eq.nombre, maxlength: '40'});
-    nombre.addEventListener('change', () => { eq.nombre = nombre.value.trim() || 'Sin nombre'; guardar(); render(); });
+    nombre.addEventListener('change', () => { eq.nombre = nombre.value.trim() || tr('Sin nombre', 'Unnamed'); guardar(); render(); });
     const formato = h('select', {class: 'select'},
-      h('option', {value: 'singles', selected: eq.formato === 'singles'}, 'Individual'),
-      h('option', {value: 'doubles', selected: eq.formato === 'doubles'}, 'Dobles'));
+      h('option', {value: 'singles', selected: eq.formato === 'singles'}, tr('Individual', 'Singles')),
+      h('option', {value: 'doubles', selected: eq.formato === 'doubles'}, tr('Dobles', 'Doubles')),
+      h('option', {value: 'draft', selected: eq.formato === 'draft'}, tr('Plantilla draft (hasta 12)', 'Draft roster (up to 12)')));
     formato.addEventListener('change', () => { eq.formato = formato.value as any; guardar(); render(); });
     const errs = validarEquipo(eq);
     main.append(
       h('div', {class: 'editor-cab'}, nombre, formato,
         h('button', {class: 'btn btn-sec', onclick: () => {
           const ta = h('textarea', {class: 'texto-equipo', readonly: true}, exportarEquipo(eq));
-          modalTexto('Exportar equipo', ta, [['Copiar', () => { navigator.clipboard?.writeText(ta.value); toast('Copiado'); return true; }]]);
+          modalTexto(tr('Exportar equipo', 'Export team'), ta, [[tr('Copiar', 'Copy'), () => { navigator.clipboard?.writeText(ta.value); toast(tr('Copiado', 'Copied')); return true; }]]);
           setTimeout(() => ta.select(), 50);
-        }}, 'Exportar'),
+        }}, tr('Exportar', 'Export')),
         h('button', {class: 'btn btn-peligro', onclick: () => {
-          if (!confirm(`¿Borrar el equipo "${eq.nombre}"?`)) return;
+          if (!confirm(tr(`¿Borrar el equipo "${eq.nombre}"?`, `Delete the team "${eq.nombre}"?`))) return;
           equipos = equipos.filter(e => e !== eq); actual = equipos[0] || null; slot = -1; guardar(); render();
-        }}, 'Borrar')),
+        }}, tr('Borrar', 'Delete'))),
       h('div', {class: 'slots'},
         ...eq.sets.map((s, i) => h('button', {class: 'slot' + (i === slot ? ' activo' : ''), onclick: () => { slot = i; render(); }},
           spriteImg(s.species, 'front', s.shiny, 'slot-sprite'),
           h('div', {class: 'slot-nombre'}, s.name || nombreVisible(s.species)),
           h('div', {class: 'slot-item'}, s.item ? itemIcon(s.item) : null, s.item ? nomObj(s.item) : '—'))),
-        eq.sets.length < 6 ? h('button', {class: 'slot slot-nuevo', onclick: () => {
-          abrirSelector('Elige un Pokémon', opcionesEspecie(), id => {
+        eq.sets.length < maxPokemon(eq) ? h('button', {class: 'slot slot-nuevo', onclick: () => {
+          abrirSelector(tr('Elige un Pokémon', 'Choose a Pokémon'), opcionesEspecie(), id => {
             eq.sets.push(nuevoSet(id)); slot = eq.sets.length - 1; guardar(); render();
           }, {'★ Solo personalizados': o => o.grupo === 'custom'});
-        }}, h('span', {class: 'mas-grande'}, '+'), 'Añadir') : null),
+        }}, h('span', {class: 'mas-grande'}, '+'), tr('Añadir', 'Add')) : null),
       errs.length && eq.sets.length ? h('div', {class: 'avisos'}, ...errs.map(e => h('div', {}, '⚠ ' + e))) :
-        eq.sets.length ? h('div', {class: 'ok'}, '✓ Equipo listo para combatir') : null,
+        eq.sets.length ? h('div', {class: 'ok'}, tr('✓ Equipo listo para combatir', '✓ Team ready to battle')) : null,
     );
     if (slot >= 0 && eq.sets[slot]) main.append(editorSet(eq, slot));
   }
@@ -207,22 +209,22 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
 
     // Especie
     const cabecera = h('div', {class: 'set-cab'},
-      h('button', {class: 'set-sprite', title: 'Cambiar Pokémon', onclick: () => abrirSelector('Elige un Pokémon', opcionesEspecie(), id => {
+      h('button', {class: 'set-sprite', title: tr('Cambiar Pokémon', 'Change Pokémon'), onclick: () => abrirSelector(tr('Elige un Pokémon', 'Choose a Pokémon'), opcionesEspecie(), id => {
         const n = nuevoSet(id);
-        eq.sets[i] = {...n, name: '', item: s.item, nature: s.nature, evs: s.evs, ivs: s.ivs, level: s.level, shiny: s.shiny,
+        eq.sets[i] = {...n, name: '', item: n.item || s.item, nature: s.nature, evs: s.evs, ivs: s.ivs, level: s.level, shiny: s.shiny,
           moves: s.moves.filter(m => movimientosDe(id).includes(toID(m)))};
         cambiar();
       }, {'★ Solo personalizados': o => o.grupo === 'custom'})}, spriteImg(s.species, 'front', s.shiny)),
       h('div', {class: 'set-info'},
         h('div', {class: 'set-nombre'}, nombreVisible(s.species), INFO.custom.has(sp.id) ? h('span', {class: 'estrella'}, ' ★') : null),
         h('div', {}, ...sp.types.map(t => tipoBadge(t))),
-        campo('Mote', (() => {
+        campo(tr('Mote', 'Nickname'), (() => {
           const inp = h('input', {class: 'input', value: s.name, placeholder: sp.baseSpecies, maxlength: '18'});
           inp.addEventListener('change', () => { s.name = inp.value.trim(); cambiar(); });
           return inp;
         })()),
         h('div', {class: 'fila-campos'},
-          campo('Nivel', (() => {
+          campo(tr('Nivel', 'Level'), (() => {
             const inp = h('input', {class: 'input input-num', type: 'number', min: '1', max: '100', value: String(s.level)});
             inp.addEventListener('change', () => { s.level = Math.max(1, Math.min(100, +inp.value || 100)); cambiar(); });
             return inp;
@@ -232,12 +234,12 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
             inp.addEventListener('change', () => { s.shiny = inp.checked; cambiar(); });
             return inp;
           })()),
-          sp.canGigantamax ? campo('Gigamax', (() => {
+          sp.canGigantamax ? campo(tr('Gigamax', 'Gigantamax'), (() => {
             const inp = h('input', {type: 'checkbox', checked: !!s.gigantamax});
             inp.addEventListener('change', () => { s.gigantamax = inp.checked; cambiar(); });
             return inp;
           })()) : null,
-          campo('Teratipo', (() => {
+          campo(tr('Teratipo', 'Tera Type'), (() => {
             const sel = h('select', {class: 'select'}, ...Object.keys(TIPOS_ES).filter(t => t !== '???').map(t =>
               h('option', {value: t, selected: s.teraType === t}, TIPOS_ES[t])));
             sel.addEventListener('change', () => { s.teraType = sel.value; cambiar(); });
@@ -246,7 +248,7 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
       h('div', {class: 'set-acciones'},
         h('button', {class: 'btn btn-sec btn-sm', disabled: i === 0, onclick: () => { [eq.sets[i - 1], eq.sets[i]] = [eq.sets[i], eq.sets[i - 1]]; slot = i - 1; cambiar(); }}, '↑'),
         h('button', {class: 'btn btn-sec btn-sm', disabled: i === eq.sets.length - 1, onclick: () => { [eq.sets[i + 1], eq.sets[i]] = [eq.sets[i], eq.sets[i + 1]]; slot = i + 1; cambiar(); }}, '↓'),
-        h('button', {class: 'btn btn-peligro btn-sm', onclick: () => { eq.sets.splice(i, 1); slot = -1; cambiar(); }}, 'Quitar')));
+        h('button', {class: 'btn btn-peligro btn-sm', onclick: () => { eq.sets.splice(i, 1); slot = -1; cambiar(); }}, tr('Quitar', 'Remove'))));
 
     // Objeto y habilidad
     const habilidades = [...new Set(Object.values(sp.abilities) as string[])];
@@ -256,10 +258,20 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
     const ab = d.abilities.get(s.ability);
     const it = s.item ? d.items.get(s.item) : null;
     const objHab = h('div', {class: 'fila-campos'},
-      campo('Objeto', h('button', {class: 'btn-campo', onclick: () => abrirSelector('Elige un objeto', opcionesObjeto(), id => { s.item = id; cambiar(); },
+      campo(tr('Objeto', 'Item'), h('button', {class: 'btn-campo', onclick: () => abrirSelector(tr('Elige un objeto', 'Choose an item'), opcionesObjeto(), id => {
+        s.item = id;
+        // Arceus, Silvally, Genesect, Ogerpon...: la forma depende del objeto
+        const actual = d.species.get(s.species);
+        const nueva = formaPorObjeto(s.species, id);
+        if (nueva !== s.species) s.species = nueva;
+        else if (objetosRequeridos(actual).length && !objetosRequeridos(actual).map(toID).includes(toID(id))) {
+          s.species = d.species.get(actual.changesFrom || actual.baseSpecies).name;
+        }
+        cambiar();
+      },
         {'★ Solo personalizados': o => o.grupo === 'custom'})},
         s.item ? itemIcon(s.item) : null, s.item ? nomObj(s.item) : '(ninguno)'), it ? descObj(it.name) : ''),
-      campo('Habilidad', habSel, ab.exists ? descHab(ab.name) : ''));
+      campo(tr('Habilidad', 'Ability'), habSel, ab.exists ? descHab(ab.name) : ''));
 
     // Movimientos
     const legales = movimientosDe(s.species).sort((a, b) => nomMov(a).localeCompare(nomMov(b), 'es'));
@@ -267,15 +279,15 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
       const m = s.moves[k];
       const mv = m ? d.moves.get(m) : null;
       return h('button', {class: 'btn-mov', style: mv ? {borderColor: TIPO_COLOR[mv.type]} : {}, onclick: () => {
-        const ops: Opcion[] = [{id: '', nombre: '', buscar: 'ninguno', render: () => h('div', {class: 'fila-mov'}, h('span', {class: 'nombre'}, '(Vacío)'))},
+        const ops: Opcion[] = [{id: '', nombre: '', buscar: 'ninguno', render: () => h('div', {class: 'fila-mov'}, h('span', {class: 'nombre'}, tr('(Vacío)', '(Empty)')))},
           ...legales.filter(x => !s.moves.map(toID).includes(x) || toID(m || '') === x).map(x => ({
             id: d.moves.get(x).name, nombre: nomMov(x), buscar: x + idBusqueda(nomMov(x)) + toID(d.moves.get(x).type) + idBusqueda(TIPOS_ES[d.moves.get(x).type] || ''),
             grupo: d.moves.get(x).type, render: () => filaMovimiento(x)}))];
-        abrirSelector(`Movimiento ${k + 1}`, ops, id => {
+        abrirSelector(tr(`Movimiento ${k + 1}`, `Move ${k + 1}`), ops, id => {
           const arr = [...s.moves]; arr[k] = id; s.moves = arr.filter(Boolean); cambiar();
         }, {'Físicos': o => !!o.id && d.moves.get(o.id).category === 'Physical', 'Especiales': o => !!o.id && d.moves.get(o.id).category === 'Special',
           'Estado': o => !!o.id && d.moves.get(o.id).category === 'Status', 'De su tipo': o => !!o.id && sp.types.includes(d.moves.get(o.id).type)});
-      }}, mv ? [tipoBadge(mv.type, true), ' ', nomMov(mv.name)] : h('span', {class: 'tenue'}, '— vacío —'));
+      }}, mv ? [tipoBadge(mv.type, true), ' ', nomMov(mv.name)] : h('span', {class: 'tenue'}, tr('— vacío —', '— empty —')));
     }));
 
     // Naturaleza y stats
@@ -287,7 +299,7 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
     const tabla = h('div', {class: 'tabla-stats'});
     const pintarStats = () => {
       tabla.innerHTML = '';
-      restantes.textContent = `EVs restantes: ${510 - totalEv()}`;
+      restantes.textContent = tr(`EVs restantes: ${510 - totalEv()}`, `EVs left: ${510 - totalEv()}`);
       restantes.classList.toggle('mal', totalEv() > 510);
       for (const k of STATS) {
         const base = (sp.baseStats as any)[k];
@@ -315,13 +327,13 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
     };
     pintarStats();
     const presets: [string, {[k: string]: number}, string][] = [
-      ['Atacante físico', {hp: 4, atk: 252, spe: 252}, 'Adamant'],
-      ['Atacante especial', {hp: 4, spa: 252, spe: 252}, 'Modest'],
-      ['Tanque físico', {hp: 252, def: 252, spd: 4}, 'Impish'],
-      ['Tanque especial', {hp: 252, spd: 252, def: 4}, 'Calm'],
-      ['Equilibrado', {hp: 84, atk: 84, def: 84, spa: 84, spd: 84, spe: 84}, ''],
+      [tr('Atacante físico', 'Physical attacker'), {hp: 4, atk: 252, spe: 252}, 'Adamant'],
+      [tr('Atacante especial', 'Special attacker'), {hp: 4, spa: 252, spe: 252}, 'Modest'],
+      [tr('Tanque físico', 'Physical tank'), {hp: 252, def: 252, spd: 4}, 'Impish'],
+      [tr('Tanque especial', 'Special tank'), {hp: 252, spd: 252, def: 4}, 'Calm'],
+      [tr('Equilibrado', 'Balanced'), {hp: 84, atk: 84, def: 84, spa: 84, spd: 84, spe: 84}, ''],
     ];
-    const presetsEl = h('div', {class: 'presets'}, h('span', {class: 'tenue'}, 'Repartos rápidos: '),
+    const presetsEl = h('div', {class: 'presets'}, h('span', {class: 'tenue'}, tr('Repartos rápidos: ', 'Quick spreads: ')),
       ...presets.map(([n, ev, nat]) => h('button', {class: 'chip', onclick: () => {
         s.evs = Object.fromEntries(STATS.map(k => [k, ev[k] || 0]));
         if (nat) s.nature = nat;
@@ -329,9 +341,9 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
       }}, n)));
 
     panel.append(cabecera, objHab,
-      h('h4', {}, 'Movimientos'), movs,
-      h('h4', {}, 'Estadísticas ', restantes),
-      h('div', {class: 'fila-campos'}, campo('Naturaleza', natSel)), presetsEl,
+      h('h4', {}, tr('Movimientos', 'Moves')), movs,
+      h('h4', {}, tr('Estadísticas ', 'Stats '), restantes),
+      h('div', {class: 'fila-campos'}, campo(tr('Naturaleza', 'Nature'), natSel)), presetsEl,
       h('div', {class: 'stats-cab'}, h('span', {}, ''), h('span', {}, 'Base'), h('span', {}, ''), h('span', {}, 'EVs'), h('span', {}, ''), h('span', {}, 'IV'), h('span', {}, 'Total')),
       tabla);
     return panel;
@@ -361,7 +373,7 @@ export function modalTexto(titulo: string, cuerpo: HTMLElement, botones: [string
     h('div', {class: 'modal-cab'}, h('h3', {}, titulo), h('button', {class: 'btn-x', onclick: cerrar}, '×')),
     cuerpo,
     h('div', {class: 'modal-pie'}, ...botones.map(([n, f]) => h('button', {class: 'btn', onclick: () => { if (f() !== false) cerrar(); }}, n)),
-      h('button', {class: 'btn btn-sec', onclick: cerrar}, 'Cerrar'))));
+      h('button', {class: 'btn btn-sec', onclick: cerrar}, tr('Cerrar', 'Close')))));
   document.body.append(fondo);
 }
 

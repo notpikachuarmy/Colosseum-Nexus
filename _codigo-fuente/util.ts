@@ -1,6 +1,7 @@
 // Utilidades de interfaz: sprites, nombres en español, colores de tipo.
 import {toID} from 'pkmn-sim';
 import {INFO, buildMod} from './mod';
+import {EN} from './idioma';
 
 export const dex = () => buildMod();
 
@@ -171,8 +172,31 @@ export const storage = {
   },
 };
 
+// ------------------------------------------------------------ modo inglés --
+if (EN) {
+  for (const k of Object.keys(TIPOS_ES)) TIPOS_ES[k] = k;
+  Object.assign(STATS_ES, {hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed', accuracy: 'Accuracy', evasion: 'Evasion'});
+  Object.assign(STATS_CORTO, {hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe'});
+  Object.assign(STATS_LARGO, {atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed', accuracy: 'accuracy', evasion: 'evasiveness'});
+  Object.assign(CATEGORIA_ES, {Physical: 'Physical', Special: 'Special', Status: 'Status'});
+  Object.assign(ESTADOS_ES, {brn: 'BRN', par: 'PAR', slp: 'SLP', frz: 'FRZ', psn: 'PSN', tox: 'TOX'});
+  for (const n of NATURALEZAS) n[1] = n[0];
+}
+
 // ------------------------------------------------------- nombres en español --
-const TR = (): {mov: any, hab: any, obj: any} => (globalThis as any).TRADUCCION_ES || {mov: {}, hab: {}, obj: {}};
+const VACIO = {mov: {}, hab: {}, obj: {}};
+const G: any = globalThis as any;
+/** Datos en inglés de lo personalizado (nombreEN / descEN) para el modo English */
+function ingles(tipo: 'mov' | 'hab' | 'obj', nombre: string): {nombreEN?: string, descEN?: string} | null {
+  if (!EN) return null;
+  if (tipo === 'mov') return G.DATOS_MOVIMIENTOS?.[nombre] || null;
+  if (tipo === 'hab') return G.DATOS_HABILIDADES?.[nombre] || null;
+  const o = G.DATOS_OBJETOS?.[nombre];
+  if (o) return o;
+  const mega = (G.DATOS_POKEMON || []).find((p: any) => p.megaPiedra === nombre);
+  return mega ? {nombreEN: mega.megaPiedraEN} : null;
+}
+const TR = (): {mov: any, hab: any, obj: any} => EN ? VACIO : (globalThis as any).TRADUCCION_ES || VACIO;
 const sinTildes = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 /** id para búsquedas que ignora tildes */
 export const idBusqueda = (s: string) => toID(sinTildes(s || ''));
@@ -180,31 +204,43 @@ export const idBusqueda = (s: string) => toID(sinTildes(s || ''));
 export function nomMov(n: string): string {
   if (!n) return '';
   const mv = dex().moves.get(n);
+  const en = ingles('mov', mv.name)?.nombreEN;
+  if (en) return en;
   const t = TR().mov[mv.id];
   if (t) return t[0];
-  if (/^Hidden Power /.test(n)) return 'Poder Oculto ' + (TIPOS_ES[n.slice(13)] || n.slice(13));
+  if (/^Hidden Power /.test(n)) return EN ? n : 'Poder Oculto ' + (TIPOS_ES[n.slice(13)] || n.slice(13));
   return mv.exists ? mv.name : n;
 }
 export function descMov(n: string): string {
   const mv = dex().moves.get(n);
+  const en = ingles('mov', mv.name)?.descEN;
+  if (en) return en;
   return TR().mov[mv.id]?.[1] || mv.shortDesc || mv.desc || '';
 }
 export function nomHab(n: string): string {
   if (!n) return '';
   const a = dex().abilities.get(n);
+  const en = ingles('hab', a.name)?.nombreEN;
+  if (en) return en;
   return TR().hab[a.id]?.[0] || (a.exists ? a.name : n);
 }
 export function descHab(n: string): string {
   const a = dex().abilities.get(n);
+  const en = ingles('hab', a.name)?.descEN;
+  if (en) return en;
   return TR().hab[a.id]?.[1] || a.shortDesc || a.desc || '';
 }
 export function nomObj(n: string): string {
   if (!n) return '';
   const it = dex().items.get(n);
+  const en = ingles('obj', it.name)?.nombreEN;
+  if (en) return en;
   return TR().obj[it.id]?.[0] || (it.exists ? it.name : n);
 }
 export function descObj(n: string): string {
   const it = dex().items.get(n);
+  const en = ingles('obj', it.name)?.descEN;
+  if (en) return en;
   return TR().obj[it.id]?.[1] || it.shortDesc || it.desc || '';
 }
 /** Traduce efectos del protocolo: "item: Leftovers", "ability: Intimidate", "move: Protect" */
@@ -213,6 +249,12 @@ export function nomEfecto(e: string): string {
   const m = /^(item|ability|move): ?(.*)$/.exec(e);
   if (!m) {
     const mv = dex().moves.get(e);
+    if (EN) {
+      if (mv.exists) return nomMov(e);
+      if (dex().abilities.get(e).exists) return nomHab(e);
+      if (dex().items.get(e).exists) return nomObj(e);
+      return e;
+    }
     if (mv.exists && TR().mov[mv.id]) return TR().mov[mv.id][0];
     const ab = dex().abilities.get(e);
     if (ab.exists && TR().hab[ab.id]) return TR().hab[ab.id][0];

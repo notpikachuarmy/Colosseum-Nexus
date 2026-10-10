@@ -25,9 +25,13 @@ export interface InfoCustom {
   objetos: Set<string>;
   /** id de objeto -> archivo de sprite */
   spritesObjeto: {[id: string]: string};
+  /** Pokémon oficiales a los que se han añadido movimientos o habilidades */
+  editados: Set<string>;
+  /** id -> tipos de movimientos heredados que se le quitan */
+  quitarTipos: {[id: string]: string[]};
 }
 
-export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, objetos: new Set(), spritesObjeto: {}};
+export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, objetos: new Set(), spritesObjeto: {}, editados: new Set(), quitarTipos: {}};
 
 let cached: any = null;
 
@@ -121,7 +125,7 @@ export function buildMod() {
   const FORMA: string = String(W.FORMA_PERSONALIZADA || 'Custom').replace(/[^A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ ]/g, '').trim() || 'Custom';
   const versiones = new Map<string, string>(); // id original -> nombre de la forma nueva
   for (const p of lista) {
-    if (p.base && toID(p.base) === toID(p.nombre) && base.data.Pokedex[toID(p.base)]) {
+    if (p.base && toID(p.base) === toID(p.nombre) && base.data.Pokedex[toID(p.base)] && !p.editar) {
       versiones.set(toID(p.base), `${base.data.Pokedex[toID(p.base)].name}-${FORMA}`);
     }
   }
@@ -135,6 +139,21 @@ export function buildMod() {
     const esVersion = versiones.has(baseId) && baseId === toID(p.nombre);
     const name: string = esVersion ? versiones.get(baseId)! : p.nombre;
     const id = toID(name);
+    if (p.quitarTipos) INFO.quitarTipos[id] = p.quitarTipos;
+    if (p.editar) {
+      // Añadir cosas a un Pokémon oficial sin crear una forma nueva
+      if (!base.data.Pokedex[id]) { aviso(`${p.nombre}: no existe para editarlo`); continue; }
+      INFO.editados.add(id);
+      const e = ensureEntry(id)!;
+      if (p.habilidades) { e.abilities = {0: p.habilidades[0]}; if (p.habilidades[1]) e.abilities[1] = p.habilidades[1]; p.habilidades.forEach((a: string) => checkAbility(a, p.nombre)); }
+      if (p.oculta) { e.abilities = {...(e.abilities || base.data.Pokedex[id].abilities), H: p.oculta}; checkAbility(p.oculta, p.nombre); }
+      if (p.tipos) e.types = p.tipos;
+      if (p.stats) e.baseStats = Object.fromEntries(STAT_KEYS.map((k, i) => [k, p.stats[i] ?? 50]));
+      const ls = Learnsets[id]?.learnset || learnsetOf(id);
+      addMoves(ls, p.movimientos, p.nombre);
+      Learnsets[id] = {learnset: ls};
+      continue;
+    }
     INFO.custom.add(id);
     if (p.sprite) INFO.sprites[id] = p.sprite;
 
@@ -323,7 +342,9 @@ export function buildMod() {
     {name: FORMATOS.doubles, mod: MOD_ID, gameType: 'doubles', ruleset: reglas.filter(r => r !== 'Sleep Clause Mod')},
   ];
 
-  const dex = Dex.mod(MOD_ID, {Scripts, Pokedex, Learnsets, Abilities, Moves, Items, FormatsData} as any);
+  const Conditions: AnyObj = {};
+  for (const [id, data] of Object.entries<AnyObj>(W.DATOS_CONDICIONES || {})) Conditions[toID(id)] = {...data};
+  const dex = Dex.mod(MOD_ID, {Scripts, Pokedex, Learnsets, Abilities, Moves, Items, FormatsData, Conditions} as any);
   Dex.formats.extend(Formats as any);
   cached = dex;
   return dex;

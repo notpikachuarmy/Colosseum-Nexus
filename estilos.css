@@ -447,3 +447,67 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
 .btn-movimiento.con-poder { box-shadow: 0 0 0 2px rgba(255,255,255,.75), 0 3px 0 rgba(0,0,0,.4); }
 .sprite-wrap.dinamax { transform: scale(1.35); transform-origin: bottom center; filter: drop-shadow(0 0 14px #ff2d55) drop-shadow(0 0 4px #ff2d55); }
 .lado-rival .sprite-wrap.dinamax { transform-origin: center bottom; }
+/* equipos arriba a la izquierda, uno debajo de otro */
+.equipo-iconos.mio { top: 46px; left: 8px; right: auto; bottom: auto; }
+.esperando-caja { display: grid; justify-items: center; gap: 4px; padding: 30px 0; }
+.esperando-caja .esperando { padding: 6px 0; }
+
+/* ------------------------------------------------------------- draft / series */
+.seleccion { display: grid; gap: 12px; }
+.sel-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.marcador { font: 700 18px 'Fredoka', sans-serif; background: var(--bg2); border: 1px solid var(--borde); padding: 6px 14px; border-radius: 999px; color: var(--acento); }
+.fin-serie { font: 700 20px 'Fredoka', sans-serif; width: 100%; }
+.sel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.sel-card { position: relative; background: var(--panel); border: 2px solid var(--borde); border-radius: 14px; padding: 8px; cursor: pointer;
+  display: grid; justify-items: center; gap: 4px; text-align: center; transition: border-color .12s, transform .12s; }
+.sel-card:hover { transform: translateY(-2px); }
+.sel-card.elegido { border-color: var(--acento); background: #2f2a1c; }
+.sel-card.bloqueado { cursor: default; opacity: .85; }
+.sel-num { position: absolute; top: 6px; left: 8px; background: var(--acento); color: #2b2100; font-weight: 800; border-radius: 999px; width: 24px; height: 24px; display: grid; place-items: center; }
+.sel-card .sel-sprite { width: 96px !important; height: 96px !important; }
+.sel-nombre { font-weight: 800; }
+.sel-item, .sel-hab { font-size: 12px; color: var(--tenue); display: flex; gap: 4px; align-items: center; }
+.sel-movs { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+.sel-movs span { font-size: 11px; background: var(--bg2); border-radius: 6px; padding: 1px 6px; }
+.sel-rival { background: var(--panel); border-radius: 12px; padding: 10px; display: grid; gap: 6px; }
+.sel-rival-lista { display: flex; flex-wrap: wrap; gap: 4px; }
+.sel-rival-poke { display: grid; justify-items: center; font-size: 11px; width: 74px; text-align: center; }
+.sel-estado { color: var(--tenue); text-align: center; min-height: 20px; }
+.ayuda-conexion { margin-top: 14px; }
+.ayuda-conexion summary { cursor: pointer; font-weight: 800; }
+.ayuda-conexion li { margin: 6px 0; color: #cfd3ea; }
+
+/* ===== Pokédex mejorada ===== */
+.dex-tabs, .tabs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0; }
+.tabs .tab { background: var(--panel); color: inherit; border: 1px solid var(--borde); border-radius: 999px; padding: 8px 16px; cursor: pointer; font: 600 14px 'Fredoka', sans-serif; }
+.tabs .tab.activo { background: var(--acento, #ffcb3d); color: #1b1b2b; border-color: transparent; }
+.dex-tarjeta { background: linear-gradient(160deg, color-mix(in srgb, var(--c1) 22%, var(--panel)) 0%, var(--panel) 45%, color-mix(in srgb, var(--c2) 16%, var(--panel)) 100%); border-top: 4px solid var(--c1); }
+.dex-nota { background: var(--panel); border-radius: var(--radio); padding: 12px; margin-top: 10px; font-size: 14px; }
+.tarjetas-info { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 14px 0; }
+.tarjeta-info { background: linear-gradient(170deg, color-mix(in srgb, var(--color) 20%, var(--panel)), var(--panel) 55%); border: 1px solid var(--borde); border-left: 5px solid var(--color); border-radius: var(--radio); padding: 12px; display: grid; gap: 8px; align-content: start; }
+.ti-cab { display: flex; gap: 10px; align-items: center; }
+.ti-icono { width: 40px; height: 40px; border-radius: 50%; background: var(--color); color: #fff; display: grid; place-items: center; font-size: 20px; flex: none; text-shadow: 0 1px 2px #0008; }
+.ti-objeto { width: 48px; height: 48px; border-radius: 12px; background: var(--bg2); display: grid; place-items: center; flex: none; }
+.ti-objeto img, .ti-sprite { width: 40px !important; height: 40px !important; image-rendering: pixelated; }
+.ti-nombre { font: 700 17px 'Fredoka', sans-serif; }
+.ti-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.ti-badges .cat { color: #fff; padding: 1px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.ti-datos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.ti-dato { background: var(--bg2); border-radius: 8px; padding: 4px; text-align: center; }
+.ti-dato small { display: block; font-size: 10px; color: var(--tenue); }
+.ti-desc { margin: 0; font-size: 13px; color: #d6d9ee; line-height: 1.4; }
+.ti-etiqueta { justify-self: start; font-size: 11px; background: var(--bg2); padding: 1px 8px; border-radius: 6px; }
+.ti-pie { border-top: 1px solid var(--borde); padding-top: 6px; }
+.dex-aprenden { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; min-height: 30px; }
+.dex-aprenden img { width: 40px; height: 30px; object-fit: contain; }
+.pbs-botones { display: grid; gap: 6px; margin-top: 10px; }
+.pbs-archivo { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--bg2); border-radius: 10px; padding: 8px 10px; }
+.pbs-archivo small { display: block; }
+.pbs-acciones { display: flex; gap: 6px; }
+.pbs-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.pbs-vista { width: 100%; min-height: 320px; font: 12px monospace; box-sizing: border-box; }
+
+/* Selector de idioma */
+.selector-idioma { display: flex; justify-content: flex-end; gap: 4px; }
+.idioma-btn { background: var(--panel); color: var(--tenue); border: 1px solid var(--borde); border-radius: 999px; padding: 4px 12px; cursor: pointer; font: 600 13px 'Fredoka', sans-serif; }
+.idioma-btn.activo { background: var(--acento); color: #1b1b2b; border-color: transparent; }

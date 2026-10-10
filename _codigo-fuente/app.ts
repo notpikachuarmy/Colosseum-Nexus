@@ -1,46 +1,35 @@
-// Punto de entrada: pantallas de inicio, práctica, online y Pokédex.
-import {buildMod, INFO, FORMATOS} from './mod';
-import {h, toast, dex, tipoBadge, spriteImg, nombreVisible, STATS_CORTO, storage, CATEGORIA_ES, TIPOS_ES, nomMov, nomHab, descHab} from './util';
-import {pantallaEquipos, colorStat, modalTexto} from './constructor';
-import {cargarEquipos, guardarEquipos, validarEquipo, empaquetar, Equipo, movimientosDe} from './equipos';
-import {equiposParejos, RESERVAS, Reserva} from './aleatorio';
-import {PantallaCombate} from './combate';
-import {Motor, IA} from './motor';
-import {crearSala, unirseSala, Canal, Sala} from './red';
+// Punto de entrada: pantalla de inicio y navegación.
+import {tr, IDIOMA, cambiarIdioma} from './idioma';
+import {buildMod, INFO} from './mod';
+import {h, spriteImg, storage} from './util';
+import {pantallaEquipos} from './constructor';
+import {cargarEquipos} from './equipos';
+import {app, cambiarPantalla, nav, nombreJugador} from './nucleo';
+import {practica} from './practica';
+import {online} from './online';
+import {pokedex} from './pokedex';
 
-const VERSION_DATOS = (() => {
-  const w = window as any;
-  const txt = JSON.stringify([w.DATOS_POKEMON, Object.keys(w.DATOS_HABILIDADES || {}), Object.keys(w.DATOS_MOVIMIENTOS || {}), Object.keys(w.DATOS_OBJETOS || {})]);
-  let hsh = 0;
-  for (let i = 0; i < txt.length; i++) hsh = (hsh * 31 + txt.charCodeAt(i)) | 0;
-  return (hsh >>> 0).toString(36);
-})();
-
-const app = document.getElementById('app')!;
-let limpiar: (() => void) | null = null;
-const cambiarPantalla = (f: () => void) => { limpiar?.(); limpiar = null; window.scrollTo(0, 0); f(); };
-
-function nombreJugador(): string { return storage.get('arena.nombre', ''); }
-
-// --------------------------------------------------------------------- inicio --
 function inicio() {
   app.innerHTML = '';
-  const nombre = h('input', {class: 'input', value: nombreJugador(), placeholder: 'Tu nombre de entrenador', maxlength: '18'});
+  const nombre = h('input', {class: 'input', value: nombreJugador(), placeholder: tr('Tu nombre de entrenador', 'Your trainer name'), maxlength: '18'});
   nombre.addEventListener('change', () => storage.set('arena.nombre', nombre.value.trim()));
   const nEquipos = cargarEquipos().length;
-  app.append(h('div', {class: 'inicio'},
+  const idioma = h('div', {class: 'selector-idioma', title: tr('Idioma', 'Language')},
+    ...([['es', 'Español'], ['en', 'English']] as const).map(([id, txt]) =>
+      h('button', {class: 'idioma-btn' + (IDIOMA === id ? ' activo' : ''), onclick: () => { if (IDIOMA !== id) cambiarIdioma(id); }}, txt)));
+  app.append(h('div', {class: 'inicio'}, idioma,
     h('div', {class: 'logo'},
       h('div', {class: 'logo-sprites'}, ...['Somnistera', 'Railspike', 'Hazmadger'].map(s => spriteImg(s))),
       h('h1', {}, 'Arena Fakemon'),
-      h('p', {class: 'subtitulo'}, 'Combates Pokémon con tus criaturas, objetos y habilidades personalizadas')),
-    h('label', {class: 'campo campo-nombre'}, h('span', {class: 'etq'}, 'Tu nombre'), nombre),
+      h('p', {class: 'subtitulo'}, tr('Combates Pokémon con tus criaturas, objetos y habilidades personalizadas', 'Pokémon battles with your own creatures, items and abilities'))),
+    h('label', {class: 'campo campo-nombre'}, h('span', {class: 'etq'}, tr('Tu nombre', 'Your name')), nombre),
     h('div', {class: 'menu'},
-      boton('⚔', 'Combatir online', 'Crea una sala y pasa el código a un amigo', () => cambiarPantalla(online)),
-      boton('🤖', 'Practicar contra la IA', 'Prueba tus equipos sin esperar a nadie', () => cambiarPantalla(practica)),
-      boton('🧩', 'Mis equipos', nEquipos ? `${nEquipos} equipo${nEquipos > 1 ? 's' : ''} guardado${nEquipos > 1 ? 's' : ''}` : 'Crea tu primer equipo', () => cambiarPantalla(() => pantallaEquipos(app, () => cambiarPantalla(inicio)))),
-      boton('📖', 'Pokédex personalizada', 'Stats, habilidades y movimientos de los fakemon', () => cambiarPantalla(pokedex))),
-    INFO.avisos.length ? h('div', {class: 'avisos'}, h('b', {}, 'Avisos al cargar los datos:'), ...INFO.avisos.map(a => h('div', {}, '⚠ ' + a))) : null,
-    h('footer', {class: 'pie'}, 'Hecho con el simulador de Pokémon Showdown (licencia MIT). Pokémon es propiedad de Nintendo, Game Freak y Creatures.')));
+      boton('⚔', tr('Combatir online', 'Battle online'), tr('Crea una sala y pasa el código a un amigo', 'Create a room and send the code to a friend'), () => cambiarPantalla(nav.online)),
+      boton('🤖', tr('Practicar contra la IA', 'Practice against the AI'), tr('Combates sueltos, al mejor de 3 o draft', 'Single battles, best of 3 or draft'), () => cambiarPantalla(nav.practica)),
+      boton('🧩', tr('Mis equipos', 'My teams'), nEquipos ? tr(`${nEquipos} equipo${nEquipos > 1 ? 's' : ''} guardado${nEquipos > 1 ? 's' : ''}`, `${nEquipos} saved team${nEquipos > 1 ? 's' : ''}`) : tr('Crea tu primer equipo', 'Create your first team'), () => cambiarPantalla(nav.equipos)),
+      boton('📖', tr('Pokédex personalizada', 'Custom Pokédex'), tr('Fakemon, movimientos, habilidades, objetos y exportar a PBS', 'Fakemon, moves, abilities, items and PBS export'), () => cambiarPantalla(nav.pokedex))),
+    INFO.avisos.length ? h('div', {class: 'avisos'}, h('b', {}, tr('Avisos al cargar los datos:', 'Warnings while loading the data:')), ...INFO.avisos.map(a => h('div', {}, '⚠ ' + a))) : null,
+    h('footer', {class: 'pie'}, tr('Hecho con el simulador de Pokémon Showdown (licencia MIT). Pokémon es propiedad de Nintendo, Game Freak y Creatures.', 'Made with the Pokémon Showdown simulator (MIT license). Pokémon is property of Nintendo, Game Freak and Creatures.'))));
 }
 
 function boton(icono: string, titulo: string, sub: string, onclick: () => void) {
@@ -48,384 +37,19 @@ function boton(icono: string, titulo: string, sub: string, onclick: () => void) 
     h('span', {class: 'menu-texto'}, h('b', {}, titulo), h('small', {}, sub)));
 }
 
-function selectorEquipo(formato: 'singles' | 'doubles' | null, onCambio?: () => void) {
-  const equipos = cargarEquipos();
-  const sel = h('select', {class: 'select'}, ...equipos.map(e => h('option', {value: e.id},
-    `${e.nombre} (${e.formato === 'doubles' ? 'Dobles' : 'Individual'}, ${e.sets.length} Pokémon)`)));
-  const ultimo = storage.get('arena.ultimoEquipo', '');
-  if (equipos.some(e => e.id === ultimo)) sel.value = ultimo;
-  else if (formato) { const f = equipos.find(e => e.formato === formato); if (f) sel.value = f.id; }
-  sel.addEventListener('change', () => { storage.set('arena.ultimoEquipo', sel.value); onCambio?.(); });
-  return {el: sel, equipo: (): Equipo | undefined => cargarEquipos().find(e => e.id === sel.value), vacio: !equipos.length};
-}
+nav.inicio = inicio;
+nav.online = online;
+nav.practica = practica;
+nav.pokedex = pokedex;
+nav.equipos = () => pantallaEquipos(app, () => cambiarPantalla(inicio));
 
-function sinEquipos() {
-  return h('div', {class: 'aviso-grande'}, 'Primero necesitas crear un equipo. ',
-    h('button', {class: 'btn', onclick: () => cambiarPantalla(() => pantallaEquipos(app, () => cambiarPantalla(inicio)))}, 'Ir a Mis equipos'));
-}
-
-// ------------------------------------------------------------------- práctica --
-function practica() {
-  app.innerHTML = '';
-  const sel = selectorEquipo(null);
-  const rival = selectorEquipo(null);
-  const formato = h('select', {class: 'select'}, h('option', {value: 'singles'}, 'Individual'), h('option', {value: 'doubles'}, 'Dobles'));
-  const modo = h('select', {class: 'select'},
-    h('option', {value: 'parejos'}, 'Los dos con equipos aleatorios parejos'),
-    sel.vacio ? null : h('option', {value: 'mio-vs-aleatorio'}, 'Mi equipo contra un equipo aleatorio'),
-    sel.vacio ? null : h('option', {value: 'mio-vs-mio'}, 'Mi equipo contra otro de mis equipos'));
-  modo.value = storage.get('arena.modoPractica', 'parejos');
-  if (!modo.value) modo.value = 'parejos';
-  const reserva = selectorReserva();
-  const campoMio = h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el);
-  const campoRival = h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Equipo de la IA'), rival.el);
-  const campoReserva = h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Pokémon de los equipos aleatorios'), reserva.el);
-  const actualizar = () => {
-    storage.set('arena.modoPractica', modo.value);
-    campoMio.style.display = modo.value === 'parejos' ? 'none' : '';
-    campoRival.style.display = modo.value === 'mio-vs-mio' ? '' : 'none';
-    campoReserva.style.display = modo.value === 'mio-vs-mio' ? 'none' : '';
-  };
-  modo.addEventListener('change', actualizar);
-  app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(inicio)}, '← Inicio'), h('h2', {}, 'Practicar contra la IA')),
-    h('div', {class: 'tarjeta formulario'},
-      h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Modo'), modo),
-      campoReserva, campoMio, campoRival,
-      h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Formato'), formato),
-      h('button', {class: 'btn btn-grande', onclick: () => {
-        const f = formato.value as 'singles' | 'doubles';
-        const m = modo.value;
-        const r = reserva.valor();
-        let generar: () => [Equipo, Equipo];
-        if (m === 'parejos') generar = () => equiposParejos(r);
-        else {
-          const eq = sel.equipo();
-          if (!eq) return;
-          const errs = validarEquipo({...eq, formato: f});
-          if (errs.length) { toast(errs[0], 5000); return; }
-          if (m === 'mio-vs-mio') { const otro = rival.equipo(); if (!otro) return; generar = () => [eq, otro]; }
-          else generar = () => [eq, equiposParejos(r, eq.sets.length)[1]];
-        }
-        cambiarPantalla(() => combateLocal(generar, f));
-      }}, '¡A combatir!')));
-  actualizar();
-}
-
-function selectorReserva() {
-  const el = h('select', {class: 'select'}, ...Object.entries(RESERVAS).map(([k, v]) => h('option', {value: k}, v)));
-  el.value = storage.get('arena.reserva', 'mezcla');
-  el.addEventListener('change', () => storage.set('arena.reserva', el.value));
-  return {el, valor: () => el.value as Reserva};
-}
-
-function combateLocal(generar: () => [Equipo, Equipo], formato: 'singles' | 'doubles') {
-  app.innerHTML = '';
-  const yo = nombreJugador() || 'Tú';
-  const [eq, eqIA] = generar();
-  const motor = new Motor(formato, {nombre: yo, equipo: empaquetar(eq)}, {nombre: 'IA', equipo: empaquetar(eqIA)});
-  new IA(motor, 'p2');
-  const raiz = h('div', {});
-  app.append(raiz);
-  const pantalla = new PantallaCombate(raiz, {
-    yo: 'p1',
-    titulo: formato === 'doubles' ? 'Práctica · Dobles' : 'Práctica · Individual',
-    elegir: e => motor.elegir('p1', e),
-    rendirse: () => motor.rendirse('p1'),
-    alTerminar: () => [
-      h('button', {class: 'btn', onclick: () => cambiarPantalla(() => combateLocal(generar, formato))}, 'Otra vez'),
-      eq.id.startsWith('aleatorio') ? h('button', {class: 'btn btn-sec', onclick: () => guardarComoEquipo(eq, formato)}, 'Guardar mi equipo') : null,
-      h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(practica)}, 'Volver'),
-    ].filter(Boolean) as HTMLElement[],
-  });
-  motor.escuchar('p1', c => pantalla.recibir(c));
-  limpiar = () => { pantalla.destruir(); motor.destruir(); };
-}
-
-function guardarComoEquipo(eq: Equipo, formato: 'singles' | 'doubles') {
-  const lista = cargarEquipos();
-  lista.push({...eq, id: Math.random().toString(36).slice(2, 10), nombre: 'Aleatorio ' + new Date().toLocaleDateString('es-ES'), formato});
-  guardarEquipos(lista);
-  toast('Equipo guardado en "Mis equipos"');
-}
-
-// --------------------------------------------------------------------- online --
-function online() {
-  app.innerHTML = '';
-  const sel = selectorEquipo(null);
-  const codigoIn = h('input', {class: 'input input-codigo', placeholder: 'CÓDIGO', maxlength: '5', autocomplete: 'off', spellcheck: 'false'});
-  codigoIn.addEventListener('input', () => { codigoIn.value = codigoIn.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
-  app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(inicio)}, '← Inicio'), h('h2', {}, 'Combatir online')),
-    h('div', {class: 'online-grid'},
-      h('div', {class: 'tarjeta formulario'},
-        sel.vacio ? h('p', {}, 'Aún no tienes equipos: podréis jugar con ', h('b', {}, 'equipos aleatorios parejos'), ' o crear uno en "Mis equipos".')
-          : [h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
-            h('p', {class: 'tenue'}, 'Podrás cambiar de equipo en la sala antes de empezar. También se puede jugar con equipos aleatorios.')]),
-      h('div', {class: 'tarjeta'},
-        h('h3', {}, 'Crear sala'),
-        h('p', {}, 'Recibirás un código para pasárselo a tu amigo.'),
-        h('button', {class: 'btn btn-grande', onclick: () => {
-          cambiarPantalla(() => salaAnfitrion());
-        }}, 'Crear sala')),
-      h('div', {class: 'tarjeta'},
-        h('h3', {}, 'Unirse a una sala'),
-        h('p', {}, 'Escribe el código que te ha pasado tu amigo.'),
-        codigoIn,
-        h('button', {class: 'btn btn-grande', onclick: () => {
-          if (codigoIn.value.length < 4) { toast('Escribe el código de la sala'); return; }
-          cambiarPantalla(() => salaInvitado(codigoIn.value));
-        }}, 'Unirse'))));
-}
-
-interface InfoRival { nombre: string; equipo: string | null; resumen: string[]; version: string }
-
-function resumenEquipo(eq: Equipo) { return eq.sets.map(s => s.species); }
-
-/** Sala del anfitrión: ejecuta el motor y retransmite al invitado. */
-function salaAnfitrion() {
-  let canal: Canal | null = null;
-  let rival: InfoRival | null = null;
-  let motor: Motor | null = null;
-  let pantalla: PantallaCombate | null = null;
-  let sala: Sala | null = null;
-  let codigo = '';
-  let formato: 'singles' | 'doubles' = storage.get('arena.formatoOnline', 'singles');
-  let aleatorio: boolean = storage.get('arena.aleatorioOnline', cargarEquipos().length === 0);
-  let reserva: Reserva = storage.get('arena.reserva', 'mezcla');
-  let sel = selectorEquipo(null, () => pintarLobby());
-  const avisarModo = () => canal?.enviar({t: 'formato', formato, aleatorio, reserva});
-
-  const fin = () => { pantalla?.destruir(); motor?.destruir(); canal?.cerrar(); sala?.cancelar(); };
-  limpiar = fin;
-
-  function pintarLobby(estado = '') {
-    pantalla?.destruir(); pantalla = null;
-    app.innerHTML = '';
-    sel = selectorEquipo(null, () => pintarLobby());
-    const fSel = h('select', {class: 'select'}, h('option', {value: 'singles', selected: formato === 'singles'}, 'Individual'),
-      h('option', {value: 'doubles', selected: formato === 'doubles'}, 'Dobles'));
-    fSel.addEventListener('change', () => { formato = fSel.value as any; storage.set('arena.formatoOnline', formato); avisarModo(); });
-    const mSel = h('select', {class: 'select'},
-      h('option', {value: 'propios', selected: !aleatorio}, 'Cada uno con su equipo'),
-      h('option', {value: 'aleatorio', selected: aleatorio}, 'Equipos aleatorios parejos'));
-    mSel.addEventListener('change', () => { aleatorio = mSel.value === 'aleatorio'; storage.set('arena.aleatorioOnline', aleatorio); avisarModo(); pintarLobby(estado); });
-    const rSel = selectorReserva();
-    rSel.el.value = reserva;
-    rSel.el.addEventListener('change', () => { reserva = rSel.valor(); avisarModo(); });
-    app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(online)}, '← Salir'), h('h2', {}, 'Tu sala')),
-      h('div', {class: 'lobby'},
-        h('div', {class: 'tarjeta codigo-tarjeta'},
-          h('div', {class: 'tenue'}, 'Código de la sala'),
-          h('div', {class: 'codigo-grande'}, codigo || '…'),
-          codigo ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => { navigator.clipboard?.writeText(codigo); toast('Código copiado'); }}, 'Copiar código') : null,
-          h('p', {class: 'tenue'}, codigo ? 'Pásale este código a tu amigo. Mantén esta pestaña abierta.' : 'Creando la sala…')),
-        h('div', {class: 'tarjeta formulario'},
-          h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Equipos'), mSel),
-          aleatorio ? h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Pokémon de los equipos aleatorios'), rSel.el)
-            : sel.vacio ? h('div', {class: 'avisos'}, 'No tienes equipos guardados: elige "Equipos aleatorios parejos" o crea uno.')
-            : h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
-          h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Formato del combate'), fSel),
-          h('div', {class: 'rival-info'}, rival ? [h('b', {}, `${rival.nombre} está en la sala`), aleatorio ? null : rival.resumen.length ? h('div', {class: 'eq-iconos'}, ...rival.resumen.map(s => spriteImg(s, 'front', false, 'mini'))) : h('span', {class: 'tenue'}, 'Tu amigo no tiene equipo: usad equipos aleatorios.')]
-            : h('span', {class: 'tenue pulso'}, 'Esperando a que se una alguien…')),
-          estado ? h('div', {class: 'avisos'}, estado) : null,
-          h('button', {class: 'btn btn-grande', disabled: !rival, onclick: empezar}, '¡Empezar combate!'))));
-  }
-
-  function empezar() {
-    if (!rival || !canal) return;
-    let eqMio: string, eqRival: string;
-    if (aleatorio) {
-      const [a, b] = equiposParejos(reserva);
-      eqMio = empaquetar(a); eqRival = empaquetar(b);
-    } else {
-      const eq = sel.equipo();
-      if (!eq) { toast('Elige un equipo o usad equipos aleatorios'); return; }
-      const errs = validarEquipo({...eq, formato});
-      if (errs.length) { toast('Tu equipo: ' + errs[0], 5000); return; }
-      if (!rival.equipo) { toast('Tu amigo no tiene equipo: elegid "Equipos aleatorios parejos"', 5000); return; }
-      if (formato === 'doubles' && rival.resumen.length < 2) { toast('El equipo de tu rival necesita al menos 2 Pokémon para dobles'); return; }
-      eqMio = empaquetar(eq); eqRival = rival.equipo;
-    }
-    const yo = nombreJugador() || 'Anfitrión';
-    let nombreRival = rival.nombre || 'Invitado';
-    if (nombreRival === yo) nombreRival += ' (2)';
-    motor?.destruir();
-    motor = new Motor(formato, {nombre: yo, equipo: eqMio}, {nombre: nombreRival, equipo: eqRival});
-    canal.enviar({t: 'inicio', formato, nombres: [yo, nombreRival]});
-    const m = motor;
-    m.escuchar('p2', c => canal?.enviar({t: 'p', d: c}));
-    app.innerHTML = '';
-    const raiz = h('div', {});
-    app.append(raiz);
-    pantalla = new PantallaCombate(raiz, {
-      yo: 'p1', titulo: `${yo} vs ${nombreRival}`,
-      elegir: e => m.elegir('p1', e),
-      rendirse: () => m.rendirse('p1'),
-      enviarChat: t => canal?.enviar({t: 'chat', texto: t}),
-      alTerminar: () => [h('button', {class: 'btn', onclick: () => { canal?.enviar({t: 'lobby'}); pintarLobby(); }}, 'Volver a la sala (revancha)'),
-        h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(inicio)}, 'Salir')],
-    });
-    const p = pantalla;
-    m.escuchar('p1', c => p.recibir(c));
-  }
-
-  function conectar(c: Canal) {
-    if (canal) { c.enviar({t: 'llena'}); setTimeout(() => c.cerrar(), 500); return; }
-    canal = c;
-    avisarModo();
-    c.onMensaje(msg => {
-      switch (msg.t) {
-      case 'hola':
-        rival = {nombre: String(msg.nombre || 'Invitado').slice(0, 18), equipo: msg.equipo, resumen: msg.resumen || [], version: msg.version};
-        if (msg.version !== VERSION_DATOS) toast('⚠ Tu amigo tiene otra versión de los datos. Recargad los dos la página.', 7000);
-        if (!pantalla) pintarLobby();
-        break;
-      case 'elegir': motor?.elegir('p2', String(msg.d)); break;
-      case 'rendirse': motor?.rendirse('p2'); break;
-      case 'chat': pantalla?.chat(rival?.nombre || 'Rival', String(msg.texto).slice(0, 200)); break;
-      }
-    });
-    c.onCerrar(() => {
-      canal = null; rival = null;
-      if (pantalla && !pantalla.estado.terminado) { pantalla.log('Tu rival se ha desconectado.', 'error'); motor?.rendirse('p2'); }
-      else pintarLobby('Tu rival se ha desconectado.');
-    });
-  }
-
-  pintarLobby();
-  sala = crearSala(cod => { codigo = cod; if (!pantalla) pintarLobby(); }, conectar, err => pintarLobby(err));
-}
-
-/** Sala del invitado: solo dibuja y manda sus elecciones. */
-function salaInvitado(codigo: string) {
-  let canal: Canal | null = null;
-  let pantalla: PantallaCombate | null = null;
-  let formato = 'singles';
-  let aleatorio = false;
-  let reservaHost = '';
-  let sel = selectorEquipo(null, () => { enviarEquipo(); pintar(); });
-  const sala = unirseSala(codigo, c => { canal = c; configurar(c); pintar(); }, err => pintar(err));
-  limpiar = () => { pantalla?.destruir(); canal?.cerrar(); sala.cancelar(); };
-
-  function enviarEquipo() {
-    if (!canal) return;
-    const eq = sel.equipo();
-    canal.enviar({t: 'hola', nombre: nombreJugador() || 'Invitado', equipo: eq ? empaquetar(eq) : null, resumen: eq ? resumenEquipo(eq) : [], version: VERSION_DATOS});
-  }
-
-  function pintar(error = '') {
-    pantalla?.destruir(); pantalla = null;
-    app.innerHTML = '';
-    sel = selectorEquipo(null, () => { enviarEquipo(); pintar(); });
-    const eq = sel.equipo();
-    const errs = eq && !aleatorio ? validarEquipo({...eq, formato: formato as any}) : [];
-    app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(online)}, '← Salir'), h('h2', {}, `Sala ${codigo}`)),
-      h('div', {class: 'lobby'},
-        h('div', {class: 'tarjeta formulario'},
-          h('div', {class: 'rival-info'}, error ? h('div', {class: 'avisos'}, error) :
-            canal ? h('b', {}, '✓ Conectado. Esperando a que el anfitrión empiece…') : h('span', {class: 'tenue pulso'}, 'Conectando…')),
-          aleatorio ? h('div', {}, 'Equipos: ', h('b', {}, 'aleatorios parejos'), reservaHost ? ` (${RESERVAS[reservaHost as Reserva] || ''})` : '')
-            : sel.vacio ? h('div', {class: 'avisos'}, 'No tienes equipos: pídele al anfitrión que elija "Equipos aleatorios parejos".')
-            : h('label', {class: 'campo'}, h('span', {class: 'etq'}, 'Tu equipo'), sel.el),
-          h('div', {}, 'Formato elegido por el anfitrión: ', h('b', {}, formato === 'doubles' ? 'Dobles' : 'Individual')),
-          errs.length ? h('div', {class: 'avisos'}, '⚠ ' + errs[0]) : null,
-          error ? h('button', {class: 'btn', onclick: () => cambiarPantalla(() => salaInvitado(codigo))}, 'Reintentar') : null)));
-  }
-
-  function configurar(c: Canal) {
-    enviarEquipo();
-    c.onMensaje(msg => {
-      switch (msg.t) {
-      case 'formato': formato = msg.formato; aleatorio = !!msg.aleatorio; reservaHost = msg.reserva || ''; if (!pantalla) pintar(); break;
-      case 'llena': pintar('Esa sala ya tiene dos jugadores.'); break;
-      case 'inicio': {
-        app.innerHTML = '';
-        const raiz = h('div', {});
-        app.append(raiz);
-        pantalla = new PantallaCombate(raiz, {
-          yo: 'p2', titulo: `${msg.nombres?.[0]} vs ${msg.nombres?.[1]}`,
-          elegir: e => c.enviar({t: 'elegir', d: e}),
-          rendirse: () => c.enviar({t: 'rendirse'}),
-          enviarChat: t => c.enviar({t: 'chat', texto: t}),
-          alTerminar: () => [h('span', {class: 'tenue'}, 'El anfitrión puede volver a la sala para la revancha.'),
-            h('button', {class: 'btn btn-sec', onclick: () => pintar()}, 'Volver a la sala')],
-        });
-        break;
-      }
-      case 'p': pantalla?.recibir(String(msg.d)); break;
-      case 'chat': pantalla?.chat('Rival', String(msg.texto).slice(0, 200)); break;
-      case 'lobby': if (pantalla?.estado.terminado) pintar(); break;
-      }
-    });
-    c.onCerrar(() => {
-      canal = null;
-      if (pantalla && !pantalla.estado.terminado) pantalla.log('Se ha perdido la conexión con el anfitrión.', 'error');
-      else pintar('Se ha perdido la conexión con el anfitrión.');
-    });
-  }
-
-  pintar();
-}
-
-// -------------------------------------------------------------------- pokédex --
-function pokedex() {
-  app.innerHTML = '';
-  const d = dex();
-  const lista = [...INFO.custom].map(id => d.species.get(id)).filter(s => s.exists);
-  const buscar = h('input', {class: 'input buscador', placeholder: 'Buscar Pokémon, tipo o habilidad…'});
-  const cont = h('div', {class: 'dex-grid'});
-  const pintar = () => {
-    const q = buscar.value.toLowerCase();
-    cont.innerHTML = '';
-    for (const sp of lista) {
-      const habs = [...new Set(Object.values(sp.abilities) as string[])];
-      const texto = [sp.name, ...sp.types, ...sp.types.map(t => TIPOS_ES[t]), ...habs, ...habs.map(nomHab)].join(' ').toLowerCase();
-      if (q && !texto.includes(q)) continue;
-      const bst = Object.values(sp.baseStats).reduce((a, b) => a + b, 0);
-      cont.append(h('div', {class: 'dex-tarjeta'},
-        h('div', {class: 'dex-cab'}, spriteImg(sp.name),
-          h('div', {}, h('div', {class: 'dex-nombre'}, nombreVisible(sp.name)), h('div', {}, ...sp.types.map(t => tipoBadge(t, true))),
-            sp.prevo ? h('small', {class: 'tenue'}, 'Evoluciona de ' + sp.prevo) : null)),
-        h('div', {class: 'dex-stats'}, ...Object.entries(sp.baseStats).map(([k, v]) => h('div', {class: 'fila-stat-mini'},
-          h('span', {}, STATS_CORTO[k]), h('b', {}, String(v)), h('span', {class: 'barra-stat'}, h('span', {style: {width: Math.min(100, v / 1.8) + '%', background: colorStat(v)}})))),
-          h('div', {class: 'fila-stat-mini total'}, h('span', {}, 'Total'), h('b', {}, String(bst)))),
-        h('div', {class: 'dex-habs'}, ...habs.map(a => {
-          const ab = d.abilities.get(a);
-          return h('div', {}, h('b', {}, nomHab(a) + (sp.abilities.H === a ? ' (oculta)' : '')), ': ', ab.exists ? descHab(a) : '');
-        })),
-        h('button', {class: 'btn btn-sec btn-sm', onclick: () => verMovimientos(sp.name)}, `Ver movimientos (${movimientosDe(sp.name).length})`)));
-    }
-  };
-  buscar.addEventListener('input', pintar);
-  const w = window as any;
-  const objetos = h('div', {class: 'dex-objetos'}, h('h3', {}, 'Objetos personalizados'),
-    ...[...INFO.objetos].map(id => d.items.get(id)).map(it => h('div', {class: 'fila-obj'}, h('b', {}, it.name), ' — ', it.desc)),
-    h('h3', {}, 'Habilidades personalizadas'),
-    ...Object.entries(w.DATOS_HABILIDADES || {}).map(([n, a]: any) => h('div', {}, h('b', {}, n), ' — ', a.desc)),
-    h('h3', {}, 'Movimientos personalizados'),
-    ...Object.entries(w.DATOS_MOVIMIENTOS || {}).map(([n, m]: any) => h('div', {}, h('b', {}, n), ` — ${TIPOS_ES[m.type]} · ${CATEGORIA_ES[m.category]} · Precisión ${m.accuracy}% · PP ${m.pp}. `, m.desc)));
-  app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(inicio)}, '← Inicio'), h('h2', {}, 'Pokédex personalizada')),
-    h('p', {class: 'tenue centro'}, 'Los datos marcados como PROVISIONAL en datos/pokemon.js se pueden cambiar cuando quieras.'),
-    buscar, cont, objetos);
-  pintar();
-}
-
-function verMovimientos(species: string) {
-  const d = dex();
-  const movs = movimientosDe(species).map(m => d.moves.get(m)).sort((a, b) => a.type.localeCompare(b.type) || nomMov(a.name).localeCompare(nomMov(b.name), 'es'));
-  const cont = h('div', {class: 'lista-movs'}, ...movs.map(mv => h('div', {class: 'fila-mov'},
-    h('span', {class: 'nombre'}, nomMov(mv.name)), tipoBadge(mv.type, true), h('span', {class: 'cat cat-' + mv.category.toLowerCase()}, CATEGORIA_ES[mv.category]),
-    h('span', {class: 'num'}, mv.basePower ? String(mv.basePower) : '—'), h('span', {class: 'num'}, mv.accuracy === true ? '—' : mv.accuracy + '%'))));
-  modalTexto(`Movimientos de ${nombreVisible(species)}`, cont, []);
-}
-
-// ---------------------------------------------------------------------- start --
+document.documentElement.lang = IDIOMA;
 try {
   buildMod();
-  void FORMATOS;
   inicio();
 } catch (e: any) {
   console.error(e);
   app.innerHTML = '';
-  app.append(h('div', {class: 'avisos'}, 'Error al cargar los datos personalizados: ' + (e?.message || e),
-    h('p', {}, 'Revisa el último cambio que hiciste en la carpeta datos/.')));
+  app.append(h('div', {class: 'avisos'}, tr('Error al cargar los datos personalizados: ', 'Error loading the custom data: ') + (e?.message || e),
+    h('p', {}, tr('Revisa el último cambio que hiciste en la carpeta datos/.', 'Check the last change you made in the datos/ folder.'))));
 }

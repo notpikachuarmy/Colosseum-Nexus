@@ -1,4 +1,5 @@
 // Fichas de información al pasar el ratón (como en Showdown).
+import {tr} from './idioma';
 import {Pkm} from './estado';
 import {
   dex, h, tipoBadge, iconImg, itemIcon, nombreVisible, calcStat,
@@ -83,32 +84,32 @@ export function fichaPokemon(mon: Pkm, esYo: boolean): HTMLElement {
   filas.push(h('div', {class: 'ficha-cab'}, iconImg(mon.species),
     h('div', {},
       h('div', {class: 'ficha-nombre'}, mon.name !== sp.baseSpecies && mon.name !== sp.name ? `${mon.name} (${nombreVisible(sp.name)})` : nombreVisible(sp.name),
-        h('span', {class: 'tenue'}, ` Nv. ${mon.level}`)),
+        h('span', {class: 'tenue'}, tr(` Nv. ${mon.level}`, ` Lv. ${mon.level}`))),
       h('div', {class: 'ficha-tipos'},
         ...(mon.tera ? [h('span', {class: 'tenue tachado'}, ...tiposBase.map(t => tipoBadge(t, true))), ' → ', h('b', {}, 'Tera '), tipoBadge(mon.tera, true)]
           : tiposBase.map(t => tipoBadge(t, true)))))));
 
   // PS y estado
   const ps = esYo && mon.maxhp !== 100 ? `${mon.hp}/${mon.maxhp} (${pct}%)` : `${pct}%`;
-  filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, 'PS: '), mon.fainted ? 'Debilitado' : ps,
+  filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, 'PS: '), mon.fainted ? tr('Debilitado', 'Fainted') : ps,
     mon.status ? h('span', {class: 'estado-tag', style: {background: ESTADO_COLOR[mon.status]}}, ESTADOS_ES[mon.status]) : null));
 
   // Habilidad
   if (mon.ability) {
-    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, 'Habilidad: '), nomHab(mon.ability),
+    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, tr('Habilidad: ', 'Ability: ')), nomHab(mon.ability),
       h('div', {class: 'ficha-desc'}, descHab(mon.ability))));
   } else {
     const posibles = [...new Set(Object.values(sp.abilities) as string[])].map(nomHab);
-    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, posibles.length > 1 ? 'Habilidad posible: ' : 'Habilidad: '), posibles.join(' / ')));
+    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, posibles.length > 1 ? tr('Habilidad posible: ', 'Possible ability: ') : tr('Habilidad: ', 'Ability: ')), posibles.join(' / ')));
   }
 
   // Objeto
   if (mon.item) {
-    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, 'Objeto: '), itemIcon(mon.item), ' ', nomObj(mon.item)));
+    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, tr('Objeto: ', 'Item: ')), itemIcon(mon.item), ' ', nomObj(mon.item)));
   } else if (esYo || (mon as any).itemPerdido) {
-    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, 'Objeto: '), (mon as any).itemPerdido ? 'Ninguno (lo perdió o lo usó)' : 'Ninguno'));
+    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, tr('Objeto: ', 'Item: ')), (mon as any).itemPerdido ? tr('Ninguno (lo perdió o lo usó)', 'None (lost or used)') : tr('Ninguno', 'None')));
   } else {
-    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, 'Objeto: '), h('span', {class: 'tenue'}, 'Desconocido')));
+    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, tr('Objeto: ', 'Item: ')), h('span', {class: 'tenue'}, tr('Desconocido', 'Unknown'))));
   }
 
   // Estadísticas
@@ -124,24 +125,24 @@ export function fichaPokemon(mon: Pkm, esYo: boolean): HTMLElement {
       ...Object.entries(sp.baseStats).map(([k, v]) => h('span', {}, h('small', {}, STATS_CORTO[k]), ' ', String(v)))));
     const min = calcStat('spe', sp.baseStats.spe, 0, 0, mon.level);
     const max = Math.floor(calcStat('spe', sp.baseStats.spe, 31, 252, mon.level) * 1.1);
-    filas.push(h('div', {class: 'ficha-fila tenue'}, `Velocidad posible: ${min} a ${max}`));
+    filas.push(h('div', {class: 'ficha-fila tenue'}, tr(`Velocidad posible: ${min} a ${max}`, `Possible Speed: ${min} to ${max}`)));
   }
   const boosts = Object.entries(mon.boosts).filter(([, v]) => v);
   if (boosts.length) {
-    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, 'Cambios: '),
+    filas.push(h('div', {class: 'ficha-fila'}, h('b', {}, tr('Cambios: ', 'Boosts: ')),
       boosts.map(([k, v]) => `${STATS_CORTO[k] || k} ${v > 0 ? '+' : ''}${v}`).join(' · ')));
   }
 
   // Movimientos
   const movs: string[] = esYo ? ((mon as any).moves || []) : ((mon as any).movesVistos || []);
   if (movs.length) {
-    filas.push(h('div', {class: 'ficha-movs'}, h('b', {}, esYo ? 'Movimientos:' : 'Movimientos vistos:'),
+    filas.push(h('div', {class: 'ficha-movs'}, h('b', {}, esYo ? tr('Movimientos:', 'Moves:') : tr('Movimientos vistos:', 'Moves seen:')),
       ...movs.map(m => {
         const mv = d.moves.get(m);
         return h('div', {class: 'ficha-mov'}, mv.exists ? tipoBadge(mv.type, true) : null, nomMov(m));
       })));
   } else if (!esYo) {
-    filas.push(h('div', {class: 'ficha-fila tenue'}, 'Aún no ha usado ningún movimiento.'));
+    filas.push(h('div', {class: 'ficha-fila tenue'}, tr('Aún no ha usado ningún movimiento.', "Hasn't used any move yet.")));
   }
   return h('div', {class: 'ficha'}, ...filas);
 }
@@ -150,16 +151,16 @@ export function fichaMovimiento(id: string, extra: {pp?: number, maxpp?: number,
   const mv = dex().moves.get(id);
   if (!mv.exists) return h('div', {class: 'ficha'}, nomMov(id));
   const datos = [
-    h('span', {}, h('small', {}, 'Categoría '), CATEGORIA_ES[mv.category]),
-    h('span', {}, h('small', {}, 'Potencia '), String(extra.potencia ?? (mv.basePower || '—'))),
-    h('span', {}, h('small', {}, 'Precisión '), mv.accuracy === true ? '—' : mv.accuracy + '%'),
+    h('span', {}, h('small', {}, tr('Categoría ', 'Category ')), CATEGORIA_ES[mv.category]),
+    h('span', {}, h('small', {}, tr('Potencia ', 'Power ')), String(extra.potencia ?? (mv.basePower || '—'))),
+    h('span', {}, h('small', {}, tr('Precisión ', 'Accuracy ')), mv.accuracy === true ? '—' : mv.accuracy + '%'),
   ];
   if (extra.maxpp) datos.push(h('span', {}, h('small', {}, 'PP '), `${extra.pp}/${extra.maxpp}`));
-  if (mv.priority) datos.push(h('span', {}, h('small', {}, 'Prioridad '), (mv.priority > 0 ? '+' : '') + mv.priority));
+  if (mv.priority) datos.push(h('span', {}, h('small', {}, tr('Prioridad ', 'Priority ')), (mv.priority > 0 ? '+' : '') + mv.priority));
   return h('div', {class: 'ficha'},
     h('div', {class: 'ficha-cab'}, h('div', {class: 'ficha-nombre'}, extra.nombre || nomMov(mv.name)), tipoBadge(mv.type, true)),
     h('div', {class: 'ficha-stats'}, ...datos),
-    mv.flags['contact'] ? h('div', {class: 'ficha-fila tenue'}, 'Hace contacto') : null,
+    mv.flags['contact'] ? h('div', {class: 'ficha-fila tenue'}, tr('Hace contacto', 'Makes contact')) : null,
     h('div', {class: 'ficha-desc'}, descMov(mv.name)));
 }
 

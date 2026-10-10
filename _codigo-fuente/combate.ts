@@ -1,4 +1,5 @@
 // Pantalla de combate: dibuja el campo, anima el protocolo y recoge las elecciones.
+import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
 import {adjuntarInfo, fichaPokemon, fichaMovimiento, tiposEfectivos, ocultarInfo} from './ficha';
@@ -17,26 +18,26 @@ export interface OpcionesCombate {
   titulo?: string;
 }
 
-const BOOST_CORTO: {[k: string]: string} = {...STATS_CORTO, accuracy: 'Pre', evasion: 'Eva'};
+const BOOST_CORTO: {[k: string]: string} = {...STATS_CORTO, accuracy: tr('Pre', 'Acc'), evasion: tr('Eva', 'Eva')};
 const VOLATILES_ES: {[k: string]: string} = {
-  dynamax: 'Dinamax',
-  substitute: 'Sustituto', confusion: 'Confuso', leechseed: 'Drenadoras', taunt: 'Mofa', encore: 'Otra vez',
-  attract: 'Enamorado', yawn: 'Somnoliento', curse: 'Maldición', nightmare: 'Pesadilla', focusenergy: 'Foco energía',
-  perish3: 'Canto mortal 3', perish2: 'Canto mortal 2', perish1: 'Canto mortal 1', disable: 'Anulación',
-  protosynthesis: 'Paleosíntesis', quarkdrive: 'Carga Cuark', slowstart: 'Inicio lento', typechange: 'Cambio de tipo',
-  aquaring: 'Acua aro', ingrain: 'Arraigo', magnetrise: 'Levitón', smackdown: 'Derribado', saltcure: 'Sal curativa',
+  dynamax: tr('Dinamax', 'Dynamax'),
+  substitute: tr('Sustituto', 'Substitute'), confusion: tr('Confuso', 'Confused'), leechseed: tr('Drenadoras', 'Leech Seed'), taunt: tr('Mofa', 'Taunt'), encore: tr('Otra vez', 'Encore'),
+  attract: tr('Enamorado', 'Attracted'), yawn: tr('Somnoliento', 'Drowsy'), curse: tr('Maldición', 'Curse'), nightmare: tr('Pesadilla', 'Nightmare'), focusenergy: tr('Foco energía', 'Focus Energy'),
+  perish3: tr('Canto mortal 3', 'Perish 3'), perish2: tr('Canto mortal 2', 'Perish 2'), perish1: tr('Canto mortal 1', 'Perish 1'), disable: tr('Anulación', 'Disable'),
+  protosynthesis: tr('Paleosíntesis', 'Protosynthesis'), quarkdrive: tr('Carga Cuark', 'Quark Drive'), slowstart: tr('Inicio lento', 'Slow Start'), typechange: tr('Cambio de tipo', 'Type change'),
+  aquaring: tr('Acua aro', 'Aqua Ring'), ingrain: tr('Arraigo', 'Ingrain'), magnetrise: tr('Levitón', 'Magnet Rise'), smackdown: tr('Derribado', 'Smacked Down'), saltcure: tr('Sal curativa', 'Salt Cure'),
 };
 const CLIMA_ES: {[k: string]: string} = {
-  RainDance: '🌧 Lluvia', SunnyDay: '☀ Sol intenso', Sandstorm: '🌪 Tormenta de arena', Hail: '🧊 Granizo',
-  Snowscape: '❄ Nieve', Snow: '❄ Nieve', DesolateLand: '🔥 Sol abrasador', PrimordialSea: '🌊 Diluvio', DeltaStream: '🌀 Turbulencias',
+  RainDance: tr('🌧 Lluvia', '🌧 Rain'), SunnyDay: tr('☀ Sol intenso', '☀ Harsh sunlight'), Sandstorm: tr('🌪 Tormenta de arena', '🌪 Sandstorm'), Hail: tr('🧊 Granizo', '🧊 Hail'),
+  Snowscape: tr('❄ Nieve', '❄ Snow'), Snow: tr('❄ Nieve', '❄ Snow'), DesolateLand: tr('🔥 Sol abrasador', '🔥 Extremely harsh sunlight'), PrimordialSea: tr('🌊 Diluvio', '🌊 Heavy rain'), DeltaStream: tr('🌀 Turbulencias', '🌀 Strong winds'),
 };
 const CAMPO_ES: {[k: string]: string} = {
-  electricterrain: '⚡ Campo eléctrico', grassyterrain: '🌿 Campo de hierba', mistyterrain: '🌫 Campo de niebla',
-  psychicterrain: '🔮 Campo psíquico', trickroom: '🔄 Espacio raro', gravity: '⬇ Gravedad', magicroom: 'Zona mágica', wonderroom: 'Zona extraña',
+  electricterrain: tr('⚡ Campo eléctrico', '⚡ Electric Terrain'), grassyterrain: tr('🌿 Campo de hierba', '🌿 Grassy Terrain'), mistyterrain: tr('🌫 Campo de niebla', '🌫 Misty Terrain'),
+  psychicterrain: tr('🔮 Campo psíquico', '🔮 Psychic Terrain'), trickroom: tr('🔄 Espacio raro', '🔄 Trick Room'), gravity: tr('⬇ Gravedad', '⬇ Gravity'), magicroom: tr('Zona mágica', 'Magic Room'), wonderroom: tr('Zona extraña', 'Wonder Room'),
 };
 const LADO_ES: {[k: string]: string} = {
-  spikes: 'Púas', stealthrock: 'Trampa rocas', toxicspikes: 'Púas tóxicas', stickyweb: 'Red viscosa', reflect: 'Reflejo',
-  lightscreen: 'Pantalla de luz', auroraveil: 'Velo aurora', tailwind: 'Viento afín', safeguard: 'Velo sagrado', mist: 'Neblina',
+  spikes: tr('Púas', 'Spikes'), stealthrock: tr('Trampa rocas', 'Stealth Rock'), toxicspikes: tr('Púas tóxicas', 'Toxic Spikes'), stickyweb: tr('Red viscosa', 'Sticky Web'), reflect: tr('Reflejo', 'Reflect'),
+  lightscreen: tr('Pantalla de luz', 'Light Screen'), auroraveil: tr('Velo aurora', 'Aurora Veil'), tailwind: tr('Viento afín', 'Tailwind'), safeguard: tr('Velo sagrado', 'Safeguard'), mist: tr('Neblina', 'Mist'),
 };
 
 export class PantallaCombate {
@@ -67,26 +68,26 @@ export class PantallaCombate {
     this.campoEl = h('div', {class: 'campo-batalla'});
     this.infoCampoEl = h('div', {class: 'info-campo'});
     this.registroEl = h('div', {class: 'registro-lineas', 'aria-live': 'polite'});
-    this.controlesEl = h('div', {class: 'controles'}, h('div', {class: 'esperando'}, 'Preparando el combate…'));
-    const chatIn = h('input', {class: 'input chat-input', placeholder: 'Escribe un mensaje…', maxlength: '200'});
+    this.controlesEl = h('div', {class: 'controles'}, h('div', {class: 'esperando'}, tr('Preparando el combate…', 'Preparing the battle…')));
+    const chatIn = h('input', {class: 'input chat-input', placeholder: tr('Escribe un mensaje…', 'Type a message…'), maxlength: '200'});
     chatIn.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && chatIn.value.trim()) { this.op.enviarChat?.(chatIn.value.trim()); this.chat('Tú', chatIn.value.trim()); chatIn.value = ''; }
+      if (e.key === 'Enter' && chatIn.value.trim()) { this.op.enviarChat?.(chatIn.value.trim()); this.chat(tr('Tú', 'You'), chatIn.value.trim()); chatIn.value = ''; }
     });
     const rapidoBtn = h('label', {class: 'toggle'}, (() => {
       const c = h('input', {type: 'checkbox', checked: this.rapido});
       c.addEventListener('change', () => { this.rapido = c.checked; storage.set('arena.rapido', this.rapido); });
       return c;
-    })(), ' Animaciones rápidas');
+    })(), tr(' Animaciones rápidas', ' Fast animations'));
     this.raiz.append(h('div', {class: 'combate'},
       h('div', {class: 'columna-campo'},
         h('div', {class: 'escenario'}, this.campoEl, this.infoCampoEl),
         this.controlesEl),
       h('aside', {class: 'registro'},
-        h('div', {class: 'registro-cab'}, h('b', {}, this.op.titulo || 'Combate'), rapidoBtn,
+        h('div', {class: 'registro-cab'}, h('b', {}, this.op.titulo || tr('Combate', 'Battle')), rapidoBtn,
           h('button', {class: 'btn btn-peligro btn-sm', onclick: () => {
             if (this.estado.terminado) return;
-            if (confirm('¿Seguro que quieres rendirte?')) this.op.rendirse();
-          }}, 'Rendirse')),
+            if (confirm(tr('¿Seguro que quieres rendirte?', 'Are you sure you want to forfeit?'))) this.op.rendirse();
+          }}, tr('Rendirse', 'Forfeit'))),
         this.registroEl,
         this.op.enviarChat ? chatIn : null)));
     this.dibujarCampo();
@@ -105,7 +106,7 @@ export class PantallaCombate {
         continue;
       }
       if (line.startsWith('|error|')) {
-        this.log(line.slice(7).replace('[Invalid choice]', 'Elección no válida:').replace('[Unavailable choice]', 'No disponible:'), 'error');
+        this.log(line.slice(7).replace('[Invalid choice]', tr('Elección no válida:', 'Invalid choice:')).replace('[Unavailable choice]', tr('No disponible:', 'Unavailable:')), 'error');
         if (!this.req && this.ultimaPeticion) { this.req = this.ultimaPeticion; }
         this.cola.push('|__mostrar__');
         continue;
@@ -148,14 +149,16 @@ export class PantallaCombate {
         try { res = this.estado.aplicar(line); } catch (e) { console.error('Error en línea', line, e); }
         if (res.texto) this.log(res.texto, res.clase || '');
         if (res.anim) await this.animar(res.anim);
-        else if (res.texto && res.clase !== 'turno' && res.clase !== 'dano-num') await sleep(this.rapido ? 60 : 220);
+        else if (res.texto && res.clase !== 'turno' && res.clase !== 'dano-num') await sleep(this.ms(220));
       }
     } finally {
       this.procesando = false;
     }
   }
 
-  ms(n: number) { return this.rapido ? n / 3 : n; }
+  /** Repetición instantánea (al reconectarse) */
+  instantaneo = false;
+  ms(n: number) { return this.instantaneo ? 0 : this.rapido ? n / 3 : n; }
 
   async animar(a: any) {
     switch (a.tipo) {
@@ -261,8 +264,8 @@ export class PantallaCombate {
     const hud = h('div', {class: 'hud' + (mon.fainted ? ' hud-fnt' : ''), 'data-clave': clave},
       h('div', {class: 'hud-fila'},
         h('span', {class: 'hud-nombre'}, mon.name),
-        mon.tera ? h('span', {class: 'tera-tag', style: {background: TIPO_COLOR[mon.tera]}, title: 'Teracristalizado'}, '◆ ' + (TIPOS_ES[mon.tera] || mon.tera)) : null,
-        h('span', {class: 'hud-nivel'}, 'Nv. ' + mon.level)),
+        mon.tera ? h('span', {class: 'tera-tag', style: {background: TIPO_COLOR[mon.tera]}, title: tr('Teracristalizado', 'Terastallized')}, '◆ ' + (TIPOS_ES[mon.tera] || mon.tera)) : null,
+        h('span', {class: 'hud-nivel'}, tr('Nv. ', 'Lv. ') + mon.level)),
       h('div', {class: 'hud-tipos'}, ...tiposEfectivos(mon).map(t => tipoBadge(t, true))),
       h('div', {class: 'barra-ps'}, h('div', {class: 'relleno ' + color, style: {width: (pct * 100).toFixed(1) + '%'}})),
       h('div', {class: 'hud-fila hud-sub'},
@@ -278,12 +281,12 @@ export class PantallaCombate {
   tooltip(mon: Pkm, esYo: boolean) {
     const sp = dex().species.get(mon.species);
     const lines = [`${nombreVisible(mon.species)} — ${(mon.types || sp.types).map(t => TIPOS_ES[t]).join('/')}`];
-    if (mon.ability) lines.push('Habilidad: ' + nomHab(mon.ability));
-    else if (!esYo) lines.push('Habilidades posibles: ' + [...new Set(Object.values(sp.abilities) as string[])].map(nomHab).join(', '));
-    if (mon.item) lines.push('Objeto: ' + nomObj(mon.item));
+    if (mon.ability) lines.push(tr('Habilidad: ', 'Ability: ') + nomHab(mon.ability));
+    else if (!esYo) lines.push(tr('Habilidades posibles: ', 'Possible abilities: ') + [...new Set(Object.values(sp.abilities) as string[])].map(nomHab).join(', '));
+    if (mon.item) lines.push(tr('Objeto: ', 'Item: ') + nomObj(mon.item));
     const st = (mon as any).stats;
-    if (esYo && st) lines.push(`Atq ${st.atk} · Def ${st.def} · AtE ${st.spa} · DfE ${st.spd} · Vel ${st.spe}`);
-    else lines.push('Stats base: ' + Object.entries(sp.baseStats).map(([k, v]) => `${STATS_CORTO[k]} ${v}`).join(' · '));
+    if (esYo && st) lines.push(tr(`Atq ${st.atk} · Def ${st.def} · AtE ${st.spa} · DfE ${st.spd} · Vel ${st.spe}`, `Atk ${st.atk} · Def ${st.def} · SpA ${st.spa} · SpD ${st.spd} · Spe ${st.spe}`));
+    else lines.push(tr('Stats base: ', 'Base stats: ') + Object.entries(sp.baseStats).map(([k, v]) => `${STATS_CORTO[k]} ${v}`).join(' · '));
     return lines.join('\n');
   }
 
@@ -328,7 +331,7 @@ export class PantallaCombate {
       c.innerHTML = '';
       const yoGano = this.estado.ganador === this.estado.lados[this.estado.yo].nombre;
       c.append(h('div', {class: 'fin-combate ' + (yoGano ? 'victoria' : 'derrota')},
-        h('div', {class: 'fin-titulo'}, this.estado.ganador ? (yoGano ? '¡Has ganado!' : 'Has perdido…') : 'Empate'),
+        h('div', {class: 'fin-titulo'}, this.estado.ganador ? (yoGano ? tr('¡Has ganado!', 'You won!') : tr('Has perdido…', 'You lost…')) : tr('Empate', 'Tie')),
         h('div', {class: 'fin-botones'}, ...(this.op.alTerminar?.() || []))));
       return;
     }
@@ -336,13 +339,13 @@ export class PantallaCombate {
     if (!req) {
       if (this.reqMostrada) return; // ya se están mostrando los controles
       c.innerHTML = '';
-      c.append(h('div', {class: 'esperando'}, 'Esperando…'));
+      c.append(h('div', {class: 'esperando'}, tr('Esperando…', 'Waiting…')));
       return;
     }
     c.innerHTML = '';
     this.estado.sincronizar(req);
     this.dibujarInfoCampo();
-    if (req.wait) { this.reqMostrada = null; this.req = null; c.append(h('div', {class: 'esperando'}, 'Esperando al rival…')); return; }
+    if (req.wait) { this.reqMostrada = null; this.req = null; c.append(h('div', {class: 'esperando'}, tr('Esperando al rival…', 'Waiting for the opponent…'))); return; }
     this.reqMostrada = req;
     this.req = null;
     this.elecciones = [];
@@ -354,7 +357,16 @@ export class PantallaCombate {
     this.ultimaPeticion = this.reqMostrada;
     this.reqMostrada = null;
     this.controlesEl.innerHTML = '';
-    this.controlesEl.append(h('div', {class: 'esperando'}, 'Esperando al rival…'));
+    const peticion = this.ultimaPeticion;
+    this.controlesEl.append(h('div', {class: 'esperando-caja'},
+      h('div', {class: 'esperando'}, tr('Esperando al rival…', 'Waiting for the opponent…')),
+      peticion && !peticion.teamPreview ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => {
+        // Deshacer la elección mientras el rival no haya elegido
+        this.op.elegir('undo');
+        this.req = peticion;
+        this.ultimaPeticion = null;
+        this.mostrarControles();
+      }}, tr('↩ Cambiar mi elección', '↩ Change my choice')) : null));
     this.op.elegir(eleccion);
   }
 
@@ -368,14 +380,14 @@ export class PantallaCombate {
       c.innerHTML = '';
       c.append(
         h('div', {class: 'preview'},
-          h('div', {class: 'preview-titulo'}, `Equipo rival`),
+          h('div', {class: 'preview-titulo'}, tr(`Equipo rival`, `Opposing team`)),
           h('div', {class: 'preview-rival'}, ...rival.map(m => {
             const el = h('div', {class: 'preview-poke'}, spriteImg(m.species, 'front', m.shiny, 'mini'),
               h('span', {}, nombreVisible(m.species)), h('span', {class: 'tipos'}, ...dex().species.get(m.species).types.map(t => tipoBadge(t, true))));
             adjuntarInfo(el, () => fichaPokemon(m, false));
             return el;
           })),
-          h('div', {class: 'preview-titulo'}, nLideres > 1 ? `Elige tus 2 Pokémon iniciales (${orden.length}/2)` : 'Elige tu Pokémon inicial'),
+          h('div', {class: 'preview-titulo'}, nLideres > 1 ? tr(`Elige tus 2 Pokémon iniciales (${orden.length}/2)`, `Choose your 2 leads (${orden.length}/2)`) : tr('Elige tu Pokémon inicial', 'Choose your lead Pokémon')),
           h('div', {class: 'botones-cambio'}, ...pokes.map((p: any, i: number) => {
             const sp = p.details.split(',')[0];
             const idx = orden.indexOf(i);
@@ -442,28 +454,28 @@ export class PantallaCombate {
     const usados = this.elecciones.join(' ');
     // Poderes disponibles (solo uno por Pokémon y turno)
     const poderes: [string, string, string][] = [];
-    if (act.canMegaEvo && !usados.includes('mega')) poderes.push(['mega', 'Megaevolución', '#c86bff']);
-    if (act.canMegaEvoX && !usados.includes('mega')) poderes.push(['megax', 'Megaevolución X', '#c86bff']);
-    if (act.canMegaEvoY && !usados.includes('mega')) poderes.push(['megay', 'Megaevolución Y', '#c86bff']);
-    if (act.canUltraBurst && !usados.includes('ultra')) poderes.push(['ultra', 'Ultraexplosión', '#ffd34d']);
-    if (act.canZMove && !usados.includes('zmove')) poderes.push(['zmove', 'Movimiento Z', '#ffcf3a']);
-    if (act.canDynamax && !usados.includes('dynamax')) poderes.push(['dynamax', act.maxMoves?.gigantamax ? 'Gigamax' : 'Dinamax', '#ff4d6d']);
-    if (act.canTerastallize && !usados.includes('terastallize')) poderes.push(['terastallize', `Teracristal (${TIPOS_ES[act.canTerastallize] || act.canTerastallize})`, TIPO_COLOR[act.canTerastallize] || '#5bd']);
+    if (act.canMegaEvo && !usados.includes('mega')) poderes.push(['mega', tr('Megaevolución', 'Mega Evolution'), '#c86bff']);
+    if (act.canMegaEvoX && !usados.includes('mega')) poderes.push(['megax', tr('Megaevolución X', 'Mega Evolution X'), '#c86bff']);
+    if (act.canMegaEvoY && !usados.includes('mega')) poderes.push(['megay', tr('Megaevolución Y', 'Mega Evolution Y'), '#c86bff']);
+    if (act.canUltraBurst && !usados.includes('ultra')) poderes.push(['ultra', tr('Ultraexplosión', 'Ultra Burst'), '#ffd34d']);
+    if (act.canZMove && !usados.includes('zmove')) poderes.push(['zmove', tr('Movimiento Z', 'Z-Move'), '#ffcf3a']);
+    if (act.canDynamax && !usados.includes('dynamax')) poderes.push(['dynamax', act.maxMoves?.gigantamax ? tr('Gigamax', 'Gigantamax') : tr('Dinamax', 'Dynamax'), '#ff4d6d']);
+    if (act.canTerastallize && !usados.includes('terastallize')) poderes.push(['terastallize', tr(`Teracristal (${TIPOS_ES[act.canTerastallize] || act.canTerastallize})`, `Terastallize (${TIPOS_ES[act.canTerastallize] || act.canTerastallize})`), TIPO_COLOR[act.canTerastallize] || '#5bd']);
     let poder = poderes.some(p => p[0] === poderInicial) ? poderInicial : '';
 
     const cab = h('div', {class: 'controles-cab'},
-      h('span', {}, dobles ? `¿Qué hará ${nombre}? (${slot + 1}/${req.active.length})` : `¿Qué hará ${nombre}?`),
-      slot > 0 ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => { this.elecciones.pop(); this.siguienteSlot(req); }}, '← Atrás') : null);
+      h('span', {}, dobles ? tr(`¿Qué hará ${nombre}? (${slot + 1}/${req.active.length})`, `What will ${nombre} do? (${slot + 1}/${req.active.length})`) : tr(`¿Qué hará ${nombre}?`, `What will ${nombre} do?`)),
+      slot > 0 ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => { this.elecciones.pop(); this.siguienteSlot(req); }}, tr('← Atrás', '← Back')) : null);
     const extras = h('div', {class: 'extras-mov'});
     if (poderes.length) {
-      extras.append(h('span', {class: 'tenue'}, 'Poder: '));
+      extras.append(h('span', {class: 'tenue'}, tr('Poder: ', 'Power: ')));
       for (const [id, txt, color] of poderes) {
         const b = h('button', {class: 'btn-poder' + (poder === id ? ' activo' : ''), style: {'--poder': color}, onclick: () => {
           this.pintarMovimientos(req, slot, poder === id ? '' : id);
         }}, txt);
         extras.append(b);
       }
-      extras.append(h('small', {class: 'tenue'}, 'Solo puedes usar un poder por combate.'));
+      extras.append(h('small', {class: 'tenue'}, tr('Solo puedes usar un poder por combate.', 'You can only use one power per battle.')));
     }
     const rivales = this.estado.lados[this.estado.rival].activos;
     const movs = h('div', {class: 'botones-mov'}, ...act.moves.map((m: any, i: number) => {
@@ -488,7 +500,7 @@ export class PantallaCombate {
         const tipos = tiposEfectivos(rival);
         const inm = !d.getImmunity(tipo, tipos);
         const ef = inm ? 0 : Math.pow(2, d.getEffectiveness(tipo, tipos));
-        const txt = inm ? 'Sin efecto' : ef >= 4 ? '×4' : ef >= 2 ? '×2' : ef <= 0.25 ? '×¼' : ef < 1 ? '×½' : '';
+        const txt = inm ? tr('Sin efecto', 'No effect') : ef >= 4 ? '×4' : ef >= 2 ? '×2' : ef <= 0.25 ? '×¼' : ef < 1 ? '×½' : '';
         if (txt) efi = h('span', {class: 'efic ' + (ef >= 2 ? 'buena' : 'mala')}, txt);
       }
       const boton = h('button', {class: 'btn-movimiento' + (poder ? ' con-poder' : ''), disabled, style: {'--tipo': TIPO_COLOR[tipo]},
@@ -535,17 +547,17 @@ export class PantallaCombate {
       if (!m) return;
       if (i === slot && tgt !== 'adjacentAllyOrSelf') return;
       botones.push(h('button', {class: 'btn-objetivo aliado', disabled: m.fainted, onclick: () => ok(` -${i + 1}`)},
-        iconImg(m.species), m.name, h('small', {}, i === slot ? ' (sí mismo)' : ' (aliado)')));
+        iconImg(m.species), m.name, h('small', {}, i === slot ? tr(' (sí mismo)', ' (self)') : ' (aliado)')));
     });
-    c.append(h('div', {class: 'controles-cab'}, h('span', {}, '¿A quién?'),
-      h('button', {class: 'btn btn-sec btn-sm', onclick: () => this.pintarMovimientos(req, slot, poder)}, '← Atrás')),
+    c.append(h('div', {class: 'controles-cab'}, h('span', {}, tr('¿A quién?', 'Target?')),
+      h('button', {class: 'btn btn-sec btn-sm', onclick: () => this.pintarMovimientos(req, slot, poder)}, tr('← Atrás', '← Back'))),
     h('div', {class: 'botones-objetivo'}, ...botones));
   }
 
   botonesCambio(req: any, slot: number, atrapado: boolean) {
     const disp = new Set(this.cambiosDisponibles(req));
     return h('div', {class: 'cambios'},
-      h('div', {class: 'cambios-titulo'}, atrapado ? 'No puedes cambiar (atrapado)' : 'Cambiar a:'),
+      h('div', {class: 'cambios-titulo'}, atrapado ? tr('No puedes cambiar (atrapado)', "You can't switch (trapped)") : tr('Cambiar a:', 'Switch to:')),
       h('div', {class: 'botones-cambio'}, ...req.side.pokemon.map((p: any, i: number) => {
         const [hp, max] = p.condition.split(' ')[0].split('/').map(Number);
         const fnt = p.condition.endsWith(' fnt');
@@ -569,8 +581,8 @@ export class PantallaCombate {
   pintarCambio(req: any, slot: number, forzado: boolean) {
     const c = this.controlesEl;
     c.innerHTML = '';
-    c.append(h('div', {class: 'controles-cab'}, h('span', {}, forzado ? '¡Elige qué Pokémon sacar!' : 'Cambiar'),
-      slot > 0 && this.elecciones.length ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => { this.elecciones.pop(); this.siguienteSlot(req); }}, '← Atrás') : null),
+    c.append(h('div', {class: 'controles-cab'}, h('span', {}, forzado ? tr('¡Elige qué Pokémon sacar!', 'Choose a Pokémon to send out!') : tr('Cambiar', 'Switch')),
+      slot > 0 && this.elecciones.length ? h('button', {class: 'btn btn-sec btn-sm', onclick: () => { this.elecciones.pop(); this.siguienteSlot(req); }}, tr('← Atrás', '← Back')) : null),
     this.botonesCambio(req, slot, false));
   }
 

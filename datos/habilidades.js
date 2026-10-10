@@ -8,6 +8,7 @@ window.DATOS_HABILIDADES = {
   // Sueño confortante: al recibir un ataque físico, 25% de dormir al atacante.
   'Sueño confortante': {
     desc: 'Al recibir un movimiento físico, puede dormir al atacante (25%).',
+    idPBS: 'SOOTHINGSLUMBER', nombreEN: 'Soothing Slumber', descEN: 'When hit by a physical move, may put the attacker to sleep (25%).',
     rating: 2.5,
     onDamagingHit(damage, target, source, move) {
       if (move.category !== 'Physical' || !source || source === target) return;
@@ -20,6 +21,7 @@ window.DATOS_HABILIDADES = {
   // Terror nocturno: los ataques hacen un 30% más de daño a objetivos dormidos.
   'Terror nocturno': {
     desc: 'Aumenta un 30% el daño causado a objetivos dormidos.',
+    idPBS: 'NIGHTTERROR', nombreEN: 'Night Terror', descEN: 'Boosts damage dealt to sleeping targets by 30%.',
     rating: 2,
     onModifyDamage(damage, source, target, move) {
       if (target && (target.status === 'slp' || target.hasAbility('comatose'))) {
