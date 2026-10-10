@@ -21,6 +21,7 @@ El combate se calcula en el navegador del anfitrión, así que debe tener la pes
 - Si se corta, el invitado se reconecta solo y el combate sigue donde estaba (el anfitrión espera 2 minutos antes de darlo por abandonado).
 - Algunas redes (empresa, instituto, ciertos routers) bloquean las conexiones directas. La página usa servidores de rebote gratuitos para esos casos, pero si aun así falla, probad uno con los datos del móvil.
 - Usad Chrome, Edge o Firefox actualizados y sin extensiones de VPN/anti-WebRTC.
+- El servidor de rebote propio (cuenta gratuita de Metered) se configura en `datos/conexion.js`. Si algún día deja de ir, crea otra credencial en Metered y copia ahí el usuario y la contraseña.
 
 ## Novedades
 

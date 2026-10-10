@@ -19,12 +19,14 @@ const generarCodigo = () => Array.from({length: 5}, () => LETRAS[Math.floor(Math
 const modoLocal = () => /[?&]local=1/.test(location.search);
 
 /** Servidores para atravesar routers y cortafuegos. Los TURN reenvían el tráfico si la conexión directa falla. */
+const REBOTE: any = (globalThis as any).SERVIDOR_REBOTE;
 const ICE = {
   iceServers: [
-    {urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']},
+    {urls: ['stun:stun.l.google.com:19302', 'stun:stun.relay.metered.ca:80']},
     {urls: 'stun:stun.cloudflare.com:3478'},
-    {urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'],
-      username: 'openrelayproject', credential: 'openrelayproject'},
+    // Servidor de rebote propio (datos/conexion.js)
+    ...(REBOTE?.usuario ? [{urls: REBOTE.servidores, username: REBOTE.usuario, credential: REBOTE.contrasena}] : []),
+    // Plan B gratuito y compartido
     {urls: ['turn:freestun.net:3478', 'turns:freestun.net:5349'], username: 'free', credential: 'free'},
   ],
   sdpSemantics: 'unified-plan',
