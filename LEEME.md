@@ -32,6 +32,10 @@ El combate se calcula en el navegador del anfitrión, así que debe tener la pes
 - **Cancelar tu elección:** mientras el rival no haya elegido, puedes pulsar "↩ Cambiar mi elección".
 - **Pokédex renovada:** pestañas de Pokémon, movimientos, habilidades y objetos con iconos y tipos a color.
 - **Exportar a PBS (Pokémon Essentials v21):** en la Pokédex, pestaña "Exportar a PBS", descargas `pokemon`, `pokemon_forms`, `moves`, `abilities` e `items` para Essentials 21.1, todo en inglés. Los movimientos oficiales salen a su nivel real; los de tus Fakemon nuevos se reparten por niveles automáticamente, así que revísalos. Al final de `pokemon_custom.txt` hay una lista de cambios a mano para Pokémon oficiales (evoluciones nuevas de Eevee, movimientos añadidos a Darkrai…).
+- **En el móvil:** toca un Pokémon o su barra de vida para ver su ficha. Para ver la info de un ataque o de un Pokémon del banquillo, mantén pulsado o activa el botón **ℹ** del campo (mientras está activo, tocar no elige: enseña los datos).
+- **Salir siempre:** en el combate hay un botón **⌂ Salir** que funciona aunque se haya cortado la conexión (si el combate no ha terminado, cuenta como rendirse).
+- **Paquete para Essentials 21.1:** en la carpeta `plugin/` del repositorio están todas las habilidades, movimientos y objetos personalizados listos para Pokémon Essentials (plugins, PBS e iconos, con un LEEME con los pasos para instalarlo).
+- **Trampa Mental:** trampa de entrada de tipo Psíquico que confunde al rival al entrar (los de tipo Siniestro son inmunes). Se quita como las demás con Giro Rápido, Despejar, etc.
 - **Idioma:** en la pantalla de inicio puedes elegir Español o English. Los textos de tus datos personalizados (descripciones de tus objetos, movimientos…) salen tal y como los escribas.
 
 ## Cómo cambiar los datos
@@ -41,12 +45,13 @@ Todo lo personalizado está en la carpeta `datos/` y se edita con cualquier edit
 | Archivo | Qué contiene |
 |---|---|
 | `datos/pokemon.js` | Pokémon: tipos, stats, habilidades, movimientos que aprenden, sprites |
-| `datos/habilidades.js` | Habilidades nuevas (Sueño confortante, Terror nocturno) |
-| `datos/movimientos.js` | Movimientos nuevos (Sueño dulce y los 15 de la v21) |
+| `datos/habilidades.js` | Habilidades nuevas (Sueño confortante, Terror nocturno, Corazón de Dragón, Contraveneno, Rocío Matinal, Corriente Fría, Mal de Ojo) |
+| `datos/movimientos.js` | Movimientos nuevos (Sueño dulce, Rugido Ancestral y los 15 de la v21) |
 | `datos/objetos.js` | Los 24 objetos equipables y sus valores de balance |
 
 Campos útiles de `datos/pokemon.js`:
 - `editar: true` → en vez de crear un Pokémon, añade movimientos o habilidad oculta a uno oficial (por ejemplo, Darkrai con tus movimientos).
+- `habilidadesExtra: ['Contraveneno']` → habilidades que se añaden sin quitar ninguna de las que ya tenía (pueden ser 4, 5 o más). En los Pokémon con `editar: true` las habilidades nuevas siempre se añaden.
 - `quitarTipos: ['Poison']` → no hereda de su preevolución los movimientos de esos tipos (como Wishbaggon).
 - `metodoPBS: 'Level,20'` → cómo evoluciona al exportarlo a Essentials (con IDs en inglés: `Item,ANCIENTLETTER`).
 - `categoria` y `entradaPokedex` (en inglés) → categoría y texto de la Pokédex al exportar a Essentials.

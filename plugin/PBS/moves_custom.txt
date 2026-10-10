@@ -1,0 +1,218 @@
+# Moves exported from Arena Fakemon (Pokémon Essentials v21.1)
+# FunctionCode: the effect has to be programmed in your own plugin (Battle::Move::<FunctionCode>).
+#-------------------------------
+[SWEETDREAM]
+Name = Sweet Dream
+Type = FAIRY
+Category = Status
+Accuracy = 75
+TotalPP = 10
+Target = NearOther
+FunctionCode = SleepTargetHealUser
+Flags = CanProtect,CanMagicCoat,CanMirrorMove
+Description = Puts the target to sleep and restores 1/8 of the user's max HP.
+#-------------------------------
+[CURSEREEL]
+Name = Curse Reel
+Type = GHOST
+Category = Special
+Power = 80
+Accuracy = 90
+TotalPP = 10
+Target = NearOther
+FunctionCode = LowerTargetAccuracyOrConfuseHurtOnSwitch
+Flags = CanProtect,CanMirrorMove
+EffectChance = 30
+Description = May confuse the target or lower its accuracy (30%). If the target switches out next turn, it takes extra damage.
+#-------------------------------
+[PHOBIAGAS]
+Name = Phobia Gas
+Type = DARK
+Category = Physical
+Power = 85
+Accuracy = 0
+TotalPP = 10
+Target = NearOther
+FunctionCode = LowerTargetSpeed2InflictParanoia
+Flags = CanProtect,CanMirrorMove
+Description = Never misses. Harshly lowers Speed and causes paranoia: a confusion that makes the target drop its item.
+#-------------------------------
+[TWINSUPERNOVA]
+Name = Twin Supernova
+Type = PSYCHIC
+Category = Special
+Power = 60
+Accuracy = 100
+TotalPP = 15
+Target = NearOther
+FunctionCode = LowerTargetDefOrSpDef1Random
+Flags = CanProtect,CanMirrorMove
+EffectChance = 50
+Description = Two-dimensional stellar energy. 50% chance to lower the target's Defense or Sp. Def.
+#-------------------------------
+[SHADOWDRAIN]
+Name = Shadow Drain
+Type = DARK
+Category = Special
+Power = 75
+Accuracy = 100
+TotalPP = 10
+Target = NearOther
+FunctionCode = HealUserByHalfOfDamageDone
+Flags = CanProtect,CanMirrorMove
+Description = Drains the target's life energy. The user recovers half the damage dealt.
+#-------------------------------
+[FAULTSTRIKE]
+Name = Fault Strike
+Type = GROUND
+Category = Physical
+Power = 60
+Accuracy = 100
+TotalPP = 20
+Target = NearOther
+FunctionCode = IgnoreTargetDefRaisesRemoveScreens
+Flags = Contact,CanProtect,CanMirrorMove
+Description = Ignores the target's Defense boosts and breaks Reflect, Light Screen and Aurora Veil.
+#-------------------------------
+[REFLECTIVEFROST]
+Name = Reflective Frost
+Type = ICE
+Category = Status
+Accuracy = 0
+TotalPP = 10
+Target = User
+Priority = 1
+FunctionCode = HalveSpecialDamageReflectStatDropsThisRound
+Flags = CanSnatch
+Description = +1 priority. This turn the user takes half damage from special moves and reflects stat drops.
+#-------------------------------
+[SUNLIGHTBLADE]
+Name = Sunlight Blade
+Type = GRASS
+Category = Physical
+Power = 70
+Accuracy = 100
+TotalPP = 15
+Target = NearOther
+FunctionCode = IncreasePowerInSun
+Flags = Contact,CanProtect,CanMirrorMove,Slicing,HighCriticalHitRate
+Description = A solar-powered slash with a high critical-hit ratio. Power rises to 105 in harsh sunlight.
+#-------------------------------
+[PARRYSTRIKE]
+Name = Parry Strike
+Type = FIGHTING
+Category = Physical
+Power = 50
+Accuracy = 100
+TotalPP = 15
+Target = NearOther
+Priority = 1
+FunctionCode = AlwaysCriticalIfTargetUsedContactMove
+Flags = Contact,CanProtect,CanMirrorMove
+Description = +1 priority. Always lands a critical hit if the target already used a contact move this turn.
+#-------------------------------
+[GRAVELBLAST]
+Name = Gravel Blast
+Type = ROCK
+Category = Physical
+Power = 25
+Accuracy = 90
+TotalPP = 30
+Target = NearOther
+FunctionCode = HitTwoToFiveTimes
+Flags = CanProtect,CanMirrorMove
+Description = A burst of sharp stones that hits two to five times in a row.
+#-------------------------------
+[BLINDINGFLASH]
+Name = Blinding Flash
+Type = FAIRY
+Category = Special
+Power = 60
+Accuracy = 100
+TotalPP = 15
+Target = NearOther
+FunctionCode = LowerTargetAtkSpAtk1IfTargetAttacks
+Flags = CanProtect,CanMirrorMove
+Description = A burst of light. If the target attacks this turn, its Attack and Sp. Atk fall.
+#-------------------------------
+[CHOKINGASH]
+Name = Choking Ash
+Type = FIRE
+Category = Status
+Accuracy = 0
+TotalPP = 15
+Target = FoeSide
+FunctionCode = StartChokingAshOnFoeSide
+Description = Covers the foe in ash for 3 turns: its physical moves may fail (30%), except for Fire, Steel and Rock types.
+#-------------------------------
+[FROSTEDGE]
+Name = Frost Edge
+Type = ICE
+Category = Physical
+Power = 70
+Accuracy = 100
+TotalPP = 15
+Target = NearOther
+FunctionCode = IgnoreTargetDefSpDefEvaStatStagesFreezeTarget
+Flags = Contact,CanProtect,CanMirrorMove,Slicing
+EffectChance = 10
+Description = Slashes with an icy blade. Ignores the target's defensive stat changes and may freeze it (10%).
+#-------------------------------
+[TECTONICPIT]
+Name = Tectonic Pit
+Type = GROUND
+Category = Status
+Accuracy = 100
+TotalPP = 10
+Target = NearOther
+FunctionCode = RemoveEntryHazardsTrapTargetOneTurn
+Flags = CanProtect,CanMirrorMove
+Description = Removes hazards from both sides of the field and traps the target until the end of the next turn.
+#-------------------------------
+[GALESTRIKE]
+Name = Gale Strike
+Type = FLYING
+Category = Physical
+Power = 50
+Accuracy = 100
+TotalPP = 15
+Target = NearOther
+Priority = 1
+FunctionCode = IncreasePowerInRainOrSun
+Flags = Contact,CanProtect,CanMirrorMove
+Description = +1 priority. Power rises to 75 in rain or harsh sunlight.
+#-------------------------------
+[PSYCHICOVERLOAD]
+Name = Psychic Overload
+Type = PSYCHIC
+Category = Special
+Power = 75
+Accuracy = 100
+TotalPP = 10
+Target = NearOther
+FunctionCode = MovesBeforePriorityFoeDoublePower
+Flags = CanProtect,CanMirrorMove
+Description = If a foe is about to use a priority move, the user moves first and deals double damage.
+#-------------------------------
+[PRIMEVALROAR]
+Name = Primeval Roar
+Type = DRAGON
+Category = Special
+Power = 85
+Accuracy = 100
+TotalPP = 10
+Target = NearOther
+FunctionCode = SuperEffectiveAgainstPoison
+Flags = CanProtect,CanMirrorMove,Sound
+Description = A roar Pitalant's line used to drive poisonous pests from the orchards. Super effective against Poison types and bypasses substitutes.
+#-------------------------------
+[MINDSNARE]
+Name = Mind Snare
+Type = PSYCHIC
+Category = Status
+Accuracy = 0
+TotalPP = 20
+Target = FoeSide
+FunctionCode = AddMindSnareToFoeSide
+Flags = CanMagicCoat
+Description = Sows illusions on the opposing side: Pokémon that switch in on the ground become confused. Dark types are immune. Removed like other entry hazards.

@@ -108,7 +108,8 @@ function lineasPokemon(e: EntradaPBS, conCabecera = true): string[] {
   if (!e.forma) { L.push('CatchRate = 45'); L.push('Happiness = 70'); }
   const habs = [...new Set([sp.abilities[0], sp.abilities[1]].filter(Boolean).map(idHabilidad))];
   L.push(`Abilities = ${habs.join(',')}`);
-  if (sp.abilities.H) L.push(`HiddenAbilities = ${idHabilidad(sp.abilities.H)}`);
+  const ocultas = Object.entries(sp.abilities).filter(([k]) => k !== '0' && k !== '1').map(([, a]) => idHabilidad(a as string));
+  if (ocultas.length) L.push(`HiddenAbilities = ${[...new Set(ocultas)].join(',')}`);
   // Movimientos: por nivel (oficiales con su nivel; los tuyos repartidos por potencia) y el resto como tutor
   if (!sp.battleOnly) {
     const ls = (d.data.Learnsets as any)[sp.id]?.learnset || {};
@@ -201,8 +202,10 @@ function pendientesOficiales(lista: EntradaPBS[]): string[] {
     if (!p.editar) continue;
     const sp = d.species.get(p.nombre);
     const cab = `[${idPBS(sp.name)}]`;
+    if (exportados.has(cab)) continue; // ya sale entero arriba (tu versión lo sustituye)
     if (p.movimientos?.length) notas.push(`#   ${cab} TutorMoves: add ${p.movimientos.map(idMovimiento).join(',')}`);
-    if (p.oculta) notas.push(`#   ${cab} HiddenAbilities = ${idHabilidad(p.oculta)}`);
+    const habs = [...(p.habilidades || []), ...(p.oculta ? [p.oculta] : []), ...(p.habilidadesExtra || [])];
+    if (habs.length) notas.push(`#   ${cab} HiddenAbilities: add ${habs.map(idHabilidad).join(',')}`);
   }
   if (!notas.length) return [];
   return ['#-------------------------------', '# CHANGES TO MAKE BY HAND IN YOUR EXISTING pokemon.txt (official species not exported here):', ...notas];

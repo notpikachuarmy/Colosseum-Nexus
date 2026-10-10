@@ -255,6 +255,7 @@ export class Estado {
         return {texto: tr(`(${N(pos[0])} perdió el ${pct}% de sus PS)`, `(${N(pos[0])} lost ${pct}% of its health)`), clase: 'dano-num', anim};
       }
       if (kw.from) return {texto: tr(`¡${N(pos[0])} recuperó PS gracias a ${desde}! (+${pct}%)`, `${N(pos[0])} restored HP using ${desde}! (+${pct}%)`), clase: 'cura', anim};
+      if (!pct) return {anim};
       return {texto: tr(`¡${N(pos[0])} recuperó PS! (+${pct}%)`, `${N(pos[0])} had its HP restored! (+${pct}%)`), clase: 'cura', anim};
     }
     case '-status': {
@@ -372,7 +373,9 @@ export class Estado {
           auroraveil: tr(`¡Velo Aurora protege a ${equipo}!`, `Aurora Veil made ${equipo} stronger against physical and special moves!`), tailwind: tr(`¡Sopla un viento afín a favor de ${equipo}!`, `The Tailwind blew from behind ${equipo}!`),
           safeguard: tr(`¡${capital(equipo)} está protegido por Velo Sagrado!`, `${capital(equipo)} cloaked itself in a mystical veil!`), mist: tr(`¡${capital(equipo)} está protegido por la Neblina!`, `${capital(equipo)} became shrouded in mist!`),
         };
-        return {texto: t[id] || tr(`¡${e} afecta a ${equipo}!`, `${e} affects ${equipo}!`), clase: 'clima', anim: {tipo: 'lado'}};
+        const capas = lado.condiciones.get(id) || 1;
+        const extra = (id === 'spikes' || id === 'toxicspikes') && capas > 1 ? tr(` (${capas} capas)`, ` (${capas} layers)`) : '';
+        return {texto: (t[id] || tr(`¡${e} afecta a ${equipo}!`, `${e} affects ${equipo}!`)) + extra, clase: 'clima', anim: {tipo: 'lado'}};
       }
       lado.condiciones.delete(id);
       return {texto: tr(`¡${e} ha desaparecido de ${equipo}!`, `${e} wore off for ${equipo}!`), clase: 'clima', anim: {tipo: 'lado'}};

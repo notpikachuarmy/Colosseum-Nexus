@@ -1,0 +1,65 @@
+ARENA FAKEMON - PAQUETE PARA POKÉMON ESSENTIALS v21.1
+=====================================================
+
+Todo lo personalizado del juego web (habilidades, movimientos y objetos) listo
+para tu fangame. Los IDs, nombres y descripciones están en inglés.
+
+CONTENIDO
+  Plugins/
+    Arena Fakemon - Habilidades/        Las 7 habilidades nuevas.
+    Arena Fakemon - Movimientos extra/  Sueño dulce, Rugido Ancestral y Trampa
+                                        Mental (con Giro Rápido, Despejar, Cambio
+                                        de Cancha y Fisura Táctica quitándola).
+    Objetos y Movimientos Custom/       Tu plugin de los 15 movimientos y 7 objetos
+                                        de la v21 (con los IDs de objeto en inglés).
+    Objetos Equipables Personalizados/  Tu plugin de los 17 objetos equipables.
+  PBS/
+    abilities_custom.txt   7 habilidades
+    moves_custom.txt       18 movimientos
+    items_custom.txt       24 objetos equipables + 4 de evolución + Metagrossita X
+  Graphics/Items/          Los iconos de todos esos objetos, ya con el nombre del ID.
+
+CÓMO INSTALARLO
+1. Copia las carpetas Plugins, PBS y Graphics dentro de la carpeta de tu juego
+   (se mezclan con las que ya tienes).
+2. IMPORTANTE si ya habías instalado antes los paquetes sueltos:
+   - Borra PBS/items_ObjetosEquipables.txt (ahora va todo en items_custom.txt).
+   - Los objetos de la v21 han cambiado de ID para que estén en inglés:
+       BEBIDAENERGICA -> ENERGYDRINK      BOMBAHUMO          -> SMOKEBOMB
+       PLUMAVENDAVAL  -> GALEFEATHER      FAROLREVELADOR     -> REVEALINGLANTERN
+       FRAGMENTOMETEORITO -> METEORFRAGMENT  LANASUAVE       -> SOFTWOOL
+       MEDALLAMERITO  -> MERITMEDAL
+     Si los usabas en mapas, tiendas o entrenadores, cambia el ID allí también,
+     y borra los .png viejos de Graphics/Items si quieres.
+   - Los objetos de evolución también tienen ID en inglés: COMIC, ANCIENTLETTER
+     (Carta Antigua), GOLDENARMOR (Armadura Dorada) y JOUSTINGLANCE (Roquete).
+3. Abre el juego en modo Debug con Ctrl pulsado (o borra Data/PluginScripts.rxdata)
+   para que recompile los plugins y los PBS. Essentials 21.1 lee solos los
+   archivos abilities_*.txt, moves_*.txt e items_*.txt además de los normales.
+4. Para que los Pokémon los tengan, usa la exportación PBS de la web
+   (Pokédex -> Exportar a PBS -> pokemon_custom.txt): ya incluye habilidades,
+   movimientos por nivel, tutor y evoluciones con estos mismos IDs.
+
+QUÉ HACE CADA COSA NUEVA
+  Habilidades
+    SOOTHINGSLUMBER (Sueño confortante)  25% de dormir al atacante físico
+    NIGHTTERROR     (Terror nocturno)    +30% de daño a Pokémon dormidos
+    DRAGONHEART     (Corazón de Dragón)  Dragón x1.5 con 1/3 de PS o menos
+    ANTIVENOM       (Contraveneno)       Inmune a Veneno (sube Ataque) y a envenenarse
+    MORNINGDEW      (Rocío Matinal)      Cura 1/16 por turno (1/8 con lluvia o Campo de Hierba)
+    COLDCURRENT     (Corriente Fría)     +1 Velocidad con lluvia o granizo/nieve
+    EVILEYE         (Mal de Ojo)         Al entrar, baja la Def. Esp. de los rivales
+  Movimientos
+    SWEETDREAM   (Sueño dulce)       Duerme al objetivo y cura 1/8 al usuario
+    PRIMEVALROAR (Rugido Ancestral)  Dragón especial, supereficaz contra Veneno, de sonido
+    MINDSNARE    (Trampa Mental)     Trampa de entrada Psíquica: confunde al entrar
+                                     (si toca el suelo). Inmunes: tipo Siniestro,
+                                     voladores/Levitación y Botas Gruesas.
+
+NOTAS
+- Los plugins de habilidades y movimientos extra siguen el mismo código que usa
+  Essentials 21.1 para Intimidación, Absorbe Savia, Púas, Liofilización, etc.
+  No se han podido probar dentro de un juego real: si algo da error al compilar,
+  copia el mensaje y lo arreglamos.
+- "Arena Fakemon - Movimientos extra" necesita el plugin "Objetos y Movimientos
+  Custom" (lo indica su meta.txt), así que copia los dos.

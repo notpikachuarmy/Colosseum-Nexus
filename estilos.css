@@ -511,3 +511,28 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
 .selector-idioma { display: flex; justify-content: flex-end; gap: 4px; }
 .idioma-btn { background: var(--panel); color: var(--tenue); border: 1px solid var(--borde); border-radius: 999px; padding: 4px 12px; cursor: pointer; font: 600 13px 'Fredoka', sans-serif; }
 .idioma-btn.activo { background: var(--acento); color: #1b1b2b; border-color: transparent; }
+
+/* ===== Fichas en el móvil: panel abajo ===== */
+.info-flotante.hoja {
+  left: 8px !important; right: 8px; top: auto !important; bottom: 8px; width: auto; max-width: none;
+  max-height: 58vh; overflow-y: auto; pointer-events: auto; font-size: 14px; padding: 14px 14px 12px;
+  border-radius: 16px; box-shadow: 0 -6px 30px rgba(0,0,0,.55); transform: translateY(12px); transition: opacity .15s, transform .15s;
+}
+.info-flotante.hoja.visible { transform: none; }
+.info-flotante.hoja .ficha-nombre { font-size: 18px; }
+.info-flotante.hoja .ficha-desc { font-size: 13px; }
+.hoja-cerrar { position: sticky; float: right; top: 0; margin: -4px -4px 0 8px; width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--borde); background: var(--panel2); color: var(--texto); font-size: 16px; cursor: pointer; z-index: 1; }
+.con-info { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.btn-info-movil { position: absolute; bottom: 8px; right: 8px; z-index: 6; min-width: 38px; height: 38px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--borde); background: rgba(15,17,26,.8); color: #fff; font: 700 16px 'Fredoka', sans-serif; cursor: pointer; }
+.btn-info-movil.activo { background: var(--acento); color: #1b1b2b; border-color: transparent; font-size: 14px; }
+.modo-info .controles button.btn-movimiento, .modo-info .controles button.btn-cambio { outline: 2px dashed var(--acento); outline-offset: -3px; }
+
+/* Trampas y protecciones de cada lado (se ven todas a la vez, también en el móvil) */
+.condiciones-lados { position: absolute; left: 8px; top: 86px; display: grid; gap: 4px; max-width: 60%; z-index: 4; pointer-events: none; }
+.fila-lado { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; background: rgba(20, 22, 34, .7); padding: 3px 6px; border-radius: 10px; }
+.fila-lado .quien { color: #fff; font-size: 11px; font-weight: 800; margin-right: 2px; }
+.fila-lado .chip-lado { margin-left: 0; }
+.fila-lado.rival .chip-lado { background: #ff9a8a; color: #3a0d06; }
+@media (max-width: 680px) { .condiciones-lados { top: 8px; max-width: 52%; } .fila-lado .chip-lado { font-size: 10px; } }

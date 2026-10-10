@@ -13,6 +13,8 @@ const W: AnyObj = (globalThis as any).window || globalThis;
 const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 
 export interface InfoCustom {
+  /** ids de condiciones de lado que son trampas propias (Trampa Mental...) */
+  trampasExtra?: string[];
   /** id de especie -> nombre de archivo de sprite */
   sprites: {[id: string]: string};
   /** ids de especies nuevas o modificadas */
@@ -78,6 +80,82 @@ export function buildMod() {
     };
     void cat;
   }
+  // Trampas propias (movimientos con "trampa: true"): Giro Rápido, Giro Mortal, Limpieza General,
+  // Despejar y Cambio de Cancha las tratan igual que a Púas, Trampa Rocas, etc.
+  const TRAMPAS_EXTRA: string[] = Object.entries<AnyObj>(W.DATOS_MOVIMIENTOS || {})
+    .filter(([, m]) => m.trampa).map(([n, m]) => m.sideCondition || toID(n));
+  INFO.trampasExtra = TRAMPAS_EXTRA;
+  if (TRAMPAS_EXTRA.length) {
+    const quitar = (battle: any, side: any, fuente?: any, desde?: string) => {
+      let q = false;
+      for (const t of TRAMPAS_EXTRA) {
+        if (side.removeSideCondition(t)) {
+          q = true;
+          battle.add('-sideend', side, battle.dex.conditions.get(t).name, ...(desde ? [`[from] move: ${desde}`, `[of] ${fuente}`] : []));
+        }
+      }
+      return q;
+    };
+    for (const id of ['rapidspin', 'mortalspin']) {
+      const o = base.data.Moves[id];
+      Moves[id] = {
+        inherit: true,
+        onAfterHit(this: any, target: any, pokemon: any, move: any) {
+          o.onAfterHit.call(this, target, pokemon, move);
+          if (!move.hasSheerForce) quitar(this, pokemon.side, pokemon, o.name);
+        },
+        onAfterSubDamage(this: any, damage: number, target: any, pokemon: any, move: any) {
+          o.onAfterSubDamage.call(this, damage, target, pokemon, move);
+          if (!move.hasSheerForce && pokemon.hp) quitar(this, pokemon.side, pokemon, o.name);
+        },
+      };
+    }
+    const tidy = base.data.Moves.tidyup;
+    Moves.tidyup = {
+      inherit: true,
+      onHit(this: any, pokemon: any) {
+        let extra = false;
+        for (const side of [pokemon.side, ...pokemon.side.foeSidesWithConditions()]) extra = quitar(this, side) || extra;
+        const r = tidy.onHit.call(this, pokemon);
+        return r || extra;
+      },
+    };
+    const defog = base.data.Moves.defog;
+    Moves.defog = {
+      inherit: true,
+      onHit(this: any, target: any, source: any, move: any) {
+        const r = defog.onHit.call(this, target, source, move);
+        let extra = false;
+        for (const side of new Set([target.side, source.side])) extra = quitar(this, side, source, 'Defog') || extra;
+        return r || extra;
+      },
+    };
+    const court = base.data.Moves.courtchange;
+    Moves.courtchange = {
+      inherit: true,
+      onHitField(this: any, target: any, source: any) {
+        // Intercambia primero las trampas propias; luego el resto como siempre
+        const a = source.side.sideConditions, b = source.side.foe.sideConditions;
+        let extra = false;
+        for (const t of TRAMPAS_EXTRA) {
+          const ea = a[t], eb = b[t];
+          if (!ea && !eb) continue;
+          extra = true;
+          delete a[t]; delete b[t];
+          if (ea) { b[t] = ea; ea.target = source.side.foe; }
+          if (eb) { a[t] = eb; eb.target = source.side; }
+        }
+        const r = court.onHitField.call(this, target, source);
+        if (r === false && extra) {
+          this.add('-swapsideconditions');
+          this.add('-activate', source, 'move: Court Change');
+          return;
+        }
+        return r;
+      },
+    };
+  }
+
   // --------------------------------------------------------------------- objetos
   num = 5001;
   for (const [name, data] of Object.entries<AnyObj>(W.DATOS_OBJETOS || {})) {
@@ -136,7 +214,7 @@ export function buildMod() {
   for (const p of lista) {
     const baseId = p.base ? toID(p.base) : '';
     if (p.base && !base.data.Pokedex[baseId]) { aviso(`${p.nombre}: el Pokémon base "${p.base}" no existe`); continue; }
-    const esVersion = versiones.has(baseId) && baseId === toID(p.nombre);
+    const esVersion = !p.editar && versiones.has(baseId) && baseId === toID(p.nombre);
     const name: string = esVersion ? versiones.get(baseId)! : p.nombre;
     const id = toID(name);
     if (p.quitarTipos) INFO.quitarTipos[id] = p.quitarTipos;
@@ -145,8 +223,20 @@ export function buildMod() {
       if (!base.data.Pokedex[id]) { aviso(`${p.nombre}: no existe para editarlo`); continue; }
       INFO.editados.add(id);
       const e = ensureEntry(id)!;
-      if (p.habilidades) { e.abilities = {0: p.habilidades[0]}; if (p.habilidades[1]) e.abilities[1] = p.habilidades[1]; p.habilidades.forEach((a: string) => checkAbility(a, p.nombre)); }
-      if (p.oculta) { e.abilities = {...(e.abilities || base.data.Pokedex[id].abilities), H: p.oculta}; checkAbility(p.oculta, p.nombre); }
+      // Las habilidades nuevas se AÑADEN: el Pokémon conserva todas las que ya tenía
+      const nuevas = [...(p.habilidades || []), ...(p.oculta ? [p.oculta] : []), ...(p.habilidadesExtra || [])];
+      if (nuevas.length) {
+        const habs = {...(e.abilities || base.data.Pokedex[id].abilities)};
+        let n = 1;
+        for (const a of nuevas) {
+          checkAbility(a, p.nombre);
+          if (Object.values(habs).some(x => toID(x as string) === toID(a))) continue;
+          let k = 'S';
+          while (habs[k]) k = 'C' + n++;
+          habs[k] = a;
+        }
+        e.abilities = habs;
+      }
       if (p.tipos) e.types = p.tipos;
       if (p.stats) e.baseStats = Object.fromEntries(STAT_KEYS.map((k, i) => [k, p.stats[i] ?? 50]));
       const ls = Learnsets[id]?.learnset || learnsetOf(id);
@@ -206,6 +296,17 @@ export function buildMod() {
     if (p.oculta !== undefined) {
       if (!entry.abilities) entry.abilities = {};
       if (p.oculta) { entry.abilities.H = p.oculta; checkAbility(p.oculta, name); } else delete entry.abilities.H;
+    }
+    if (p.habilidadesExtra) {
+      // Habilidades añadidas además de las normales (no quitan ninguna)
+      let n = 1;
+      for (const a of p.habilidadesExtra) {
+        checkAbility(a, name);
+        if (Object.values(entry.abilities || {}).some(x => toID(x as string) === toID(a))) continue;
+        let k = 'S';
+        while (entry.abilities[k]) k = 'C' + n++;
+        entry.abilities[k] = a;
+      }
     }
     if (p.peso) entry.weightkg = p.peso;
 

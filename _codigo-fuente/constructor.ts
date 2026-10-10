@@ -253,7 +253,7 @@ export function pantallaEquipos(raiz: HTMLElement, volver: () => void) {
     // Objeto y habilidad
     const habilidades = [...new Set(Object.values(sp.abilities) as string[])];
     const habSel = h('select', {class: 'select'}, ...habilidades.map(a => h('option', {value: a, selected: toID(a) === toID(s.ability)},
-      nomHab(a) + (sp.abilities.H === a ? ' (oculta)' : ''))));
+      nomHab(a) + (sp.abilities.H === a ? tr(' (oculta)', ' (hidden)') : Object.entries(sp.abilities).some(([k, v]) => v === a && /^(S|C\d+)$/.test(k)) ? ' ★' : ''))));
     habSel.addEventListener('change', () => { s.ability = habSel.value; cambiar(); });
     const ab = d.abilities.get(s.ability);
     const it = s.item ? d.items.get(s.item) : null;

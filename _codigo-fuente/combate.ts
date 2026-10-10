@@ -2,9 +2,10 @@
 import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
-import {adjuntarInfo, fichaPokemon, fichaMovimiento, tiposEfectivos, ocultarInfo} from './ficha';
+import {cambiarPantalla, nav} from './nucleo';
+import {adjuntarInfo, fichaPokemon, fichaMovimiento, tiposEfectivos, ocultarInfo, esTactil, setModoInfo, getModoInfo} from './ficha';
 import {
-  dex, h, tipoBadge, spriteImg, iconImg, itemIcon, nombreVisible, sleep, storage,
+  dex, h, toast, tipoBadge, spriteImg, iconImg, itemIcon, nombreVisible, sleep, storage,
   TIPOS_ES, TIPO_COLOR, CATEGORIA_ES, ESTADOS_ES, ESTADO_COLOR, STATS_CORTO,
   nomMov, descMov, nomHab, nomObj,
 } from './util';
@@ -13,6 +14,8 @@ export interface OpcionesCombate {
   yo: LadoId;
   elegir: (eleccion: string) => void;
   rendirse: () => void;
+  /** Salir a la pantalla principal (por defecto, ir al inicio) */
+  salir?: () => void;
   enviarChat?: (texto: string) => void;
   alTerminar?: () => HTMLElement[];   // botones a mostrar al terminar
   titulo?: string;
@@ -33,11 +36,14 @@ const CLIMA_ES: {[k: string]: string} = {
 };
 const CAMPO_ES: {[k: string]: string} = {
   electricterrain: tr('⚡ Campo eléctrico', '⚡ Electric Terrain'), grassyterrain: tr('🌿 Campo de hierba', '🌿 Grassy Terrain'), mistyterrain: tr('🌫 Campo de niebla', '🌫 Misty Terrain'),
-  psychicterrain: tr('🔮 Campo psíquico', '🔮 Psychic Terrain'), trickroom: tr('🔄 Espacio raro', '🔄 Trick Room'), gravity: tr('⬇ Gravedad', '⬇ Gravity'), magicroom: tr('Zona mágica', 'Magic Room'), wonderroom: tr('Zona extraña', 'Wonder Room'),
+  psychicterrain: tr('🔮 Campo psíquico', '🔮 Psychic Terrain'), trickroom: tr('🔄 Espacio raro', '🔄 Trick Room'), gravity: tr('⬇ Gravedad', '⬇ Gravity'), magicroom: tr('Zona mágica', 'Magic Room'), wonderroom: tr('Zona extraña', 'Wonder Room'), mudsport: tr('Chapoteo lodo', 'Mud Sport'), watersport: tr('Hidrochorro', 'Water Sport'), fairylock: tr('Cerrojo feérico', 'Fairy Lock'), iondeluge: tr('Electrificación', 'Ion Deluge'),
 };
 const LADO_ES: {[k: string]: string} = {
-  spikes: tr('Púas', 'Spikes'), stealthrock: tr('Trampa rocas', 'Stealth Rock'), toxicspikes: tr('Púas tóxicas', 'Toxic Spikes'), stickyweb: tr('Red viscosa', 'Sticky Web'), reflect: tr('Reflejo', 'Reflect'),
-  lightscreen: tr('Pantalla de luz', 'Light Screen'), auroraveil: tr('Velo aurora', 'Aurora Veil'), tailwind: tr('Viento afín', 'Tailwind'), safeguard: tr('Velo sagrado', 'Safeguard'), mist: tr('Neblina', 'Mist'),
+  spikes: tr('📌 Púas', '📌 Spikes'), stealthrock: tr('🪨 Trampa rocas', '🪨 Stealth Rock'), toxicspikes: tr('☠ Púas tóxicas', '☠ Toxic Spikes'), stickyweb: tr('🕸 Red viscosa', '🕸 Sticky Web'), trampamental: tr('🌀 Trampa mental', '🌀 Mind Snare'), cenizasofocante: tr('🌫 Ceniza', '🌫 Choking Ash'), reflect: tr('🛡 Reflejo', '🛡 Reflect'),
+  lightscreen: tr('🛡 Pantalla de luz', '🛡 Light Screen'), auroraveil: tr('🛡 Velo aurora', '🛡 Aurora Veil'), tailwind: tr('💨 Viento afín', '💨 Tailwind'), safeguard: tr('Velo sagrado', 'Safeguard'), mist: tr('Neblina', 'Mist'),
+  gmaxsteelsurge: tr('⚙ Acero afilado', '⚙ Steelsurge'), firepledge: tr('🔥 Mar de llamas', '🔥 Sea of Fire'), grasspledge: tr('🌾 Ciénaga', '🌾 Swamp'),
+  waterpledge: tr('🌈 Arcoíris', '🌈 Rainbow'), luckychant: tr('Conjuro', 'Lucky Chant'), gmaxvinelash: tr('Azote de lianas', 'Vine Lash'),
+  gmaxwildfire: tr('Fuego infernal', 'Wildfire'), gmaxcannonade: tr('Cañonazo', 'Cannonade'), gmaxvolcalith: tr('Pedrusco', 'Volcalith'),
 };
 
 export class PantallaCombate {
@@ -78,16 +84,36 @@ export class PantallaCombate {
       c.addEventListener('change', () => { this.rapido = c.checked; storage.set('arena.rapido', this.rapido); });
       return c;
     })(), tr(' Animaciones rápidas', ' Fast animations'));
+    // Móvil: botón para activar el "modo info" (tocar = ver datos en vez de elegir)
+    let botonInfo: HTMLElement | null = null;
+    if (esTactil()) {
+      botonInfo = h('button', {class: 'btn-info-movil', 'aria-pressed': 'false'}, 'ℹ');
+      const pintarInfo = () => {
+        const on = getModoInfo();
+        botonInfo!.classList.toggle('activo', on);
+        botonInfo!.setAttribute('aria-pressed', String(on));
+        botonInfo!.textContent = on ? tr('ℹ Info activada', 'ℹ Info on') : 'ℹ';
+        this.raiz.querySelector('.combate')?.classList.toggle('modo-info', on);
+      };
+      botonInfo.addEventListener('click', () => {
+        setModoInfo(!getModoInfo());
+        pintarInfo();
+        if (getModoInfo()) toast(tr('Toca un ataque o un Pokémon para ver sus datos. Vuelve a pulsar ℹ para combatir.', 'Tap a move or a Pokémon to see its info. Tap ℹ again to battle.'), 3500);
+        else ocultarInfo();
+      });
+      setTimeout(pintarInfo);
+    }
     this.raiz.append(h('div', {class: 'combate'},
       h('div', {class: 'columna-campo'},
-        h('div', {class: 'escenario'}, this.campoEl, this.infoCampoEl),
+        h('div', {class: 'escenario'}, this.campoEl, this.infoCampoEl, botonInfo),
         this.controlesEl),
       h('aside', {class: 'registro'},
         h('div', {class: 'registro-cab'}, h('b', {}, this.op.titulo || tr('Combate', 'Battle')), rapidoBtn,
           h('button', {class: 'btn btn-peligro btn-sm', onclick: () => {
             if (this.estado.terminado) return;
             if (confirm(tr('¿Seguro que quieres rendirte?', 'Are you sure you want to forfeit?'))) this.op.rendirse();
-          }}, tr('Rendirse', 'Forfeit'))),
+          }}, tr('Rendirse', 'Forfeit')),
+          h('button', {class: 'btn btn-sec btn-sm', title: tr('Volver a la pantalla principal', 'Back to the main screen'), onclick: () => this.salirAlInicio()}, tr('⌂ Salir', '⌂ Leave'))),
         this.registroEl,
         this.op.enviarChat ? chatIn : null)));
     this.dibujarCampo();
@@ -308,6 +334,7 @@ export class PantallaCombate {
     if (e.clima) chips.push(h('span', {class: 'chip-campo'}, CLIMA_ES[e.clima] || e.clima));
     for (const k of e.campo.keys()) chips.push(h('span', {class: 'chip-campo'}, CAMPO_ES[k] || k));
     this.infoCampoEl.append(h('div', {class: 'campo-chips'}, ...chips));
+    const filasLado: HTMLElement[] = [];
     for (const ladoId of [e.rival, e.yo] as LadoId[]) {
       const lado = e.lados[ladoId];
       const conds = [...lado.condiciones.entries()].map(([k, v]) => h('span', {class: 'chip-lado'}, (LADO_ES[k] || k) + (v > 1 ? ` ×${v}` : '')));
@@ -320,8 +347,12 @@ export class PantallaCombate {
         iconos.push(ic);
       }
       this.infoCampoEl.append(h('div', {class: 'equipo-iconos ' + (ladoId === e.yo ? 'mio' : 'rival')},
-        h('span', {class: 'jugador'}, lado.nombre), ...iconos, ...conds));
+        h('span', {class: 'jugador'}, lado.nombre), ...iconos));
+      if (conds.length) filasLado.push(h('div', {class: 'fila-lado ' + (ladoId === e.yo ? 'mio' : 'rival')},
+        h('span', {class: 'quien'}, ladoId === e.yo ? tr('Tu lado', 'Your side') : tr('Rival', 'Foe')), ...conds));
     }
+    // Trampas y protecciones de cada lado (Púas, Púas tóxicas, Trampa Rocas, Reflejo...): todas a la vez
+    if (filasLado.length) this.infoCampoEl.append(h('div', {class: 'condiciones-lados'}, ...filasLado));
   }
 
   // ------------------------------------------------------------ controles --
@@ -586,7 +617,17 @@ export class PantallaCombate {
     this.botonesCambio(req, slot, false));
   }
 
-  destruir() { this.destruido = true; ocultarInfo(); }
+  destruir() { this.destruido = true; ocultarInfo(); setModoInfo(false); }
+
+  /** Salir siempre es posible, aunque la conexión se haya cortado */
+  salirAlInicio() {
+    if (!this.estado.terminado) {
+      if (!confirm(tr('Si sales ahora, pierdes el combate. ¿Salir a la pantalla principal?', 'If you leave now, you lose the battle. Go back to the main screen?'))) return;
+      try { this.op.rendirse(); } catch (e) { console.error(e); }
+    }
+    if (this.op.salir) this.op.salir();
+    else cambiarPantalla(nav.inicio);
+  }
 }
 
 export {itemIcon, toID};

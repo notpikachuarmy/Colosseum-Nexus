@@ -10,16 +10,34 @@ import {
 let flotante: HTMLElement | null = null;
 let ancla: HTMLElement | null = null;
 
+/** Pantallas táctiles (móvil/tablet): no hay ratón para "pasar por encima" */
+export const esTactil = () => typeof matchMedia !== 'undefined' && matchMedia('(hover: none)').matches;
+
+/** Modo info del móvil: mientras está activo, tocar un ataque o un Pokémon muestra su ficha en vez de elegirlo */
+let modoInfo = false;
+const oyentesModo: ((v: boolean) => void)[] = [];
+export function setModoInfo(v: boolean) { modoInfo = v; for (const f of oyentesModo) f(v); }
+export function getModoInfo() { return modoInfo; }
+export function alCambiarModoInfo(f: (v: boolean) => void) { oyentesModo.push(f); }
+
 function caja() {
   if (!flotante) {
     flotante = h('div', {class: 'info-flotante', role: 'tooltip'});
     document.body.append(flotante);
+    // En el móvil, tocar fuera de la ficha la cierra
+    document.addEventListener('touchstart', e => {
+      if (!flotante?.classList.contains('visible') || !flotante.classList.contains('hoja')) return;
+      const t = e.target as Node;
+      if (flotante.contains(t) || (ancla && ancla.contains(t))) return;
+      ocultarInfo();
+    }, {passive: true});
   }
   return flotante;
 }
 
 function colocar(x: number, y: number) {
   const f = caja();
+  if (f.classList.contains('hoja')) { f.style.left = ''; f.style.top = ''; return; }
   const r = f.getBoundingClientRect();
   let left = x + 16, top = y - r.height - 12;
   if (left + r.width > window.innerWidth - 8) left = Math.max(8, x - r.width - 16);
@@ -33,37 +51,44 @@ export function ocultarInfo() {
   ancla = null;
 }
 
-/** Muestra una ficha al pasar el ratón por encima (o al mantener pulsado en el móvil). */
+/** Muestra una ficha al pasar el ratón por encima. En el móvil: tocar (o mantener pulsado
+ *  en los botones de ataque y cambio) abre la ficha como un panel abajo de la pantalla. */
 export function adjuntarInfo(el: HTMLElement, contenido: () => HTMLElement | null) {
-  const mostrar = (x: number, y: number) => {
+  const mostrar = (x: number, y: number, hoja = false) => {
     const c = contenido();
     if (!c) return;
     const f = caja();
     f.innerHTML = '';
+    f.classList.toggle('hoja', hoja);
+    if (hoja) f.append(h('button', {class: 'hoja-cerrar', 'aria-label': tr('Cerrar', 'Close'), onclick: () => ocultarInfo()}, '✕'));
     f.append(c);
     f.classList.add('visible');
     ancla = el;
     colocar(x, y);
   };
-  el.addEventListener('mouseenter', e => mostrar(e.clientX, e.clientY));
-  el.addEventListener('mousemove', e => { if (ancla === el) colocar(e.clientX, e.clientY); });
-  el.addEventListener('mouseleave', () => { if (ancla === el) ocultarInfo(); });
-  // Móvil: mantener pulsado
+  if (!esTactil()) {
+    el.addEventListener('mouseenter', e => mostrar(e.clientX, e.clientY));
+    el.addEventListener('mousemove', e => { if (ancla === el) colocar(e.clientX, e.clientY); });
+    el.addEventListener('mouseleave', () => { if (ancla === el) ocultarInfo(); });
+    return;
+  }
+  const esAccion = el.tagName === 'BUTTON';
+  el.classList.add('con-info');
+  // Móvil: mantener pulsado (cualquier elemento)
   let timer: any = null;
   let mostrado = false;
-  el.addEventListener('touchstart', e => {
-    const t = e.touches[0];
+  el.addEventListener('touchstart', () => {
     mostrado = false;
-    timer = setTimeout(() => { mostrado = true; mostrar(t.clientX, t.clientY); }, 420);
+    timer = setTimeout(() => { mostrado = true; mostrar(0, 0, true); try { navigator.vibrate?.(15); } catch { /* */ } }, 400);
   }, {passive: true});
-  const fin = () => {
-    clearTimeout(timer);
-    if (mostrado) setTimeout(() => { if (ancla === el) ocultarInfo(); }, 2500);
-  };
-  el.addEventListener('touchend', fin);
+  el.addEventListener('touchend', () => clearTimeout(timer));
   el.addEventListener('touchmove', () => clearTimeout(timer), {passive: true});
-  el.addEventListener('click', e => { if (mostrado) { e.preventDefault(); e.stopImmediatePropagation(); mostrado = false; } }, true);
-  el.addEventListener('contextmenu', e => { if (mostrado) e.preventDefault(); });
+  el.addEventListener('click', e => {
+    if (mostrado) { e.preventDefault(); e.stopImmediatePropagation(); mostrado = false; return; }
+    // Tocar algo que no es un botón, o cualquier cosa con el modo info activo: abrir la ficha
+    if (!esAccion || modoInfo) { e.preventDefault(); e.stopImmediatePropagation(); mostrar(0, 0, true); }
+  }, true);
+  el.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 const MULT = (b: number) => b >= 0 ? (2 + b) / 2 : 2 / (2 - b);

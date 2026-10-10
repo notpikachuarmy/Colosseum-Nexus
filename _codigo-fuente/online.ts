@@ -84,7 +84,10 @@ function salaAnfitrion() {
     activo = false;
     clearTimeout(temporizador);
     pantalla?.destruir(); motor?.destruir();
-    canal?.cerrar(); sala?.cancelar();
+    try { canal?.enviar({t: 'cerrada'}); } catch { /* */ }
+    const c = canal, s = sala;
+    // un momento para que el aviso llegue antes de cortar
+    setTimeout(() => { c?.cerrar(); s?.cancelar(); }, 300);
   });
 
   function pintarLobby(estado = '') {
@@ -319,7 +322,14 @@ function salaInvitado(codigo: string) {
   let sel = selectorEquipo(null);
   let marcadorFin = '';
 
-  setLimpiar(() => { activo = false; pantalla?.destruir(); canal?.cerrar(); sala?.cancelar(); });
+  // Al volver a la pestaña (en el móvil se suspende al salir), reconectar enseguida
+  const alVolver = () => {
+    if (document.visibilityState !== 'visible' || !activo || canal || fase === 'conectando') return;
+    reintentos = 0;
+    conectar();
+  };
+  document.addEventListener('visibilitychange', alVolver);
+  setLimpiar(() => { activo = false; document.removeEventListener('visibilitychange', alVolver); pantalla?.destruir(); canal?.cerrar(); sala?.cancelar(); });
 
   const equipoActual = (): Equipo | undefined => sel.equipo();
   function datosEquipo() {
@@ -386,6 +396,9 @@ function salaInvitado(codigo: string) {
         modo = {formato: msg.formato, aleatorio: !!msg.aleatorio, reserva: msg.reserva || '', serie: msg.serie || 'uno'};
         if (fase === 'lobby' || fase === 'fin' && !pantalla) pintar();
         break;
+      case 'cerrada':
+        error = tr('El anfitrión ha cerrado la sala.', 'The host closed the room.');
+        fase = 'conectando'; canal = null; c.cerrar(); pintar(); break;
       case 'llena': error = tr('Esa sala ya tiene dos jugadores.', 'That room already has two players.'); fase = 'conectando'; canal = null; c.cerrar(); pintar(); break;
       case 'seleccion': {
         fase = 'seleccion';

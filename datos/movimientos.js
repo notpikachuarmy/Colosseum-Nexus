@@ -224,11 +224,16 @@ window.DATOS_MOVIMIENTOS = {
     type: 'Ground', category: 'Status', basePower: 0, accuracy: 100, pp: 10, target: 'normal',
     flags: { protect: 1, mirror: 1, metronome: 1 },
     onHit(target, source, move) {
-      const trampas = ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb', 'gmaxsteelsurge'];
+      const trampas = ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'trampamental'];
       let algo = false;
       for (const side of [source.side, target.side]) {
         let quitada = false;
-        for (const t of trampas) if (side.removeSideCondition(t)) quitada = true;
+        for (const t of trampas) {
+          if (side.removeSideCondition(t)) {
+            quitada = true;
+            this.add('-sideend', side, this.dex.conditions.get(t).name, '[from] move: ' + move.name, '[of] ' + source);
+          }
+        }
         if (quitada) { algo = true; this.add('-message', MSG(`¡La fisura aplastó las trampas del campo de ${side.name}!`, `The fissure crushed the hazards on ${side.name}'s side!`)); }
       }
       if (!target.hasType('Ghost') && !target.volatiles[move.id]) {
@@ -285,6 +290,45 @@ window.DATOS_MOVIMIENTOS = {
     basePowerCallback(pokemon, target, move) {
       if (pokemon.sobrecargaObjetivos && pokemon.sobrecargaObjetivos.includes(target)) return move.basePower * 2;
       return move.basePower;
+    },
+  },
+
+  // Rugido Ancestral (exclusivo de la línea de Pitalant): los Pitalant protegían los
+  // huertos rugiendo a las plagas venenosas, así que es supereficaz contra el tipo Veneno.
+  'Rugido Ancestral': {
+    desc: 'Rugido que la línea de Pitalant usaba para espantar a las plagas venenosas de los huertos. Supereficaz contra el tipo Veneno y atraviesa sustitutos.',
+    nombreEN: 'Primeval Roar', descEN: 'A roar Pitalant\'s line used to drive poisonous pests from the orchards. Super effective against Poison types and bypasses substitutes.',
+    idPBS: 'PRIMEVALROAR', funcionPBS: 'SuperEffectiveAgainstPoison',
+    type: 'Dragon', category: 'Special', basePower: 85, accuracy: 100, pp: 10, priority: 0, target: 'normal',
+    flags: { protect: 1, mirror: 1, sound: 1, bypasssub: 1, metronome: 1 },
+    onEffectiveness(typeMod, target, type) {
+      if (type === 'Poison') return 1;
+    },
+  },
+
+  // Trampa Mental: trampa de entrada de tipo Psíquico. En vez de hacer daño, confunde a los
+  // Pokémon rivales que entran tocando el suelo. Los de tipo Siniestro son inmunes.
+  // "trampa: true" hace que Giro Rápido, Despejar, Limpieza General, Cambio de Cancha y
+  // Fisura Táctica la traten como Púas o Trampa Rocas.
+  'Trampa Mental': {
+    desc: 'Siembra ilusiones en el campo rival: los Pokémon que entren tocando el suelo quedan confusos. Los de tipo Siniestro son inmunes. Se quita como las demás trampas.',
+    nombreEN: 'Mind Snare', descEN: 'Sows illusions on the opposing side: Pokémon that switch in on the ground become confused. Dark types are immune. Removed like other entry hazards.',
+    idPBS: 'MINDSNARE', funcionPBS: 'AddMindSnareToFoeSide',
+    type: 'Psychic', category: 'Status', basePower: 0, accuracy: true, pp: 20, priority: 0, target: 'foeSide',
+    flags: { reflectable: 1, nonsky: 1, metronome: 1, mustpressure: 1 },
+    trampa: true,
+    sideCondition: 'trampamental',
+    condition: {
+      onSideStart(side) {
+        this.add('-sidestart', side, 'move: Trampa Mental');
+      },
+      onSwitchIn(pokemon) {
+        if (!pokemon.isGrounded() || pokemon.hasItem('heavydutyboots')) return;
+        if (pokemon.hasType('Dark')) return;
+        if (pokemon.volatiles['confusion']) return;
+        this.add('-message', MSG(`¡${pokemon.name} pisó la Trampa Mental!`, `${pokemon.name} stepped on the Mind Snare!`));
+        pokemon.addVolatile('confusion');
+      },
     },
   },
 };

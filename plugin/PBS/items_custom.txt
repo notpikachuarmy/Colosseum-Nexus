@@ -1,0 +1,237 @@
+# Items exported from Arena Fakemon (Pokémon Essentials v21.1)
+# Item graphics go in Graphics/Items/ named as the ID (e.g. ENERGYDRINK.png).
+#-------------------------------
+[SHUKO]
+Name = Shuko
+NamePlural = Shukos
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Boosts claw moves by 20% and ignores the target's Defense boosts.
+#-------------------------------
+[RIOTVEST]
+Name = Riot Vest
+NamePlural = Riot Vests
+Pocket = 1
+Price = 4000
+Flags = Fling_80
+Description = Boosts Defense by 50%, but prevents the use of status moves.
+#-------------------------------
+[PORTABLEROD]
+Name = Portable Rod
+NamePlural = Portable Rods
+Pocket = 1
+Price = 4000
+Flags = Fling_60
+Description = Draws Electric-type moves to the holder and halves their damage.
+#-------------------------------
+[HAZARDBAND]
+Name = Hazard Band
+NamePlural = Hazard Bands
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = Boosts self-sacrificing moves by 50%, and they ignore screens.
+#-------------------------------
+[INVERSIONBAND]
+Name = Inversion Band
+NamePlural = Inversion Bands
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Inverts the holder's type weaknesses and resistances.
+#-------------------------------
+[IMPACTHELMET]
+Name = Impact Helmet
+NamePlural = Impact Helmets
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Prevents recoil or confusion damage once. Consumed after use.
+#-------------------------------
+[FAKESUB]
+Name = Fake Sub
+NamePlural = Fake Subs
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = Completely blocks the damage of the first attack received. Consumed when it breaks.
+#-------------------------------
+[AEROANCHOR]
+Name = Aero Anchor
+NamePlural = Aero Anchors
+Pocket = 1
+Price = 4000
+Flags = Fling_100
+Description = Prevents the holder from being forced out by the foe's moves or items.
+#-------------------------------
+[THERMALCLOAK]
+Name = Thermal Cloak
+NamePlural = Thermal Cloaks
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = Protects from hail damage and prevents burns.
+#-------------------------------
+[WARDSEAL]
+Name = Ward Seal
+NamePlural = Ward Seals
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Prevents foes from lowering the holder's stats.
+#-------------------------------
+[REFLECTMIRROR]
+Name = Reflect Mirror
+NamePlural = Reflect Mirrors
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Reflects the first stat drop a foe causes back at it. Consumed.
+#-------------------------------
+[CHAOSSTONE]
+Name = Chaos Stone
+NamePlural = Chaos Stones
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Randomly raises a stat when a foe lowers the holder's stats.
+#-------------------------------
+[CALTROPS]
+Name = Caltrops
+NamePlural = Caltropses
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Sets a layer of Spikes on the foe's side if the holder switches out with a pivot move.
+#-------------------------------
+[RELAYBAND]
+Name = Relay Band
+NamePlural = Relay Bands
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = When switching manually, the incoming Pokémon receives the stat boosts.
+#-------------------------------
+[ABSORBFILTER]
+Name = Absorb Filter
+NamePlural = Absorb Filters
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = Heals the holder by 15% of the damage dealt with Water-type moves.
+#-------------------------------
+[THORNRING]
+Name = Thorn Ring
+NamePlural = Thorn Rings
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Contact moves deal an extra 5% to the foe, but cost the holder 3% of its HP.
+#-------------------------------
+[ETHERFILTER]
+Name = Ether Filter
+NamePlural = Ether Filters
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = Nullifies the foe's draining moves and inflicts half of what it would have healed.
+#-------------------------------
+[ENERGYDRINK]
+Name = Energy Drink
+NamePlural = Energy Drinks
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Gives +1 priority to the holder's next move. Consumed when used.
+#-------------------------------
+[SMOKEBOMB]
+Name = Smoke Bomb
+NamePlural = Smoke Bombs
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = If the holder is hit by a physical move, it bursts and lowers the attacker's accuracy. Consumed.
+#-------------------------------
+[GALEFEATHER]
+Name = Gale Feather
+NamePlural = Gale Feathers
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = Boosts priority moves by 30%, or by 10% if the holder was already faster.
+#-------------------------------
+[REVEALINGLANTERN]
+Name = Revealing Lantern
+NamePlural = Revealing Lanterns
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Ignores the target's evasion boosts and the holder's accuracy drops.
+#-------------------------------
+[METEORFRAGMENT]
+Name = Meteor Fragment
+NamePlural = Meteor Fragments
+Pocket = 1
+Price = 4000
+Flags = Fling_60
+Description = Boosts the Defense of Rock-type or fossil Pokémon by 15%.
+#-------------------------------
+[SOFTWOOL]
+Name = Soft Wool
+NamePlural = Soft Wools
+Pocket = 1
+Price = 4000
+Flags = Fling_10
+Description = Reduces damage from physical contact moves by 15%.
+#-------------------------------
+[MERITMEDAL]
+Name = Merit Medal
+NamePlural = Merit Medals
+Pocket = 1
+Price = 4000
+Flags = Fling_30
+Description = Boosts the holder's moves by 10% against higher-level Pokémon.
+#-------------------------------
+[METAGROSSITEX]
+Name = Metagrossite X
+NamePlural = Metagrossite Xes
+Pocket = 1
+Price = 0
+Flags = MegaStone,Fling_80
+Description = One of a variety of mysterious Mega Stones. Have Metagross hold it, and this stone will enable it to Mega Evolve during battle.
+#-------------------------------
+[COMIC]
+Name = Comic
+NamePlural = Comics
+Pocket = 1
+Price = 3000
+Flags = Fling_30
+Description = A superhero comic. Makes a certain Pokémon evolve if it levels up while holding it.
+#-------------------------------
+[JOUSTINGLANCE]
+Name = Jousting Lance
+NamePlural = Jousting Lances
+Pocket = 1
+Price = 3000
+FieldUse = OnPokemon
+Flags = EvolutionStone,Fling_30
+Description = A jousting lance. Makes a certain Pokémon evolve.
+#-------------------------------
+[ANCIENTLETTER]
+Name = Ancient Letter
+NamePlural = Ancient Letters
+Pocket = 1
+Price = 3000
+FieldUse = OnPokemon
+Flags = EvolutionStone,Fling_30
+Description = A letter written centuries ago. Makes certain Pokémon evolve.
+#-------------------------------
+[GOLDENARMOR]
+Name = Golden Armor
+NamePlural = Golden Armors
+Pocket = 1
+Price = 3000
+FieldUse = OnPokemon
+Flags = EvolutionStone,Fling_30
+Description = A tiny, shining suit of armor. Makes a certain Pokémon evolve.
