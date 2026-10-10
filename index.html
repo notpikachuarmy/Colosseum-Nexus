@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arena Fakemon</title>
+  <meta name="description" content="Combates Pokémon online entre amigos con fakemon, objetos y habilidades personalizadas.">
+  <link rel="icon" href="img/icono.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <div id="app"><div class="cargando">Cargando…</div></div>
+
+  <!-- Conexión entre navegadores (gratis, sin servidor propio) -->
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>if (!window.Peer) document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');</script>
+
+  <!-- ✏️ Tus datos personalizados: edita estos archivos -->
+  <script src="datos/pokemon.js"></script>
+  <script src="datos/habilidades.js"></script>
+  <script src="datos/movimientos.js"></script>
+  <script src="datos/objetos.js"></script>
+
+  <!-- Nombres oficiales en español -->
+  <script src="traduccion-es.js"></script>
+
+  <!-- El juego (no hace falta tocarlo) -->
+  <script src="app.js"></script>
+</body>
+</html>
