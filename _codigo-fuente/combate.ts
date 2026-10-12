@@ -3,6 +3,8 @@ import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
 import {cambiarPantalla, nav} from './nucleo';
+import {avatarImg, datosAvatar} from './avatares';
+import {insignia, TipoNivel} from './nivel';
 import {adjuntarInfo, fichaPokemon, fichaMovimiento, tiposEfectivos, ocultarInfo, esTactil, setModoInfo, getModoInfo} from './ficha';
 import {
   dex, h, toast, tipoBadge, spriteImg, iconImg, itemIcon, nombreVisible, sleep, storage,
@@ -19,6 +21,10 @@ export interface OpcionesCombate {
   enviarChat?: (texto: string) => void;
   alTerminar?: () => HTMLElement[];   // botones a mostrar al terminar
   titulo?: string;
+  /** Avatar de cada jugador (id de datos/avatares.js) */
+  avatares?: {p1?: string, p2?: string};
+  /** Nivel de cada jugador: ['ia' | 'online', nivel] */
+  niveles?: {p1?: [TipoNivel, number], p2?: [TipoNivel, number]};
 }
 
 const BOOST_CORTO: {[k: string]: string} = {...STATS_CORTO, accuracy: tr('Pre', 'Acc'), evasion: tr('Eva', 'Eva')};
@@ -117,6 +123,29 @@ export class PantallaCombate {
         this.registroEl,
         this.op.enviarChat ? chatIn : null)));
     this.dibujarCampo();
+    this.presentacion();
+  }
+
+  insigniaDe(l: 'p1' | 'p2', conRango = false) {
+    const n = this.op.niveles?.[l];
+    return n ? insignia(n[0], n[1], conRango) : null;
+  }
+
+  /** Presentación de los entrenadores al empezar (como en Showdown) */
+  presentacion() {
+    const av = this.op.avatares;
+    if (!av) return;
+    const esc = this.raiz.querySelector('.escenario');
+    if (!esc) return;
+    const yo = this.op.yo, rival = yo === 'p1' ? 'p2' : 'p1';
+    const nombre = (l: 'p1' | 'p2') => this.estado.lados[l].nombre || (l === yo ? tr('Tú', 'You') : tr('Rival', 'Opponent'));
+    const tarjeta = (l: 'p1' | 'p2', cls: string) => h('div', {class: 'vs-entrenador ' + cls}, avatarImg(av[l] || ''), h('b', {class: 'vs-nombre'}, nombre(l)), this.insigniaDe(l, true));
+    const capa = h('div', {class: 'vs-capa'}, tarjeta(yo, 'vs-yo'), h('div', {class: 'vs-texto'}, 'VS'), tarjeta(rival, 'vs-rival'));
+    esc.append(capa);
+    // los nombres llegan con el primer mensaje del combate
+    setTimeout(() => capa.querySelectorAll<HTMLElement>('.vs-nombre').forEach((b, i) => { b.textContent = nombre(i === 0 ? yo : rival); }), 120);
+    setTimeout(() => capa.classList.add('fuera'), this.rapido ? 1300 : 2100);
+    setTimeout(() => capa.remove(), this.rapido ? 1800 : 2700);
   }
 
   // --------------------------------------------------------------- entrada --
@@ -331,6 +360,7 @@ export class PantallaCombate {
     const e = this.estado;
     this.infoCampoEl.innerHTML = '';
     const chips: HTMLElement[] = [];
+    if (e.turno) chips.push(h('span', {class: 'chip-campo chip-turno'}, tr(`Turno ${e.turno}`, `Turn ${e.turno}`)));
     if (e.clima) chips.push(h('span', {class: 'chip-campo'}, CLIMA_ES[e.clima] || e.clima));
     for (const k of e.campo.keys()) chips.push(h('span', {class: 'chip-campo'}, CAMPO_ES[k] || k));
     this.infoCampoEl.append(h('div', {class: 'campo-chips'}, ...chips));
@@ -346,8 +376,11 @@ export class PantallaCombate {
         if (m.status && !m.fainted) ic.classList.add('con-estado');
         iconos.push(ic);
       }
-      this.infoCampoEl.append(h('div', {class: 'equipo-iconos ' + (ladoId === e.yo ? 'mio' : 'rival')},
-        h('span', {class: 'jugador'}, lado.nombre), ...iconos));
+      const av = this.op.avatares?.[ladoId as 'p1' | 'p2'];
+      const busto = av ? avatarImg(av, 'en-combate', 'busto') : null;
+      if (busto) busto.title = `${lado.nombre} · ${datosAvatar(av!).nombre}`;
+      this.infoCampoEl.append(h('div', {class: 'equipo-iconos ' + (ladoId === e.yo ? 'mio' : 'rival') + (busto ? ' con-avatar' : '')},
+        busto, h('div', {class: 'eq-cuerpo'}, h('span', {class: 'jugador'}, lado.nombre, this.insigniaDe(ladoId as 'p1' | 'p2')), h('div', {class: 'eq-iconos-fila'}, ...iconos))));
       if (conds.length) filasLado.push(h('div', {class: 'fila-lado ' + (ladoId === e.yo ? 'mio' : 'rival')},
         h('span', {class: 'quien'}, ladoId === e.yo ? tr('Tu lado', 'Your side') : tr('Rival', 'Foe')), ...conds));
     }

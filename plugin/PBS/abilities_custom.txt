@@ -28,3 +28,15 @@ Description = Raises Speed when entering battle in rain or snow, or when it star
 [EVILEYE]
 Name = Evil Eye
 Description = On entering battle, a cursed glare lowers the Sp. Def of opposing Pokémon.
+#-------------------------------
+[FOUNDATION]
+Name = Foundation
+Description = Stands so firmly that it is unaffected by entry hazards such as Spikes, Stealth Rock, Sticky Web or Mind Snare.
+#-------------------------------
+[SPOILSOFWAR]
+Name = Spoils of War
+Description = If it knocks out a foe with a move while holding no item, it takes the foe's held item.
+#-------------------------------
+[SLEEPWALKER]
+Name = Sleepwalker
+Description = Can use its moves even while asleep, but they deal 25% less damage while it sleeps.

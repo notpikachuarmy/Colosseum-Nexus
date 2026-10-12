@@ -16,8 +16,8 @@ export function cambiarPantalla(f: () => void) {
 }
 
 /** Navegación entre pantallas (se rellena en app.ts para evitar dependencias circulares) */
-export const nav: {inicio: () => void, online: () => void, practica: () => void, equipos: () => void, pokedex: () => void} = {
-  inicio() {}, online() {}, practica() {}, equipos() {}, pokedex() {},
+export const nav: {inicio: () => void, online: () => void, practica: () => void, equipos: () => void, pokedex: () => void, avatares: () => void, creditos: () => void} = {
+  inicio() {}, online() {}, practica() {}, equipos() {}, pokedex() {}, avatares() {}, creditos() {},
 };
 
 export function nombreJugador(): string { return storage.get('arena.nombre', ''); }

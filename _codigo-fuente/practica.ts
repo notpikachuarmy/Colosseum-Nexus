@@ -7,6 +7,8 @@ import {PantallaCombate} from './combate';
 import {Motor, IA} from './motor';
 import {app, cambiarPantalla, setLimpiar, nav, nombreJugador, selectorEquipo, selectorReserva, selectorSerie, campo, TipoSerie} from './nucleo';
 import {Serie, empaquetarSets, pantallaSeleccion} from './serie';
+import {avatarActual, avatarAleatorio, recompensaCombate} from './avatares';
+import {nivelDe} from './nivel';
 
 const NOMBRE_IA = tr('IA', 'AI');
 type Modo = 'parejos' | 'mio-vs-aleatorio' | 'mio-vs-mio';
@@ -36,7 +38,7 @@ export function practica() {
     modo.value = [...modo.options].some(o => o.value === actual) ? actual : 'parejos';
     const m = modo.value as Modo;
     cont.innerHTML = '';
-    cont.append(
+    cont.append(...[
       campo(tr('Tipo de partida', 'Match type'), selectorSerie(serie, v => { serie = v; storage.set('arena.seriePractica', v); pintar(); })),
       campo(tr('Equipos', 'Teams'), modo),
       m !== 'mio-vs-mio' ? campo(tr('Pokémon de los equipos aleatorios', 'Pokémon in random teams'), reserva.el) : null,
@@ -44,7 +46,7 @@ export function practica() {
       m === 'mio-vs-mio' ? campo(serie === 'draft' ? tr('Plantilla de la IA', "AI's roster") : tr('Equipo de la IA', "AI's team"), rival.el) : null,
       serie === 'draft' && sel.vacio ? h('p', {class: 'tenue'}, tr('Para usar tu propia plantilla, crea en "Mis equipos" una "Plantilla draft" de 7 a 12 Pokémon.', 'To use your own roster, create a "Draft roster" of 7 to 12 Pokémon in "My teams".')) : null,
       campo(tr('Formato', 'Format'), formato),
-      h('button', {class: 'btn btn-grande', onclick: empezar}, tr('¡A combatir!', 'Battle!')));
+      h('button', {class: 'btn btn-grande', onclick: empezar}, tr('¡A combatir!', 'Battle!'))].filter(Boolean) as HTMLElement[]);
   };
   modo.addEventListener('change', () => { storage.set('arena.modoPractica', modo.value); pintar(); });
 
@@ -82,6 +84,7 @@ function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singl
   let previa: number[] | undefined;
   let activo = true;
   let limpiarJuego: (() => void) | null = null;
+  const avatares = {p1: avatarActual(), p2: avatarAleatorio()};
   setLimpiar(() => { activo = false; limpiarJuego?.(); });
 
   const siguiente = () => {
@@ -110,8 +113,9 @@ function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singl
     const raiz = h('div', {});
     app.append(raiz);
     const titulo = (formato === 'doubles' ? tr('Práctica · Dobles', 'Practice · Doubles') : tr('Práctica · Individual', 'Practice · Singles')) + (serie.alMejorDe3 ? tr(` · Combate ${serie.juego}`, ` · Battle ${serie.juego}`) : '');
+    let premio: HTMLElement | null = null;
     const pantalla = new PantallaCombate(raiz, {
-      yo: 'p1', titulo,
+      yo: 'p1', titulo, avatares, niveles: {p1: ['ia', nivelDe('ia')]},
       elegir: e => motor.elegir('p1', e),
       rendirse: () => motor.rendirse('p1'),
       alTerminar: () => {
@@ -119,8 +123,10 @@ function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singl
         if (!pantalla.estado.contado) {
           pantalla.estado.contado = true;
           serie.registrar(g === yo ? 0 : g === NOMBRE_IA ? 1 : -1);
+          if (g) premio = recompensaCombate('ia', pantalla.estado.turno, g === yo, serie.terminada && serie.alMejorDe3 && serie.marcador[0] > serie.marcador[1]);
         }
         const botones: HTMLElement[] = [];
+        if (premio) botones.push(premio);
         if (serie.alMejorDe3) botones.push(h('div', {class: 'marcador'}, serie.texto(nombres)));
         if (!serie.terminada) botones.push(h('button', {class: 'btn', onclick: () => { limpiarJuego?.(); siguiente(); }}, tr('Siguiente combate', 'Next battle')));
         else {

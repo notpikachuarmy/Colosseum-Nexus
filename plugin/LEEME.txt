@@ -6,18 +6,24 @@ para tu fangame. Los IDs, nombres y descripciones están en inglés.
 
 CONTENIDO
   Plugins/
-    Arena Fakemon - Habilidades/        Las 7 habilidades nuevas.
-    Arena Fakemon - Movimientos extra/  Sueño dulce, Rugido Ancestral y Trampa
-                                        Mental (con Giro Rápido, Despejar, Cambio
-                                        de Cancha y Fisura Táctica quitándola).
-    Objetos y Movimientos Custom/       Tu plugin de los 15 movimientos y 7 objetos
-                                        de la v21 (con los IDs de objeto en inglés).
-    Objetos Equipables Personalizados/  Tu plugin de los 17 objetos equipables.
+    Arena Fakemon - Habilidades/   Un archivo por habilidad (001_Sueno_confortante.rb...).
+    Arena Fakemon - Movimientos/   000_Base.rb + un archivo por movimiento.
+    Arena Fakemon - Objetos/       000_Base.rb + un archivo por objeto.
   PBS/
-    abilities_custom.txt   7 habilidades
+    abilities_custom.txt   10 habilidades
     moves_custom.txt       18 movimientos
     items_custom.txt       24 objetos equipables + 4 de evolución + Metagrossita X
   Graphics/Items/          Los iconos de todos esos objetos, ya con el nombre del ID.
+
+INSTALAR SOLO ALGUNAS COSAS
+- Cada archivo .rb es una habilidad, un movimiento o un objeto y funciona solo:
+  borra los que no quieras. No borres los 000_Base.rb (los usan los demás).
+- Al principio de cada archivo tienes, en comentarios, su entrada de PBS. Si solo
+  instalas algunas cosas, en vez de copiar los PBS completos puedes pegar solo
+  esas entradas en tus archivos PBS (quitando los "#   " del principio).
+- Si borras un archivo pero dejas su entrada en el PBS, el movimiento u objeto
+  existirá pero no hará nada especial.
+- Para objetos, copia también su icono de Graphics/Items.
 
 CÓMO INSTALARLO
 1. Copia las carpetas Plugins, PBS y Graphics dentro de la carpeta de tu juego
@@ -49,6 +55,9 @@ QUÉ HACE CADA COSA NUEVA
     MORNINGDEW      (Rocío Matinal)      Cura 1/16 por turno (1/8 con lluvia o Campo de Hierba)
     COLDCURRENT     (Corriente Fría)     +1 Velocidad con lluvia o granizo/nieve
     EVILEYE         (Mal de Ojo)         Al entrar, baja la Def. Esp. de los rivales
+    FOUNDATION      (Cimientos)          No le afecta ninguna trampa de entrada
+    SPOILSOFWAR     (Botín de Guerra)    Si debilita a un rival y no lleva objeto, se lo queda
+    SLEEPWALKER     (Sonámbulo)          Puede atacar dormido (con un 25% menos de daño)
   Movimientos
     SWEETDREAM   (Sueño dulce)       Duerme al objetivo y cura 1/8 al usuario
     PRIMEVALROAR (Rugido Ancestral)  Dragón especial, supereficaz contra Veneno, de sonido
@@ -61,5 +70,6 @@ NOTAS
   Essentials 21.1 para Intimidación, Absorbe Savia, Púas, Liofilización, etc.
   No se han podido probar dentro de un juego real: si algo da error al compilar,
   copia el mensaje y lo arreglamos.
-- "Arena Fakemon - Movimientos extra" necesita el plugin "Objetos y Movimientos
-  Custom" (lo indica su meta.txt), así que copia los dos.
+- Estos plugins sustituyen a tus antiguos "Objetos Equipables Personalizados" y
+  "Objetos y Movimientos Custom": si los tenías instalados en tu juego, bórralos
+  de la carpeta Plugins de tu juego para que no se dupliquen.

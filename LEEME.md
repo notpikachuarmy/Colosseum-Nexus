@@ -36,6 +36,10 @@ El combate se calcula en el navegador del anfitrión, así que debe tener la pes
 - **Salir siempre:** en el combate hay un botón **⌂ Salir** que funciona aunque se haya cortado la conexión (si el combate no ha terminado, cuenta como rendirse).
 - **Paquete para Essentials 21.1:** en la carpeta `plugin/` del repositorio están todas las habilidades, movimientos y objetos personalizados listos para Pokémon Essentials (plugins, PBS e iconos, con un LEEME con los pasos para instalarlo).
 - **Trampa Mental:** trampa de entrada de tipo Psíquico que confunde al rival al entrar (los de tipo Siniestro son inmunes). Se quita como las demás con Giro Rápido, Despejar, etc.
+- **Entrenadores y gacha:** cada jugador tiene un avatar (al empezar, **Sombra**). Al ganar consigues fichas de gacha: contra la IA hay un 50% de que caiga una, online es segura y ganar una serie al mejor de 3 da una más (el combate tiene que durar al menos 3 turnos). Cada ficha da un entrenador al azar: Común 60%, Raro 28%, Épico 10%, Legendario 2%. Pueden salir repetidos (se ven como ×2, ×3…, sin dar nada a cambio). La lista está en orden alfabético, con buscador y un filtro que se autocompleta (escribe "Kanto", "Líderes"…): los filtros elegidos salen debajo y se pueden combinar y quitar. Los avatares se ven en el combate y en la sala online.
+- **Niveles de jugador:** hay dos niveles, uno contra la IA (🤖) y otro online (🌐). Ganar da más experiencia que perder y ganar una serie da un extra. El nivel online se ve en la sala y en el combate, con un rango (Novato, Entrenador, Veterano, As, Maestro, Campeón y Tryhard 🔥). La experiencia de cada resultado se cambia al final de `datos/avatares.js`.
+- **Créditos:** en la ficha de cada Fakemon de la Pokédex salen sus autores (idea, diseño final y sprites), y hay una pantalla de **Créditos** con todos los autores de los Fakemon, de los sprites de entrenador y del motor.
+- **Habilidades nuevas (v3):** Cimientos (no le afectan las trampas de entrada), Botín de Guerra (si debilita a un rival sin llevar objeto, se queda el suyo) y Sonámbulo (ataca aunque esté dormido, con un 25% menos de daño).
 - **Idioma:** en la pantalla de inicio puedes elegir Español o English. Los textos de tus datos personalizados (descripciones de tus objetos, movimientos…) salen tal y como los escribas.
 
 ## Cómo cambiar los datos
@@ -45,9 +49,11 @@ Todo lo personalizado está en la carpeta `datos/` y se edita con cualquier edit
 | Archivo | Qué contiene |
 |---|---|
 | `datos/pokemon.js` | Pokémon: tipos, stats, habilidades, movimientos que aprenden, sprites |
-| `datos/habilidades.js` | Habilidades nuevas (Sueño confortante, Terror nocturno, Corazón de Dragón, Contraveneno, Rocío Matinal, Corriente Fría, Mal de Ojo) |
+| `datos/habilidades.js` | Habilidades nuevas (Sueño confortante, Terror nocturno, Corazón de Dragón, Contraveneno, Rocío Matinal, Corriente Fría, Mal de Ojo, Cimientos, Botín de Guerra, Sonámbulo) |
 | `datos/movimientos.js` | Movimientos nuevos (Sueño dulce, Rugido Ancestral y los 15 de la v21) |
 | `datos/objetos.js` | Los 24 objetos equipables y sus valores de balance |
+| `datos/avatares.js` | Avatares de jugador: nombre, autor del sprite, etiquetas (filtros) y rareza; al final, las probabilidades del gacha y cuántas fichas se ganan |
+| `datos/creditos.js` | Autores de los Fakemon (por defecto y excepciones) y otros créditos |
 
 Campos útiles de `datos/pokemon.js`:
 - `editar: true` → en vez de crear un Pokémon, añade movimientos o habilidad oculta a uno oficial (por ejemplo, Darkrai con tus movimientos).
@@ -63,7 +69,7 @@ Tus versiones de Pokémon que ya existen (Lapras, Metagross, Pikachu…) aparece
 
 Los nombres de movimientos, habilidades y objetos oficiales salen en español gracias a `traduccion-es.js`.
 
-Los sprites están en `sprites/custom/` (front, back, front-shiny, back-shiny, icons).
+Los sprites están en `sprites/custom/` (front, back, front-shiny, back-shiny, icons). Los de entrenador, en `sprites/avatares/` (para añadir uno, copia el PNG ahí y añade su línea en `datos/avatares.js`).
 Si algo de los datos está mal escrito (un movimiento que no existe, por ejemplo), aparecerá un aviso en la pantalla de inicio.
 
 **Importante:** los dos jugadores tienen que tener la misma versión de los datos (si cambias algo, recargad los dos la página).

@@ -8,6 +8,7 @@ import {colorStat, modalTexto} from './constructor';
 import {movimientosDe} from './equipos';
 import {app, cambiarPantalla, nav} from './nucleo';
 import {ARCHIVOS_PBS, descargar} from './pbs';
+import {bloqueCreditos} from './creditos';
 
 type Pestana = 'pokemon' | 'movimientos' | 'habilidades' | 'objetos' | 'pbs';
 const W: any = window;
@@ -79,6 +80,7 @@ function seccionPokemon(cont: HTMLElement) {
           const ab = d.abilities.get(a);
           return h('div', {}, h('b', {}, nomHab(a) + (sp.abilities.H === a ? tr(' (oculta)', ' (hidden)') : '')), ': ', ab.exists ? descHab(a) : '');
         })),
+        bloqueCreditos(sp.name),
         sp.battleOnly ? null : h('button', {class: 'btn btn-sec btn-sm', onclick: () => verMovimientos(sp.name)}, tr(`Ver movimientos (${movimientosDe(sp.name).length})`, `See moves (${movimientosDe(sp.name).length})`))));
     }
   };

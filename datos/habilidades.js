@@ -114,4 +114,59 @@ window.DATOS_HABILIDADES = {
       }
     },
   },
+
+  // ============================ Habilidades nuevas (v3) ============================
+
+  // Cimientos: no le afectan las trampas de entrada (como unas Botas Gruesas en
+  // forma de habilidad, así puede llevar otro objeto).
+  'Cimientos': {
+    desc: 'Pisa tan firme que no le afecta ninguna trampa de entrada (Púas, Trampa Rocas, Red Viscosa, Trampa Mental...).',
+    idPBS: 'FOUNDATION', nombreEN: 'Foundation', descEN: 'Stands so firmly that it is unaffected by entry hazards such as Spikes, Stealth Rock, Sticky Web or Mind Snare.',
+    rating: 3,
+    onDamage(damage, target, source, effect) {
+      if (effect && ['spikes', 'stealthrock', 'gmaxsteelsurge'].includes(effect.id)) return false;
+    },
+    onSetStatus(status, target, source, effect) {
+      if (effect && effect.id === 'toxicspikes') return false;
+    },
+    onTryBoost(boost, target, source, effect) {
+      if (effect && effect.id === 'stickyweb') delete boost.spe;
+    },
+    onTryAddVolatile(status, target, source, effect) {
+      if (status.id === 'confusion' && effect && effect.id === 'trampamental') return null;
+    },
+  },
+
+  // Botín de Guerra: si derriba a un rival con un ataque y no lleva objeto, se
+  // queda con el del rival.
+  'Botín de Guerra': {
+    desc: 'Si debilita a un rival con un movimiento y no lleva objeto, se queda con el objeto del rival.',
+    idPBS: 'SPOILSOFWAR', nombreEN: 'Spoils of War', descEN: 'If it knocks out a foe with a move while holding no item, it takes the foe\'s held item.',
+    rating: 2.5,
+    onSourceAfterFaint(length, target, source, effect) {
+      if (!effect || effect.effectType !== 'Move' || !source || source.item || source.fainted) return;
+      if (!target || !target.item || target.side === source.side) return;
+      const item = target.getItem();
+      if (item.megaStone || item.zMove || item.onPlate || item.onDrive || item.onMemory || item.forcedForme || item.isPrimalOrb) return;
+      if (item.id === 'mail' || item.id === 'boosterenergy') return;
+      target.item = '';
+      source.setItem(item.id);
+      this.add('-item', source, item.name, '[from] ability: Botín de Guerra', '[of] ' + target);
+    },
+  },
+
+  // Sonámbulo: puede atacar dormido, aunque con menos fuerza.
+  'Sonámbulo': {
+    desc: 'Puede usar sus movimientos aunque esté dormido, pero mientras duerme hacen un 25% menos de daño.',
+    idPBS: 'SLEEPWALKER', nombreEN: 'Sleepwalker', descEN: 'Can use its moves even while asleep, but they deal 25% less damage while it sleeps.',
+    rating: 2.5,
+    onBeforeMovePriority: 11,
+    onBeforeMove(pokemon, target, move) {
+      if (pokemon.status === 'slp') move.sleepUsable = true;
+    },
+    onBasePowerPriority: 21,
+    onBasePower(basePower, pokemon) {
+      if (pokemon.status === 'slp') return this.chainModify(0.75);
+    },
+  },
 };

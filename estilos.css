@@ -536,3 +536,188 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
 .fila-lado .chip-lado { margin-left: 0; }
 .fila-lado.rival .chip-lado { background: #ff9a8a; color: #3a0d06; }
 @media (max-width: 680px) { .condiciones-lados { top: 8px; max-width: 52%; } .fila-lado .chip-lado { font-size: 10px; } }
+
+/* =============================================================== v3: barra de jugador, avatares, gacha, créditos */
+.barra-superior { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio);
+  padding: 8px 10px 8px 14px; box-shadow: var(--sombra); }
+.barra-superior .marca { display: flex; align-items: center; gap: 8px; font: 700 18px 'Fredoka', sans-serif; color: var(--acento); margin-right: auto; white-space: nowrap; }
+.barra-superior .marca img { width: 28px; height: 28px; image-rendering: pixelated; }
+.barra-superior .selector-idioma { justify-content: flex-start; }
+.barra-jugador { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 1px solid var(--borde); border-radius: 999px; padding: 4px 6px 4px 4px; }
+.bj-avatar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--acento); background: #2f3450; padding: 0; cursor: pointer; overflow: hidden; flex: none; }
+.bj-avatar .avatar-busto { width: 100%; height: 100%; border-radius: 50%; }
+.bj-nombre { display: grid; line-height: 1.1; }
+.bj-nombre small { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.input-nombre { background: transparent; border: 0; border-bottom: 1px dashed var(--borde); border-radius: 0; padding: 2px 0; width: 140px; font-weight: 800; color: var(--texto); }
+.input-nombre:focus { outline: none; border-bottom-color: var(--acento); }
+.bj-fichas { position: relative; display: flex; align-items: center; gap: 4px; background: #3a3320; border: 1px solid #6b5a22; color: var(--acento); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-weight: 800; }
+.bj-fichas:hover { filter: brightness(1.15); }
+.bj-punto { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--acento2); box-shadow: 0 0 0 2px var(--panel); animation: pulso 1.4s ease-in-out infinite; }
+.ficha-icono { font-size: 16px; line-height: 1; }
+.ficha-icono.grande { font-size: 34px; }
+.menu-btn.principal { border-color: color-mix(in srgb, var(--acento) 55%, var(--borde)); background: linear-gradient(135deg, color-mix(in srgb, var(--acento) 14%, var(--panel)), var(--panel) 60%); }
+.menu-btn.principal .menu-icono { background: color-mix(in srgb, var(--acento) 22%, var(--bg2)); }
+@media (max-width: 680px) {
+  .barra-superior { flex-wrap: wrap; padding: 8px; }
+  .barra-superior .marca { font-size: 16px; }
+  .barra-jugador { width: 100%; }
+  .bj-nombre { flex: 1; }
+  .input-nombre { width: 100%; }
+  .menu { grid-template-columns: 1fr; }
+}
+
+/* Sprites de entrenador */
+.avatar-img { width: 96px; height: 96px; object-fit: contain; image-rendering: pixelated; display: block; }
+.avatar-busto { display: inline-block; width: 40px; height: 40px; background-size: 210%; background-position: 50% 6%; background-repeat: no-repeat;
+  image-rendering: pixelated; border-radius: 8px; background-color: rgba(255,255,255,.08); flex: none; }
+
+/* Pantalla de avatares + gacha */
+.gacha-cab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 14px; margin-bottom: 14px; }
+.gacha-actual, .gacha-maquina { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px; box-shadow: var(--sombra); }
+.gacha-actual { display: flex; align-items: center; gap: 14px; }
+.gacha-actual > div:last-child { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.gacha-actual-img { width: 120px; height: 120px; border-radius: 16px; display: grid; place-items: center; flex: none;
+  background: radial-gradient(circle at 50% 70%, color-mix(in srgb, var(--rc) 35%, transparent), transparent 70%), var(--bg2); border: 2px solid var(--rc); }
+.gacha-actual-img .avatar-img { width: 112px; height: 112px; }
+.gacha-nombre { font: 700 22px 'Fredoka', sans-serif; }
+.gacha-progreso { height: 8px; background: var(--bg2); border-radius: 6px; overflow: hidden; margin-top: 4px; }
+.gacha-progreso span { display: block; height: 100%; background: linear-gradient(90deg, var(--acento), var(--acento2)); }
+.gacha-maquina { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center; }
+.gacha-fichas { display: grid; justify-items: center; background: #3a3320; border: 1px solid #6b5a22; border-radius: 14px; padding: 8px 14px; color: var(--acento); grid-row: span 2; }
+.gacha-fichas b { font: 700 26px 'Fredoka', sans-serif; line-height: 1; }
+.gacha-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+.gacha-ayuda { font-size: 12px; }
+.gacha-probs { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+.gacha-probs .prob { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rc); color: var(--rc); }
+.avatares-panel { display: grid; gap: 10px; }
+.avatares-herramientas { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.avatares-herramientas .buscador { flex: 1; min-width: 180px; margin: 0; }
+.select-sm { width: auto; padding: 8px; }
+.filtros-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-filtro { background: var(--bg2); border: 1px solid var(--borde); color: var(--texto); border-radius: 999px; padding: 5px 12px; cursor: pointer; font: 600 13px 'Fredoka', sans-serif; }
+.chip-filtro:hover { border-color: var(--acento); }
+.chip-filtro.activo { background: var(--acento); color: #1b1b2b; border-color: transparent; }
+.avatares-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.avatar-carta { position: relative; display: grid; justify-items: center; gap: 2px; padding: 10px 6px 8px; border-radius: 12px; cursor: pointer; text-align: center;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rc) 16%, var(--bg2)), var(--bg2) 70%); border: 2px solid color-mix(in srgb, var(--rc) 45%, var(--borde)); transition: transform .12s, border-color .12s; }
+.avatar-carta:hover, .avatar-carta:focus-visible { transform: translateY(-2px); border-color: var(--rc); outline: none; }
+.avatar-carta.elegido { border-color: var(--acento); box-shadow: 0 0 0 2px var(--acento), 0 0 18px color-mix(in srgb, var(--acento) 45%, transparent); }
+.avatar-carta.elegido::after { content: '✓'; position: absolute; top: 6px; left: 8px; background: var(--acento); color: #1b1b2b; width: 20px; height: 20px; border-radius: 50%; font-weight: 900; font-size: 12px; display: grid; place-items: center; }
+.avatar-carta.bloqueado .avatar-img { filter: brightness(0) opacity(.45); }
+.avatar-carta.bloqueado .avatar-nombre { color: var(--tenue); }
+.avatar-carta .avatar-img { width: 92px; height: 92px; }
+.avatar-rareza { position: absolute; top: 5px; right: 7px; color: var(--rc); font-size: 10px; letter-spacing: -1px; text-shadow: 0 1px 0 #000; }
+.avatar-copias { position: absolute; top: 22px; right: 6px; background: var(--panel2); border: 1px solid var(--borde); border-radius: 999px; font-size: 11px; font-weight: 800; padding: 0 6px; }
+.avatar-nombre { font-weight: 800; font-size: 13px; line-height: 1.15; }
+.avatar-autor { color: var(--tenue); font-size: 10px; }
+.btn-xs { padding: 2px 8px; font-size: 11px; margin-top: 3px; box-shadow: none; }
+@media (max-width: 760px) {
+  .gacha-cab { grid-template-columns: 1fr; }
+  .avatares-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .avatar-carta .avatar-img { width: 72px; height: 72px; }
+  .gacha-actual-img { width: 92px; height: 92px; } .gacha-actual-img .avatar-img { width: 86px; height: 86px; }
+}
+
+/* Apertura del gacha */
+.gacha-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--rc) 30%, transparent), rgba(8,9,14,.88) 60%); animation: aparece .2s; }
+@keyframes aparece { from { opacity: 0; } }
+.gacha-caja { background: var(--panel); border: 2px solid var(--rc); border-radius: 18px; padding: 18px; max-width: min(760px, 100%); max-height: 92vh; overflow: auto;
+  display: grid; justify-items: center; gap: 12px; box-shadow: 0 0 40px color-mix(in srgb, var(--rc) 40%, transparent); text-align: center; }
+.gacha-capsula { position: relative; width: 110px; height: 110px; animation: agitar .3s ease-in-out infinite; }
+.gacha-capsula .cap-arriba, .gacha-capsula .cap-abajo { position: absolute; left: 0; right: 0; height: 50%; border: 4px solid #1b1b2b; }
+.gacha-capsula .cap-arriba { top: 0; border-radius: 55px 55px 0 0; background: var(--rc); border-bottom-width: 2px; }
+.gacha-capsula .cap-abajo { bottom: 0; border-radius: 0 0 55px 55px; background: #f2f2f2; border-top-width: 2px; }
+.gacha-capsula .cap-boton { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: #fff; border: 4px solid #1b1b2b; box-shadow: 0 0 14px var(--rc); }
+@keyframes agitar { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+.gacha-premios { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; width: min(700px, 86vw); }
+.gacha-premios.uno { grid-template-columns: 200px; width: auto; }
+.gacha-premios.uno .avatar-img { width: 170px; height: 170px; }
+.gacha-premio { position: relative; display: grid; justify-items: center; gap: 2px; padding: 12px 6px 8px; border-radius: 12px; border: 2px solid var(--rc);
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--rc) 30%, transparent), var(--bg2) 70%); animation: revela .45s both; }
+.gacha-premio.r-legendario, .gacha-premio.r-epico { box-shadow: 0 0 22px color-mix(in srgb, var(--rc) 60%, transparent); }
+@keyframes revela { from { opacity: 0; transform: scale(.5) rotate(-6deg); filter: brightness(3); } }
+.premio-nuevo { position: absolute; top: 5px; left: 6px; background: var(--acento2); color: #fff; font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 6px; }
+.premio-repe { position: absolute; top: 5px; left: 6px; background: var(--panel2); color: var(--tenue); font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { .gacha-capsula, .gacha-premio, .bj-punto { animation: none; } }
+
+/* Recompensa al terminar un combate */
+.recompensa { display: flex; align-items: center; gap: 8px; background: #3a3320; border: 1px solid #6b5a22; color: var(--acento); padding: 6px 12px; border-radius: 999px; font-weight: 800; width: 100%; justify-content: center; }
+.recompensa.nada { background: var(--bg2); border-color: var(--borde); color: var(--tenue); font-weight: 600; }
+
+/* Créditos */
+.creditos { display: grid; gap: 14px; }
+.dex-creditos { font-size: 12px; background: var(--bg2); border-radius: 8px; padding: 5px 8px; line-height: 1.5; }
+.cred-grupo { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--borde); }
+.cred-grupo:first-of-type { border-top: 0; }
+.cred-personas { display: flex; gap: 18px; flex-wrap: wrap; align-items: end; }
+.cred-persona { display: grid; }
+.cred-persona b { font-size: 16px; color: var(--acento); }
+.cred-sprites { display: flex; flex-wrap: wrap; gap: 4px; }
+.cred-poke { display: grid; justify-items: center; width: 84px; text-align: center; }
+.cred-poke .sprite { width: 72px; height: 72px; }
+.cred-poke small { font-size: 10px; color: var(--tenue); line-height: 1.1; }
+.cred-avatares { display: flex; flex-wrap: wrap; gap: 4px; }
+.cred-avatares .avatar-busto { width: 44px; height: 44px; }
+.cred-otro { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--borde); flex-wrap: wrap; }
+.rival-cab { display: flex; align-items: center; gap: 10px; }
+
+/* Combate: entrenadores (estilo Showdown) */
+.equipo-iconos.con-avatar { padding: 3px 8px 3px 3px; gap: 6px; flex-wrap: nowrap; align-items: center; }
+.equipo-iconos .eq-cuerpo { display: grid; min-width: 0; }
+.equipo-iconos .eq-iconos-fila { display: flex; flex-wrap: wrap; align-items: center; }
+.equipo-iconos .jugador { line-height: 1.1; }
+.avatar-busto.en-combate { width: 38px; height: 38px; border-radius: 8px; background-color: rgba(255,255,255,.14); }
+.condiciones-lados { top: 116px; }
+.chip-turno { background: rgba(255, 203, 61, .92); color: #1b1b2b; }
+.vs-capa { position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; gap: 4%; pointer-events: none;
+  background: linear-gradient(110deg, rgba(40,70,160,.82) 0 49.6%, rgba(10,10,16,.9) 49.6% 50.4%, rgba(170,40,60,.82) 50.4%); transition: opacity .5s; }
+.vs-capa.fuera { opacity: 0; }
+.vs-entrenador { display: grid; justify-items: center; gap: 6px; }
+.vs-entrenador .avatar-img { width: clamp(110px, 22vw, 190px); height: clamp(110px, 22vw, 190px); filter: drop-shadow(0 6px 0 rgba(0,0,0,.35)); }
+.vs-yo { animation: vs-izq .45s ease-out both; }
+.vs-rival { animation: vs-der .45s ease-out both; }
+.vs-nombre { font: 700 clamp(15px, 2.4vw, 22px) 'Fredoka', sans-serif; color: #fff; text-shadow: 0 2px 0 #000; background: rgba(0,0,0,.35); padding: 2px 12px; border-radius: 999px; }
+.vs-texto { font: 700 clamp(34px, 7vw, 64px) 'Fredoka', sans-serif; color: var(--acento); text-shadow: 0 4px 0 #6b3d00, 0 0 20px rgba(255,203,61,.6); animation: vs-pop .5s .15s ease-out both; }
+@keyframes vs-izq { from { transform: translateX(-60%); opacity: 0; } }
+@keyframes vs-der { from { transform: translateX(60%); opacity: 0; } }
+@keyframes vs-pop { from { transform: scale(2.4); opacity: 0; } }
+@media (max-width: 680px) {
+  .avatar-busto.en-combate { width: 30px; height: 30px; }
+  .equipo-iconos.con-avatar .icono { width: 26px; height: 26px; }
+  .condiciones-lados { top: 8px; }
+}
+.equipo-iconos.mio.con-avatar { top: 62px; }
+.inicio > * { min-width: 0; }
+.bj-nombre { min-width: 0; }
+.input-nombre { min-width: 0; }
+@media (max-width: 680px) {
+  .logo-sprites .sprite { width: 28vw; height: 28vw; }
+  .logo h1 { font-size: clamp(34px, 11vw, 56px); }
+  .barra-superior .selector-idioma .idioma-btn { padding: 4px 9px; }
+}
+
+/* v3.1: filtros con autocompletado, niveles */
+.filtro-caja { position: relative; flex: 1; min-width: 200px; }
+.filtro-caja .filtro-input { margin: 0; width: 100%; }
+.filtro-sugerencias { display: none; position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); max-height: 260px; overflow-y: auto;
+  background: var(--panel2); border: 1px solid var(--borde); border-radius: 12px; box-shadow: var(--sombra); padding: 4px; }
+.filtro-sugerencias.abierta { display: grid; }
+.filtro-sugerencias .sug { display: flex; justify-content: space-between; gap: 8px; background: none; border: 0; text-align: left; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+.filtro-sugerencias .sug:hover, .filtro-sugerencias .sug.marcada { background: var(--bg2); color: var(--acento); }
+.sug-vacia { padding: 8px 10px; color: var(--tenue); }
+.filtros-chips:empty { display: none; }
+.chip-limpiar { background: none; border: 0; color: var(--tenue); text-decoration: underline; cursor: pointer; font-size: 13px; }
+.insignia-nivel { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; white-space: nowrap;
+  color: var(--nc); border: 1px solid color-mix(in srgb, var(--nc) 60%, transparent); background: color-mix(in srgb, var(--nc) 14%, rgba(10,12,20,.6)); }
+.jugador .insignia-nivel { margin-left: 5px; font-size: 10px; padding: 0 5px; }
+.vs-entrenador .insignia-nivel { font-size: 13px; padding: 2px 10px; background: rgba(0,0,0,.55); }
+.bj-niveles { display: flex; gap: 4px; }
+.bj-niveles .insignia-nivel { font-size: 10px; padding: 0 6px; }
+.nivel-fila { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; margin-top: 6px; }
+.nivel-fila small { grid-column: 1 / -1; font-size: 11px; }
+.nivel-barra { height: 6px; background: var(--bg2); border-radius: 6px; overflow: hidden; }
+.nivel-barra span { display: block; height: 100%; background: linear-gradient(90deg, #5bb8ff, #c77dff); }
+.recompensa { flex-wrap: wrap; }
+.sube-nivel { color: #fff; background: var(--acento2); padding: 0 8px; border-radius: 999px; }
+.rival-cab { flex-wrap: wrap; }

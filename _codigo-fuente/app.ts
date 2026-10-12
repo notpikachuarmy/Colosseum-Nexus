@@ -8,32 +8,37 @@ import {app, cambiarPantalla, nav, nombreJugador} from './nucleo';
 import {practica} from './practica';
 import {online} from './online';
 import {pokedex} from './pokedex';
+import {pantallaAvatares, barraJugador} from './avatares';
+import {pantallaCreditos} from './creditos';
 
 function inicio() {
   app.innerHTML = '';
-  const nombre = h('input', {class: 'input', value: nombreJugador(), placeholder: tr('Tu nombre de entrenador', 'Your trainer name'), maxlength: '18'});
+  const nombre = h('input', {class: 'input input-nombre', value: nombreJugador(), placeholder: tr('Tu nombre de entrenador', 'Your trainer name'), maxlength: '18'});
   nombre.addEventListener('change', () => storage.set('arena.nombre', nombre.value.trim()));
   const nEquipos = cargarEquipos().length;
   const idioma = h('div', {class: 'selector-idioma', title: tr('Idioma', 'Language')},
     ...([['es', 'Español'], ['en', 'English']] as const).map(([id, txt]) =>
       h('button', {class: 'idioma-btn' + (IDIOMA === id ? ' activo' : ''), onclick: () => { if (IDIOMA !== id) cambiarIdioma(id); }}, txt)));
-  app.append(h('div', {class: 'inicio'}, idioma,
+  app.append(h('div', {class: 'inicio'},
+    h('div', {class: 'barra-superior'}, h('div', {class: 'marca'}, h('img', {src: 'img/icono.png', alt: ''}), 'Arena Fakemon'), idioma,
+      barraJugador(nombre, () => cambiarPantalla(nav.avatares))),
     h('div', {class: 'logo'},
       h('div', {class: 'logo-sprites'}, ...['Somnistera', 'Railspike', 'Hazmadger'].map(s => spriteImg(s))),
       h('h1', {}, 'Arena Fakemon'),
       h('p', {class: 'subtitulo'}, tr('Combates Pokémon con tus criaturas, objetos y habilidades personalizadas', 'Pokémon battles with your own creatures, items and abilities'))),
-    h('label', {class: 'campo campo-nombre'}, h('span', {class: 'etq'}, tr('Tu nombre', 'Your name')), nombre),
     h('div', {class: 'menu'},
-      boton('⚔', tr('Combatir online', 'Battle online'), tr('Crea una sala y pasa el código a un amigo', 'Create a room and send the code to a friend'), () => cambiarPantalla(nav.online)),
-      boton('🤖', tr('Practicar contra la IA', 'Practice against the AI'), tr('Combates sueltos, al mejor de 3 o draft', 'Single battles, best of 3 or draft'), () => cambiarPantalla(nav.practica)),
+      boton('⚔', tr('Combatir online', 'Battle online'), tr('Crea una sala y pasa el código a un amigo', 'Create a room and send the code to a friend'), () => cambiarPantalla(nav.online), 'principal'),
+      boton('🤖', tr('Practicar contra la IA', 'Practice against the AI'), tr('Combates sueltos, al mejor de 3 o draft', 'Single battles, best of 3 or draft'), () => cambiarPantalla(nav.practica), 'principal'),
       boton('🧩', tr('Mis equipos', 'My teams'), nEquipos ? tr(`${nEquipos} equipo${nEquipos > 1 ? 's' : ''} guardado${nEquipos > 1 ? 's' : ''}`, `${nEquipos} saved team${nEquipos > 1 ? 's' : ''}`) : tr('Crea tu primer equipo', 'Create your first team'), () => cambiarPantalla(nav.equipos)),
-      boton('📖', tr('Pokédex personalizada', 'Custom Pokédex'), tr('Fakemon, movimientos, habilidades, objetos y exportar a PBS', 'Fakemon, moves, abilities, items and PBS export'), () => cambiarPantalla(nav.pokedex))),
+      boton('📖', tr('Pokédex personalizada', 'Custom Pokédex'), tr('Fakemon, movimientos, habilidades, objetos y exportar a PBS', 'Fakemon, moves, abilities, items and PBS export'), () => cambiarPantalla(nav.pokedex)),
+      boton('🎟', tr('Entrenadores y gacha', 'Trainers & gacha'), tr('Elige tu avatar y abre fichas', 'Pick your avatar and open tokens'), () => cambiarPantalla(nav.avatares)),
+      boton('✎', tr('Créditos', 'Credits'), tr('Autores de los Fakemon y los sprites', 'Fakemon and sprite authors'), () => cambiarPantalla(nav.creditos))),
     INFO.avisos.length ? h('div', {class: 'avisos'}, h('b', {}, tr('Avisos al cargar los datos:', 'Warnings while loading the data:')), ...INFO.avisos.map(a => h('div', {}, '⚠ ' + a))) : null,
     h('footer', {class: 'pie'}, tr('Hecho con el simulador de Pokémon Showdown (licencia MIT). Pokémon es propiedad de Nintendo, Game Freak y Creatures.', 'Made with the Pokémon Showdown simulator (MIT license). Pokémon is property of Nintendo, Game Freak and Creatures.'))));
 }
 
-function boton(icono: string, titulo: string, sub: string, onclick: () => void) {
-  return h('button', {class: 'menu-btn', onclick}, h('span', {class: 'menu-icono'}, icono),
+function boton(icono: string, titulo: string, sub: string, onclick: () => void, extra = '') {
+  return h('button', {class: 'menu-btn ' + extra, onclick}, h('span', {class: 'menu-icono'}, icono),
     h('span', {class: 'menu-texto'}, h('b', {}, titulo), h('small', {}, sub)));
 }
 
@@ -41,6 +46,8 @@ nav.inicio = inicio;
 nav.online = online;
 nav.practica = practica;
 nav.pokedex = pokedex;
+nav.avatares = () => pantallaAvatares(app, () => cambiarPantalla(inicio));
+nav.creditos = () => pantallaCreditos(app, () => cambiarPantalla(inicio));
 nav.equipos = () => pantallaEquipos(app, () => cambiarPantalla(inicio));
 
 document.documentElement.lang = IDIOMA;
