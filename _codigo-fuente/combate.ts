@@ -205,6 +205,13 @@ export class PantallaCombate {
         if (res.texto) this.log(res.texto, res.clase || '');
         if (res.anim) await this.animar(res.anim);
         else if (res.texto && res.clase !== 'turno' && res.clase !== 'dano-num') await sleep(this.ms(220));
+        // Cualquier línea que toque a un Pokémon activo (curarse el estado con una baya, cambiar de objeto...)
+        // actualiza su barra, aunque no tenga animación
+        if (!res.anim || !('ident' in res.anim)) {
+          const m = /^\|[-a-z]+\|(p[12][a-d]?: [^|]*)/.exec(line);
+          if (m) this.actualizarHud(m[1]);
+          if (line.startsWith('|-cureteam|')) this.dibujarCampo();
+        }
       }
     } finally {
       this.procesando = false;
