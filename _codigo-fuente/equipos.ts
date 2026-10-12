@@ -13,6 +13,24 @@ export interface Equipo { id: string; nombre: string; formato: 'singles' | 'doub
 /** Máximo de Pokémon: 6 en equipos normales, 12 en plantillas de draft */
 export const maxPokemon = (eq: Equipo) => eq.formato === 'draft' ? 12 : 6;
 
+/**
+ * Cláusula de especie: qué cuenta como "el mismo Pokémon".
+ * - Las formas regionales cuentan como especies distintas (Diglett y Diglett-Alola pueden ir juntos).
+ * - Tus versiones de oficiales también (Lapras y Lapras-Custom, Diglett-Custom y Diglett-Alola...).
+ * - Las formas de tus Fakemon también (Railspike y Railspike-Ballesta).
+ * - El resto de formas oficiales sí cuentan como el mismo (Rotom y Rotom-Lavado...).
+ */
+const REGIONALES = new Set(['Alola', 'Galar', 'Hisui', 'Paldea']);
+export function claveEspecie(especie: string): string {
+  const sp = dex().species.get(especie);
+  if (!sp.exists) return toID(especie);
+  const partes = (sp.forme || '').split('-').filter(p => REGIONALES.has(p));
+  if (INFO.versiones.has(sp.id) || (sp.changesFrom && INFO.versiones.has(toID(sp.changesFrom)))) partes.push('Custom');
+  // Formas de tus Fakemon (Railspike-Ballesta...) también cuentan como distintas
+  else if (INFO.custom.has(sp.id) && sp.forme && !sp.battleOnly) partes.push(sp.forme);
+  return [toID(sp.baseSpecies), ...partes].join('-');
+}
+
 const KEY = 'arena.equipos.v1';
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 
@@ -100,8 +118,8 @@ export function validarEquipo(eq: Equipo): string[] {
     const n = s.name || s.species;
     if (!sp.exists) { errs.push(tr(`${n}: el Pokémon no existe.`, `${n}: this Pokémon doesn't exist.`)); continue; }
     if (sp.battleOnly) errs.push(tr(`${n}: esa forma solo aparece en combate.`, `${n}: that forme only appears in battle.`));
-    // Tus versiones cuentan como Pokémon distintos del original (Lapras y Lapras-Custom pueden ir juntos)
-    const clave = INFO.custom.has(sp.id) ? sp.id : sp.baseSpecies;
+    // Formas regionales y tus versiones cuentan como Pokémon distintos (ver claveEspecie)
+    const clave = claveEspecie(sp.name);
     if (vistos.has(clave)) errs.push(tr(`${n}: no puedes repetir Pokémon (cláusula de especie).`, `${n}: you can't repeat Pokémon (species clause).`));
     vistos.add(clave);
     if (!s.moves.filter(Boolean).length) errs.push(tr(`${n}: necesita al menos un movimiento.`, `${n}: needs at least one move.`));

@@ -4,7 +4,7 @@ import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {INFO} from './mod';
 import {dex} from './util';
-import {Equipo, SetPkm, movimientosDe, objetosRequeridos} from './equipos';
+import {Equipo, SetPkm, movimientosDe, objetosRequeridos, claveEspecie} from './equipos';
 
 export type Reserva = 'custom' | 'mezcla' | 'todos';
 export const RESERVAS: {[k in Reserva]: string} = {
@@ -139,20 +139,20 @@ export function equiposParejos(reserva: Reserva, n = 6): [Equipo, Equipo] {
   for (let k = 0; k < n && intentos++ < 200; k++) {
     let lista = reserva === 'custom' ? custom : reserva === 'todos' ? [...custom, ...oficiales] : (k % 2 === 0 ? custom : oficiales);
     if (lista.length < 4) lista = [...custom, ...oficiales];
-    const libre = (sp: any, t: number) => !usados[t].has(sp.baseSpecies);
+    const libre = (sp: any, t: number) => !usados[t].has(claveEspecie(sp.name));
     let a: any = null;
     for (let i = 0; i < 50 && !a; i++) { const c = rnd(lista); if (libre(c, 0)) a = c; }
     if (!a) continue;
     // Pareja: alguien con un total de stats parecido (±20, o el más cercano)
     const bstA = bstDe(a);
-    const cand = lista.filter(sp => sp.baseSpecies !== a.baseSpecies && libre(sp, 1));
+    const cand = lista.filter(sp => claveEspecie(sp.name) !== claveEspecie(a.name) && libre(sp, 1));
     cand.sort((x, y) => Math.abs(bstDe(x) - bstA) - Math.abs(bstDe(y) - bstA));
     const cerca = cand.filter(sp => Math.abs(bstDe(sp) - bstA) <= 20);
     const b = cerca.length ? rnd(cerca) : cand[0];
     if (!b) continue;
     const [p0, p1] = Math.random() < 0.5 ? [a, b] : [b, a];
     if (!libre(p0, 0) || !libre(p1, 1)) { k--; continue; }
-    usados[0].add(p0.baseSpecies); usados[1].add(p1.baseSpecies);
+    usados[0].add(claveEspecie(p0.name)); usados[1].add(claveEspecie(p1.name));
     equipos[0].push(setAleatorio(p0.name));
     equipos[1].push(setAleatorio(p1.name));
   }

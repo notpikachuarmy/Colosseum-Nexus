@@ -23,6 +23,8 @@ export interface InfoCustom {
   avisos: string[];
   /** nombre de forma visible (Hoopa-Lampara -> Genio Místico de la Lámpara) */
   nombresForma: {[id: string]: string};
+  /** Ids de tus versiones de Pokémon oficiales (Lapras-Custom...) */
+  versiones: Set<string>;
   /** ids de objetos personalizados */
   objetos: Set<string>;
   /** id de objeto -> archivo de sprite */
@@ -33,7 +35,7 @@ export interface InfoCustom {
   quitarTipos: {[id: string]: string[]};
 }
 
-export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, objetos: new Set(), spritesObjeto: {}, editados: new Set(), quitarTipos: {}};
+export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, versiones: new Set(), objetos: new Set(), spritesObjeto: {}, editados: new Set(), quitarTipos: {}};
 
 let cached: any = null;
 
@@ -271,6 +273,7 @@ export function buildMod() {
         be.otherFormes = others;
         be.formeOrder = [...(fieldOf(toID(bsp), 'formeOrder') || [bsp]).filter((x: string) => x !== name), name];
         INFO.nombresForma[id] = FORMA;
+        INFO.versiones.add(id);
         // Preevolución: la versión personalizada de su preevolución original (si existe)
         if (!p.preevo && src.prevo && versiones.has(toID(src.prevo))) enlaces.push([name, versiones.get(toID(src.prevo))!]);
       } else if (!p.forma && !p.megaPiedra) {
