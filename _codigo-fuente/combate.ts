@@ -1,5 +1,6 @@
 // Pantalla de combate: dibuja el campo, anima el protocolo y recoge las elecciones.
 import {musica} from './musica';
+import {tituloDe} from './titulos';
 import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
@@ -26,6 +27,8 @@ export interface OpcionesCombate {
   avatares?: {p1?: string, p2?: string};
   /** Nivel de cada jugador: ['ia' | 'online', nivel] */
   niveles?: {p1?: [TipoNivel, number], p2?: [TipoNivel, number]};
+  /** Título que enseña cada jugador en el VS (id de datos/titulos.js) */
+  titulos?: {p1?: string, p2?: string};
 }
 
 const BOOST_CORTO: {[k: string]: string} = {...STATS_CORTO, accuracy: tr('Pre', 'Acc'), evasion: tr('Eva', 'Eva')};
@@ -69,6 +72,8 @@ export class PantallaCombate {
   elecciones: string[] = [];
   spriteEls = new Map<string, HTMLElement>();
   destruido = false;
+  /** Identificador de este combate: su premio solo se da una vez */
+  idPremio = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
   constructor(raiz: HTMLElement, public op: OpcionesCombate) {
     this.raiz = raiz;
@@ -141,7 +146,7 @@ export class PantallaCombate {
     if (!esc) return;
     const yo = this.op.yo, rival = yo === 'p1' ? 'p2' : 'p1';
     const nombre = (l: 'p1' | 'p2') => this.estado.lados[l].nombre || (l === yo ? tr('Tú', 'You') : tr('Rival', 'Opponent'));
-    const tarjeta = (l: 'p1' | 'p2', cls: string) => h('div', {class: 'vs-entrenador ' + cls}, avatarImg(av[l] || ''), h('b', {class: 'vs-nombre'}, nombre(l)), this.insigniaDe(l, true));
+    const tarjeta = (l: 'p1' | 'p2', cls: string) => { const t = tituloDe(this.op.titulos?.[l]); return h('div', {class: 'vs-entrenador ' + cls}, avatarImg(av[l] || ''), h('b', {class: 'vs-nombre'}, nombre(l)), t ? h('span', {class: 'titulo-jugador'}, t.nombre) : null, this.insigniaDe(l, true)); };
     const capa = h('div', {class: 'vs-capa'}, tarjeta(yo, 'vs-yo'), h('div', {class: 'vs-texto'}, 'VS'), tarjeta(rival, 'vs-rival'));
     esc.append(capa);
     // los nombres llegan con el primer mensaje del combate

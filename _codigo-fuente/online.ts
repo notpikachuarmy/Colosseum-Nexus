@@ -7,8 +7,10 @@ import {PantallaCombate} from './combate';
 import {Motor} from './motor';
 import {PODERES, Poder} from './mod';
 import {crearSala, unirseSala, Canal, Sala} from './red';
-import {avatarImg, avatarActual, avatarValido, recompensaCombate, darFichas, RECOMPENSAS} from './avatares';
+import {avatarImg, avatarActual, avatarValido, recompensaCombate, darPV, ECO} from './avatares';
 import {nivelDe, insignia, bonusSerie} from './nivel';
+import {experienciaPase, EXP} from './pases';
+import {titulosSerie, tituloEquipado, tituloDe} from './titulos';
 import {app, cambiarPantalla, setLimpiar, nav, nombreJugador, selectorEquipo, selectorReserva, selectorSerie, campo,
   VERSION_DATOS, TipoSerie, SERIES} from './nucleo';
 import {Serie, empaquetarSets, desempaquetar, pantallaSeleccion} from './serie';
@@ -48,7 +50,7 @@ export function online() {
         h('li', {}, tr('Usad Chrome, Edge o Firefox actualizados. Las extensiones tipo VPN o "anti-WebRTC" pueden impedir la conexión.', 'Use an up-to-date Chrome, Edge or Firefox. VPN or "anti-WebRTC" extensions can block the connection.')))));
 }
 
-interface InfoRival { nombre: string; avatar?: string; nivel?: number; nivelIA?: number; equipo: string | null; resumen: string[]; version: string; draft: boolean }
+interface InfoRival { nombre: string; titulo?: string; avatar?: string; nivel?: number; nivelIA?: number; equipo: string | null; resumen: string[]; version: string; draft: boolean }
 const nivelSeguro = (n: any) => Math.max(1, Math.min(999, Math.floor(+n) || 1));
 type Fase = 'lobby' | 'seleccion' | 'combate' | 'fin';
 
@@ -128,7 +130,7 @@ function salaAnfitrion() {
     let infoRival: any;
     if (!rival) infoRival = h('span', {class: 'tenue pulso'}, codigo ? tr('Esperando a que se una alguien…', 'Waiting for someone to join…') : tr('Creando la sala…', 'Creating the room…'));
     else infoRival = [
-      h('div', {class: 'rival-cab'}, avatarImg(rival.avatar || '', '', 'busto'), insignia('online', rival.nivel || 1, true), insignia('ia', rival.nivelIA || 1), h('b', {}, rivalConectado ? tr(`✓ ${rival.nombre} está en la sala`, `✓ ${rival.nombre} is in the room`) : tr(`${rival.nombre} se ha desconectado (puede volver con el mismo código)`, `${rival.nombre} disconnected (they can come back with the same code)`))),
+      h('div', {class: 'rival-cab'}, avatarImg(rival.avatar || '', '', 'busto'), tituloDe(rival.titulo) ? h('span', {class: 'titulo-jugador'}, tituloDe(rival.titulo)!.nombre) : null, insignia('online', rival.nivel || 1, true), insignia('ia', rival.nivelIA || 1), h('b', {}, rivalConectado ? tr(`✓ ${rival.nombre} está en la sala`, `✓ ${rival.nombre} is in the room`) : tr(`${rival.nombre} se ha desconectado (puede volver con el mismo código)`, `${rival.nombre} disconnected (they can come back with the same code)`))),
       aleatorio ? null : rival.resumen.length ? h('div', {class: 'eq-iconos'}, ...rival.resumen.map(s => spriteImg(s, 'front', false, 'mini')))
         : h('span', {class: 'tenue'}, tr(`Tu amigo no tiene ${draft ? 'plantilla' : 'equipo'}: usad la opción aleatoria.`, `Your friend has no ${draft ? 'roster' : 'team'}: use the random option.`)),
     ];
@@ -220,7 +222,8 @@ function salaAnfitrion() {
     const titulo = `${nombres[0]} vs ${nombres[1]}` + (serie.alMejorDe3 ? tr(` · Combate ${serie.juego}`, ` · Battle ${serie.juego}`) : '');
     const avatares = {p1: avatarActual(), p2: avatarValido(rival?.avatar)};
     const niveles = {p1: ['online', nivelDe('online')], p2: ['online', rival?.nivel || 1]} as any;
-    msgInicio = {t: 'inicio', formato, nombres, avatares, niveles, titulo, marcador: serie.alMejorDe3 ? serie.texto(nombres) : ''};
+    const titulos = {p1: tituloEquipado(), p2: tituloDe(rival?.titulo)?.id || ''};
+    msgInicio = {t: 'inicio', formato, nombres, avatares, niveles, titulos, titulo, marcador: serie.alMejorDe3 ? serie.texto(nombres) : ''};
     enviar(msgInicio);
     m.escuchar('p2', c => { historial.push(c); enviar({t: 'p', d: c}); });
     app.innerHTML = '';
@@ -228,7 +231,7 @@ function salaAnfitrion() {
     app.append(raiz);
     premioHost = null;
     const p = new PantallaCombate(raiz, {
-      yo: 'p1', titulo, avatares, niveles,
+      yo: 'p1', titulo, avatares, niveles, titulos,
       elegir: e => m.elegir('p1', e),
       rendirse: () => m.rendirse('p1'),
       enviarChat: t => enviar({t: 'chat', texto: t}),
@@ -244,9 +247,11 @@ function salaAnfitrion() {
       p.estado.contado = true;
       const g = p.estado.ganador;
       serie.registrar(g === nombres[0] ? 0 : g === nombres[1] ? 1 : -1);
-      if (g) premioHost = recompensaCombate('online', p.estado.turno, g === nombres[0], serie.terminada && serie.alMejorDe3 && serie.marcador[0] > serie.marcador[1]);
+      const serieMia = serie.terminada && serie.alMejorDe3 && serie.marcador[0] > serie.marcador[1];
+      if (g) premioHost = recompensaCombate('online', p.estado.turno, g === nombres[0], serieMia, p.idPremio, p.estado);
+      if (serieMia) titulosSerie(serie.tipo === 'draft', 'serie-' + p.idPremio);
       fase = 'fin';
-      enviar({t: 'marcador', texto: serie.alMejorDe3 ? serie.texto(nombres) : '', terminada: serie.terminada,
+      enviar({t: 'marcador', draft: serie.tipo === 'draft', texto: serie.alMejorDe3 ? serie.texto(nombres) : '', terminada: serie.terminada,
         ganadorSerie: serie.terminada && serie.alMejorDe3 ? (serie.marcador[0] > serie.marcador[1] ? nombres[0] : nombres[1]) : ''});
     }
     const botones: HTMLElement[] = [];
@@ -278,7 +283,7 @@ function salaAnfitrion() {
         canal = c;
         rivalConectado = true;
         clearTimeout(temporizador);
-        rival = {nombre, avatar: avatarValido(msg.avatar), nivel: nivelSeguro(msg.nivel), nivelIA: nivelSeguro(msg.nivelIA), equipo: msg.equipo ?? null, resumen: msg.resumen || [], version: msg.version, draft: !!msg.draft};
+        rival = {nombre, titulo: tituloDe(String(msg.titulo || ''))?.id, avatar: avatarValido(msg.avatar), nivel: nivelSeguro(msg.nivel), nivelIA: nivelSeguro(msg.nivelIA), equipo: msg.equipo ?? null, resumen: msg.resumen || [], version: msg.version, draft: !!msg.draft};
         if (msg.version !== VERSION_DATOS) toast(tr('⚠ Tu amigo tiene otra versión de los datos. Recargad los dos la página (Ctrl+F5).', '⚠ Your friend has a different version of the data. Both of you reload the page (Ctrl+F5).'), 7000);
         avisarModo();
         // ¿Vuelve a mitad de algo?
@@ -369,7 +374,7 @@ function salaInvitado(codigo: string) {
       if (!activo) { c.cerrar(); return; }
       canal = c; reintentos = 0; error = '';
       configurar(c);
-      c.enviar({t: 'hola', nombre: nombreJugador() || tr('Invitado', 'Guest'), avatar: avatarActual(), nivel: nivelDe('online'), nivelIA: nivelDe('ia'), version: VERSION_DATOS, ...datosEquipo()});
+      c.enviar({t: 'hola', nombre: nombreJugador() || tr('Invitado', 'Guest'), avatar: avatarActual(), titulo: tituloEquipado(), nivel: nivelDe('online'), nivelIA: nivelDe('ia'), version: VERSION_DATOS, ...datosEquipo()});
       if (fase === 'conectando') { fase = 'lobby'; pintar(); }
       else pantalla?.log(tr('Reconectado.', 'Reconnected.'), 'sistema');
     }, err => {
@@ -458,13 +463,14 @@ function salaInvitado(codigo: string) {
           yo: 'p2', titulo: msg.titulo || `${msg.nombres?.[0]} vs ${msg.nombres?.[1]}`,
           avatares: msg.avatares ? {p1: avatarValido(msg.avatares.p1), p2: avatarValido(msg.avatares.p2)} : undefined,
           niveles: msg.niveles ? {p1: ['online', nivelSeguro(msg.niveles.p1?.[1])], p2: ['online', nivelDe('online')]} : undefined,
+          titulos: {p1: tituloDe(String(msg.titulos?.p1 || ''))?.id, p2: tituloEquipado()},
           elegir: e => canal?.enviar({t: 'elegir', d: e}),
           rendirse: () => canal?.enviar({t: 'rendirse'}),
           enviarChat: t => canal?.enviar({t: 'chat', texto: t}),
           alTerminar: () => {
             if (!pInv.estado.contado) {
               pInv.estado.contado = true;
-              if (miNombre && pInv.estado.ganador && !pInv.instantaneo) premioInvitado = recompensaCombate('online', pInv.estado.turno, pInv.estado.ganador === miNombre);
+              if (miNombre && pInv.estado.ganador && !pInv.instantaneo) premioInvitado = recompensaCombate('online', pInv.estado.turno, pInv.estado.ganador === miNombre, false, pInv.idPremio, pInv.estado);
             }
             return [
             premioInvitado,
@@ -490,9 +496,12 @@ function salaInvitado(codigo: string) {
         marcadorFin = msg.texto || '';
         if (msg.terminada && msg.ganadorSerie) marcadorFin += tr(` · 🏆 ${msg.ganadorSerie} gana la serie`, ` · 🏆 ${msg.ganadorSerie} wins the series`);
         if (msg.terminada && msg.ganadorSerie && msg.ganadorSerie === miNombre && premioInvitado) {
-          darFichas(RECOMPENSAS.serieGanada);
-          bonusSerie('online');
-          toast(tr(`🏆 +${RECOMPENSAS.serieGanada} ficha y XP extra por ganar la serie`, `🏆 +${RECOMPENSAS.serieGanada} token and bonus XP for winning the series`), 3500);
+          if (darPV(ECO.pv.serieGanada, 'serie-' + (pantalla?.idPremio || Date.now()))) {
+            bonusSerie('online');
+            experienciaPase('online', true, false, 'serie-' + (pantalla?.idPremio || Date.now()), EXP.serieGanada);
+            titulosSerie(!!msg.draft, 'serie-' + (pantalla?.idPremio || Date.now()));
+            toast(tr(`🏆 +${ECO.pv.serieGanada} PV y XP extra por ganar la serie`, `🏆 +${ECO.pv.serieGanada} PV and bonus XP for winning the series`), 3500);
+          }
         }
         fase = 'fin';
         if (pantalla?.estado.terminado) pantalla.mostrarControles();

@@ -44,10 +44,15 @@ export function pantallaCreditos(raiz: HTMLElement, volver: () => void) {
     grupos.get(k)!.especies.push(sp.name);
   }
   // Sprites de entrenador agrupados por artista
+  // (sin distinguir mayúsculas: "hyo" y "Hyo" son el mismo; se enseña con la primera en mayúscula)
   const artistas = new Map<string, string[]>();
+  const nombreArtista = new Map<string, string>();
   for (const av of AVATARES) {
-    if (!artistas.has(av.autor)) artistas.set(av.autor, []);
-    artistas.get(av.autor)!.push(av.id);
+    const k = av.autor.trim().toLowerCase();
+    if (!nombreArtista.has(k)) nombreArtista.set(k, av.autor.trim().charAt(0).toUpperCase() + av.autor.trim().slice(1));
+    const n = nombreArtista.get(k)!;
+    if (!artistas.has(n)) artistas.set(n, []);
+    artistas.get(n)!.push(av.id);
   }
   const persona = (etq: string, quien: string) => h('div', {class: 'cred-persona'}, h('small', {class: 'tenue'}, etq), h('b', {}, quien));
   raiz.innerHTML = '';
@@ -55,7 +60,9 @@ export function pantallaCreditos(raiz: HTMLElement, volver: () => void) {
     h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')), h('h2', {}, tr('Créditos', 'Credits'))),
     h('div', {class: 'creditos'},
       h('section', {class: 'tarjeta cred-lema'}, h('b', {}, tr('Colosseum Nexus es y será gratis: sin anuncios, sin compras externas (con dinero real) y sin ventajas de pago.',
-        'Colosseum Nexus is and will always be free: no ads, no external purchases (with real money) and no pay-to-win advantages.'))),
+        'Colosseum Nexus is and will always be free: no ads, no external purchases (with real money) and no pay-to-win advantages.')),
+        h('p', {class: 'cred-ip'}, tr('Cada personaje, nombre y referencia pertenece a su propia propiedad intelectual y a sus dueños (Pokémon: Nintendo, Game Freak y Creatures; Yu-Gi-Oh!: Kazuki Takahashi y Konami; y el resto, a quien corresponda). Colosseum Nexus es un proyecto de fans, gratuito y sin ánimo de lucro, no oficial ni afiliado a ninguno de ellos.',
+          'Every character, name and reference belongs to its own intellectual property and owners (Pokémon: Nintendo, Game Freak and Creatures; Yu-Gi-Oh!: Kazuki Takahashi and Konami; and the rest to their respective owners). Colosseum Nexus is a free, non-profit, unofficial fan project, not affiliated with any of them.'))),
       h('section', {class: 'tarjeta'},
         h('h3', {}, tr('Fakemon', 'Fakemon')),
         ...[...grupos.values()].sort((x, y) => y.especies.length - x.especies.length).map(g => h('div', {class: 'cred-grupo'},

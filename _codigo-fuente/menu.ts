@@ -40,7 +40,7 @@ export function menuPrincipal() {
     {id: 'equipos', img: 'equipos', titulo: tr('Equipos', 'Teams'), texto: tr('Crea y edita tus equipos y plantillas de draft', 'Build and edit your teams and draft rosters'), ir: () => cambiarPantalla(nav.equipos)},
     {id: 'historia', img: 'historia', titulo: tr('Historia', 'Story'), texto: tr('Próximamente', 'Coming soon'), pronto: true},
     {id: 'pokedex', img: 'pokedex', titulo: tr('Pokédex', 'Pokédex'), texto: tr('Fakemon, movimientos, habilidades y objetos', 'Fakemon, moves, abilities and items'), ir: () => cambiarPantalla(nav.pokedex)},
-    {id: 'gacha', img: 'gacha', titulo: tr('Gacha', 'Gacha'), texto: tr('Abre fichas y consigue nuevos entrenadores', 'Open tokens and get new trainers'), ir: () => cambiarPantalla(nav.avatares)},
+    {id: 'gacha', img: 'gacha', titulo: tr('Gacha', 'Gacha'), texto: tr('Abre tickets y compra en la tienda con tus PV', 'Open tickets and spend your PV in the shop'), ir: () => cambiarPantalla(nav.avatares)},
     {id: 'creditos', img: 'creditos', titulo: tr('Créditos', 'Credits'), texto: tr('Quién ha hecho Colosseum Nexus', 'Who made Colosseum Nexus'), ir: () => cambiarPantalla(nav.creditos)},
   ];
 
@@ -69,7 +69,7 @@ export function menuPrincipal() {
       h('span', {class: 'mp-arte'}, h('img', {src: `img/menu/${o.img}.png`, alt: '', draggable: 'false'}),
         h('img', {class: 'mp-marco', src: 'img/menu/seleccion.png', alt: '', draggable: 'false'}),
         o.pronto ? h('span', {class: 'mp-cinta'}, tr('Próximamente', 'Coming soon')) : null,
-        o.id === 'gacha' && fichas ? h('span', {class: 'mp-contador', title: tr('Fichas sin abrir', 'Unopened tokens')}, String(fichas)) : null),
+        o.id === 'gacha' && fichas ? h('span', {class: 'mp-contador', title: tr('Tickets sin abrir', 'Unopened tickets')}, String(fichas)) : null),
       h('span', {class: 'mp-titulo'}, o.titulo));
     const marcar = () => { descripcion.textContent = o.texto; };
     b.addEventListener('mouseenter', () => { b.focus({preventScroll: true}); });

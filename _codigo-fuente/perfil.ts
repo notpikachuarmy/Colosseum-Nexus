@@ -4,6 +4,7 @@ import {h} from './util';
 import {nombreJugador} from './nucleo';
 import {abrirAjustes} from './ajustes';
 import {perfil, rango, nombreModo, TipoNivel} from './nivel';
+import {TITULOS, tituloDe, tituloEquipado, titulosConseguidos, selectorTitulo, progresoTitulo, revisarTitulos} from './titulos';
 import {avatarImg, coleccion, datosAvatar, alCambiarColeccion, rejillaAvatares, progresoColeccion, RAREZAS} from './avatares';
 
 /** Bloque de estadísticas de un modo (online o IA) */
@@ -39,13 +40,31 @@ export function pantallaPerfil(raiz: HTMLElement, volver: () => void) {
       h('div', {class: 'pf-avatar', style: {'--rc': RAREZAS[a.rareza].color}}, avatarImg(a.id)),
       h('div', {class: 'pf-id'},
         h('div', {class: 'pf-nick'}, nombreJugador() || tr('Entrenador', 'Trainer')),
-        // El título equipado irá aquí cuando existan los títulos (fase 7)
+        tituloDe(tituloEquipado()) ? h('span', {class: 'titulo-jugador'}, tituloDe(tituloEquipado())!.nombre) : null,
+        h('label', {class: 'pf-titulo-fila'}, h('small', {class: 'tenue'}, tr('Título en el VS:', 'Title in the VS:')), selectorTitulo(() => { pintarCab(); pintarTitulos(); })),
         h('small', {class: 'tenue'}, a.nombre + ' · ' + tr('sprite: ', 'sprite: ') + a.autor),
         h('button', {class: 'btn btn-sec btn-sm', onclick: () => abrirAjustes(() => pintarCab())}, tr('Cambiar nombre', 'Change name'))));
     const {tengo, total} = progresoColeccion();
     contador.textContent = tr(`Colección: ${tengo}/${total}`, `Collection: ${tengo}/${total}`);
   };
 
+  const titulosEl = h('div', {class: 'titulos-lista'});
+  const contTitulos = h('span', {class: 'pf-contador'});
+  const pintarTitulos = () => {
+    const tengo = new Set(titulosConseguidos());
+    titulosEl.innerHTML = '';
+    contTitulos.textContent = tr(`Títulos: ${TITULOS.filter(t => tengo.has(t.id)).length}/${TITULOS.length}`, `Titles: ${TITULOS.filter(t => tengo.has(t.id)).length}/${TITULOS.length}`);
+    // Primero los conseguidos
+    for (const t of [...TITULOS].sort((a, b) => +tengo.has(b.id) - +tengo.has(a.id))) {
+      const prog = tengo.has(t.id) ? '' : progresoTitulo(t.id);
+      titulosEl.append(h('div', {class: 'titulo-item' + (tengo.has(t.id) ? ' tengo' : ''), 'data-titulo': t.id},
+        h('b', {}, (tengo.has(t.id) ? '' : '🔒 ') + t.nombre),
+        h('small', {class: 'tenue'}, t.texto),
+        prog ? h('small', {class: 'ti-prog'}, prog) : null,
+        t.pv ? h('small', {class: 'ti-pv'}, tengo.has(t.id) ? tr(`+${t.pv} PV conseguidos`, `+${t.pv} PV earned`) : tr(`Premio: ${t.pv} PV`, `Reward: ${t.pv} PV`)) : null));
+    }
+  };
+  revisarTitulos();
   raiz.innerHTML = '';
   raiz.append(
     h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')), h('h2', {}, tr('Perfil', 'Profile'))),
@@ -55,7 +74,11 @@ export function pantallaPerfil(raiz: HTMLElement, volver: () => void) {
       bloqueStats('ia'),
       h('div', {class: 'pf-col-cab'}, h('h3', {}, tr('Tu colección', 'Your collection')), contador,
         h('small', {class: 'tenue'}, tr('Toca un entrenador para usarlo como avatar. Los nuevos se consiguen en el Gacha.', 'Tap a trainer to use it as your avatar. Get new ones in the Gacha.'))),
-      col.el));
+      col.el,
+      h('div', {class: 'pf-col-cab'}, h('h3', {}, tr('Títulos', 'Titles')), contTitulos,
+        h('small', {class: 'tenue'}, tr('Elige arriba cuál se enseña en el VS (o ninguno). Cada combate cuenta si dura 3 turnos o más.', 'Choose above which one shows in the VS (or none). Battles count if they last 3+ turns.'))),
+      titulosEl));
+  pintarTitulos();
   pintarCab();
   alCambiarColeccion(cab, () => { pintarCab(); col.pintar(); });
 }

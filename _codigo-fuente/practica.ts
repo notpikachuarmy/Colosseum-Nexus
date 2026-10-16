@@ -8,6 +8,7 @@ import {Motor, IA} from './motor';
 import {app, cambiarPantalla, setLimpiar, nav, nombreJugador, selectorEquipo, selectorReserva, selectorSerie, campo, TipoSerie} from './nucleo';
 import {Serie, empaquetarSets, pantallaSeleccion} from './serie';
 import {avatarActual, avatarHolograma, datosAvatar, recompensaCombate} from './avatares';
+import {titulosSerie, tituloEquipado} from './titulos';
 import {nivelDe} from './nivel';
 
 type Modo = 'parejos' | 'mio-vs-aleatorio' | 'mio-vs-mio';
@@ -117,7 +118,7 @@ function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singl
     const titulo = (formato === 'doubles' ? tr('Práctica · Dobles', 'Practice · Doubles') : tr('Práctica · Individual', 'Practice · Singles')) + (serie.alMejorDe3 ? tr(` · Combate ${serie.juego}`, ` · Battle ${serie.juego}`) : '');
     let premio: HTMLElement | null = null;
     const pantalla = new PantallaCombate(raiz, {
-      yo: 'p1', titulo, avatares, niveles: {p1: ['ia', nivelDe('ia')]},
+      yo: 'p1', titulo, avatares, niveles: {p1: ['ia', nivelDe('ia')]}, titulos: {p1: tituloEquipado()},
       elegir: e => motor.elegir('p1', e),
       rendirse: () => motor.rendirse('p1'),
       alTerminar: () => {
@@ -125,7 +126,9 @@ function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singl
         if (!pantalla.estado.contado) {
           pantalla.estado.contado = true;
           serie.registrar(g === yo ? 0 : g === NOMBRE_IA ? 1 : -1);
-          if (g) premio = recompensaCombate('ia', pantalla.estado.turno, g === yo, serie.terminada && serie.alMejorDe3 && serie.marcador[0] > serie.marcador[1]);
+          const serieMia = serie.terminada && serie.alMejorDe3 && serie.marcador[0] > serie.marcador[1];
+          if (g) premio = recompensaCombate('ia', pantalla.estado.turno, g === yo, serieMia, pantalla.idPremio, pantalla.estado);
+          if (serieMia) titulosSerie(serie.tipo === 'draft', 'serie-' + pantalla.idPremio);
         }
         const botones: HTMLElement[] = [];
         if (premio) botones.push(premio);

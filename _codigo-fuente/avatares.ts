@@ -1,22 +1,40 @@
-// Avatares de jugador: colección, fichas de gacha y pantalla de selección.
+// Avatares de jugador: colección, tickets de gacha, Puntos Victoria (PV) y pantallas de colección y gacha.
 import {tr, EN} from './idioma';
 import {h, storage, toast, sleep} from './util';
-import {registrarCombate, insignia, nivelDe, TipoNivel} from './nivel';
+import {registrarCombate, insignia, TipoNivel} from './nivel';
+import {experienciaPase, panelPases, PASES, precioPase, estadoPases} from './pases';
+import {titulosCombate, revisarTitulos} from './titulos';
+import type {Estado} from './estado';
 
 export type Rareza = 'comun' | 'raro' | 'epico' | 'legendario' | 'base';
-export interface Avatar {id: string; nombre: string; autor: string; rareza: Rareza; etiquetas: string[]}
-interface Coleccion {fichas: number; tengo: {[id: string]: number}; avatar: string; tiradas: number}
+export type Origen = 'gacha' | 'tienda' | 'pase' | 'historia' | 'base';
+export interface Avatar {id: string; nombre: string; autor: string; rareza: Rareza; etiquetas: string[]; origen: Origen}
+/** fichas = tickets de gacha sin abrir · pv = Puntos Victoria · premiados = últimos combates que ya dieron premio (para no darlo dos veces) */
+export interface Coleccion {fichas: number; pv: number; tengo: {[id: string]: number}; avatar: string; tiradas: number; premiados: string[]}
 
 const W: any = window;
 const clave = (s: string) => s.replace(/^[^\p{L}\p{N}]+/u, '');
 /** Todos los avatares, ordenados alfabéticamente */
-export const AVATARES: Avatar[] = ((W.DATOS_AVATARES || []) as Avatar[]).slice()
-  .sort((a, b) => clave(a.nombre).localeCompare(clave(b.nombre), 'es', {sensitivity: 'base'}));
+export const AVATARES: Avatar[] = ((W.DATOS_AVATARES || []) as Avatar[]).map(a => ({...a, origen: a.rareza === 'base' ? 'base' : (a.origen || 'gacha')} as Avatar))
+  .sort((a, b) => clave(a.nombre).localeCompare(clave(b.nombre), 'es', {sensitivity: 'base'}) || a.id.localeCompare(b.id));
 const POR_ID = new Map(AVATARES.map(a => [a.id, a]));
 export const AVATAR_BASE = AVATARES.find(a => a.rareza === 'base')?.id || 'sombra';
 export const PROB: {[r: string]: number} = {comun: 60, raro: 28, epico: 10, legendario: 2, ...(W.GACHA_PROBABILIDADES || {})};
-export const RECOMPENSAS = {ia: 50, online: 1, serieGanada: 1, ...(W.GACHA_RECOMPENSAS || {})};
-/** Turnos mínimos para que una victoria dé fichas (evita rendiciones al momento) */
+/** Economía (datos/economia.js), con valores por defecto si falta algo */
+const E = W.ECONOMIA || {};
+const num = (x: any, d: number) => Number.isFinite(+x) && +x >= 0 ? Math.floor(+x) : d;
+export const ECO = {
+  pv: {
+    ia: {victoria: num(E.pv?.ia?.victoria, 15), derrota: num(E.pv?.ia?.derrota, 3)},
+    online: {victoria: num(E.pv?.online?.victoria, 30), derrota: num(E.pv?.online?.derrota, 8)},
+    serieGanada: num(E.pv?.serieGanada, 20),
+  },
+  ticket: num(E.tickets?.uno, 50),
+  pack10: num(E.tickets?.pack10, 450),
+  avatarPorRareza: {comun: 150, raro: 250, epico: 400, legendario: 650, ...(E.avatarPorRareza || {})} as {[r: string]: number},
+  pase: {base: num(E.pase?.base, 300), porRecompensa: num(E.pase?.porRecompensa, 45), descuentoAntiguo: Math.min(1, Math.max(0, +(E.pase?.descuentoAntiguo ?? 0.7)))},
+};
+/** Turnos mínimos para que un combate dé premio (evita rendiciones al momento) */
 const TURNOS_MINIMOS = 3;
 
 export const RAREZAS: {[r in Rareza]: {nombre: string, color: string, estrellas: string}} = {
@@ -56,10 +74,27 @@ export function coleccion(): Coleccion {
   for (const [id, n] of Object.entries(c.tengo || {})) if (POR_ID.has(id) && +n > 0) tengo[id] = Math.floor(+n);
   tengo[AVATAR_BASE] = Math.max(1, tengo[AVATAR_BASE] || 0);
   const avatar = c.avatar && tengo[c.avatar] ? c.avatar : AVATAR_BASE;
-  return {fichas: Math.max(0, Math.floor(+(c.fichas || 0))), tengo, avatar, tiradas: c.tiradas || 0};
+  return {fichas: Math.max(0, Math.floor(+(c.fichas || 0))), pv: Math.max(0, Math.floor(+(c.pv || 0))), tengo, avatar, tiradas: c.tiradas || 0,
+    premiados: Array.isArray(c.premiados) ? c.premiados.filter(x => typeof x === 'string').slice(-200) : []};
 }
+/**
+ * Cambia la colección de una sola vez: se lee, se cambia y se guarda seguido, así que
+ * dos clics muy rápidos no pueden cobrar dos veces (el segundo ya ve el saldo nuevo).
+ * Si f devuelve false, no se guarda nada.
+ */
+export function cambiarColeccion(f: (c: Coleccion) => boolean | void): boolean {
+  const c = coleccion();
+  if (f(c) === false) return false;
+  c.pv = Math.max(0, Math.floor(c.pv));
+  c.fichas = Math.max(0, Math.floor(c.fichas));
+  guardar(c);
+  return true;
+}
+let revisando = false;
 function guardar(c: Coleccion) {
   storage.set(CLAVE, c);
+  // Logros de colección (Maestro de Kanto, Completista...). Evita volver a entrar si un título da PV.
+  if (!revisando) { revisando = true; try { revisarTitulos(); } catch (e) { console.error(e); } finally { revisando = false; } }
   for (const f of [...oyentes]) { try { f(); } catch (e) { console.error(e); } }
 }
 
@@ -94,60 +129,94 @@ export function avatarHolograma(): string {
   return (holos[Math.floor(Math.random() * holos.length)] || AVATARES[0])?.id || AVATAR_BASE;
 }
 
-// ---------------------------------------------------------------- fichas --
-export function darFichas(n: number) {
-  if (n <= 0) return;
-  const c = coleccion();
-  c.fichas += n;
-  guardar(c);
-}
+// ------------------------------------------------------------- premios --
+/** Icono del ticket de gacha */
+export const iconoTicket = (cls = '') => h('img', {class: 'icono-ticket ' + cls, src: 'img/ticket.png', alt: tr('ticket', 'ticket'), draggable: 'false'});
+export const textoPV = (n: number) => `PV ${n}`;
 
 /**
- * Recompensa al terminar un combate: experiencia de nivel (ganes o pierdas) y,
- * si ganas, fichas de gacha. Devuelve un elemento con lo conseguido (o null).
- * ia: probabilidad de 1 ficha · online: fichas seguras.
+ * Premio al terminar un combate: experiencia de nivel y Puntos Victoria (ganes o pierdas).
+ * idCombate: cada combate da premio UNA vez aunque el aviso de fin llegue dos veces.
  */
-export function recompensaCombate(tipo: TipoNivel, turnos: number, gano: boolean, serieGanada = false): HTMLElement | null {
-  if (turnos < TURNOS_MINIMOS) return h('div', {class: 'recompensa nada'}, tr('Combate demasiado corto: no cuenta para el nivel ni da fichas.', 'Battle too short: no XP or tokens.'));
+export function recompensaCombate(tipo: TipoNivel, turnos: number, gano: boolean, serieGanada = false, idCombate = '', estado?: Estado): HTMLElement | null {
+  if (turnos < TURNOS_MINIMOS) return h('div', {class: 'recompensa nada'}, tr('Combate demasiado corto: no da experiencia ni PV.', 'Battle too short: no XP or PV.'));
+  if (idCombate && coleccion().premiados.includes(idCombate)) return null;
   const nv = registrarCombate(tipo, gano, serieGanada);
-  let n = 0;
-  if (gano) {
-    if (tipo === 'ia') n = Math.random() * 100 < RECOMPENSAS.ia ? 1 : 0;
-    else n = Math.max(0, Math.floor(RECOMPENSAS.online));
-    if (serieGanada) n += Math.max(0, Math.floor(RECOMPENSAS.serieGanada));
-    darFichas(n);
-  }
-  if (nv.subio) toast(tr(`⬆ ¡Has subido al nivel ${nv.nivel}${tipo === 'ia' ? ' contra la IA' : ' online'}!`, `⬆ You reached level ${nv.nivel}${tipo === 'ia' ? ' vs the AI' : ' online'}!`), 3800);
-  else if (n) toast(tr(`🎟 ¡Has conseguido ${n} ficha${n > 1 ? 's' : ''} de gacha!`, `🎟 You got ${n} gacha token${n > 1 ? 's' : ''}!`), 3500);
+  const pv = (gano ? ECO.pv[tipo].victoria : ECO.pv[tipo].derrota) + (serieGanada ? ECO.pv.serieGanada : 0);
+  cambiarColeccion(c => { c.pv += pv; if (idCombate) c.premiados.push(idCombate); });
+  const temp = experienciaPase(tipo, gano, serieGanada, idCombate);
+  titulosCombate(tipo, gano, estado, idCombate);
+  if (nv.subio) toast(tr(`¡Has subido al nivel ${nv.nivel}${tipo === 'ia' ? ' contra la IA' : ' online'}!`, `You reached level ${nv.nivel}${tipo === 'ia' ? ' vs the AI' : ' online'}!`), 3800);
   return h('div', {class: 'recompensa'},
     h('span', {}, `+${nv.xp} XP`),
     insignia(tipo, nv.nivel),
     nv.subio ? h('b', {class: 'sube-nivel'}, tr('¡Subes de nivel!', 'Level up!')) : null,
-    gano ? (n ? h('span', {}, h('span', {class: 'ficha-icono'}, '🎟'), tr(` +${n} ficha${n > 1 ? 's' : ''}`, ` +${n} token${n > 1 ? 's' : ''}`))
-      : h('span', {class: 'tenue'}, tr('sin ficha esta vez', 'no token this time'))) : null);
+    h('b', {class: 'premio-pv'}, `+${pv} PV`),
+    temp.pase && temp.xp ? h('span', {class: 'premio-pase', title: temp.pase.nombre}, tr(`+${temp.xp} exp. de pase`, `+${temp.xp} pass XP`)) : null);
 }
 
-function rarezaAlAzar(): Exclude<Rareza, 'base'> {
-  const rs = (['comun', 'raro', 'epico', 'legendario'] as const).filter(r => AVATARES.some(a => a.rareza === r));
+/** PV extra (por ejemplo, el invitado online al ganar una serie). Una vez por id. */
+export function darPV(n: number, id: string) {
+  if (n <= 0) return false;
+  return cambiarColeccion(c => { if (c.premiados.includes(id)) return false; c.pv += n; c.premiados.push(id); });
+}
+
+// --------------------------------------------------------------- tienda --
+/** ok: si se ha comprado · texto: lo que se enseña al jugador */
+export type ResultadoCompra = {ok: boolean, texto: string};
+/** Avatares que se compran en la tienda */
+export const AVATARES_TIENDA = () => AVATARES.filter(a => a.origen === 'tienda');
+export const precioAvatarRareza = (r: Rareza) => ECO.avatarPorRareza[r] ?? ECO.avatarPorRareza.raro;
+export const precioAvatar = (a: Avatar) => precioAvatarRareza(a.rareza);
+
+export function comprarTickets(n: 1 | 10): ResultadoCompra {
+  const precio = n === 10 ? ECO.pack10 : ECO.ticket;
+  let ok = false;
+  cambiarColeccion(c => { if (c.pv < precio) return false; c.pv -= precio; c.fichas += n; ok = true; });
+  return ok ? {ok: true, texto: tr(`+${n} ticket${n > 1 ? 's' : ''}`, `+${n} ticket${n > 1 ? 's' : ''}`)} : {ok: false, texto: tr('No tienes PV suficientes', 'Not enough PV')};
+}
+
+export function comprarAvatar(id: string): ResultadoCompra {
+  const a = POR_ID.get(id);
+  if (!a || a.origen !== 'tienda') return {ok: false, texto: tr('Este entrenador no está en la tienda', 'This trainer is not in the shop')};
+  const precio = precioAvatar(a);
+  let motivo = '';
+  const ok = cambiarColeccion(c => {
+    if (c.tengo[id]) { motivo = tr('Ya lo tienes', 'You already own it'); return false; }
+    if (c.pv < precio) { motivo = tr('No tienes PV suficientes', 'Not enough PV'); return false; }
+    c.pv -= precio; c.tengo[id] = 1;
+  });
+  return ok ? {ok: true, texto: tr(`¡${a.nombre} es tuyo!`, `${a.nombre} is yours!`)} : {ok: false, texto: motivo};
+}
+
+// ---------------------------------------------------------------- gacha --
+/** Lo que aún te puede tocar en el gacha (sin repetidos) */
+export const pendientesGacha = (c = coleccion()) => AVATARES.filter(a => a.origen === 'gacha' && !c.tengo[a.id]);
+
+function rarezaAlAzar(quedan: Avatar[]): Exclude<Rareza, 'base'> | null {
+  // Solo entran las rarezas de las que aún te falta alguno; su probabilidad se reparte entre ellas
+  const rs = (['comun', 'raro', 'epico', 'legendario'] as const).filter(r => quedan.some(a => a.rareza === r));
+  if (!rs.length) return null;
   const total = rs.reduce((s, r) => s + Math.max(0, PROB[r] || 0), 0);
+  if (total <= 0) return rs[Math.floor(Math.random() * rs.length)];
   let x = Math.random() * total;
   for (const r of rs) { x -= Math.max(0, PROB[r] || 0); if (x < 0) return r; }
-  return rs[0];
+  return rs[rs.length - 1];
 }
 
-/** Gasta una ficha y devuelve el avatar conseguido (puede ser repetido) */
-export function tirar(): {avatar: Avatar, nuevo: boolean, copias: number} | null {
-  const c = coleccion();
-  if (c.fichas < 1) return null;
-  const r = rarezaAlAzar();
-  const pool = AVATARES.filter(a => a.rareza === r);
-  const av = pool[Math.floor(Math.random() * pool.length)];
-  c.fichas--;
-  c.tiradas++;
-  const nuevo = !c.tengo[av.id];
-  c.tengo[av.id] = (c.tengo[av.id] || 0) + 1;
-  guardar(c);
-  return {avatar: av, nuevo, copias: c.tengo[av.id]};
+/** Gasta un ticket y da un entrenador que NO tengas. null si no hay tickets o ya lo tienes todo (no se gasta nada). */
+export function tirar(): {avatar: Avatar, nuevo: true} | null {
+  let premio: Avatar | null = null;
+  cambiarColeccion(c => {
+    if (c.fichas < 1) return false;
+    const quedan = pendientesGacha(c);
+    const r = rarezaAlAzar(quedan);
+    if (!r) return false;
+    const pool = quedan.filter(a => a.rareza === r);
+    premio = pool[Math.floor(Math.random() * pool.length)];
+    c.fichas--; c.tiradas++; c.tengo[premio.id] = 1;
+  });
+  return premio ? {avatar: premio, nuevo: true} : null;
 }
 
 // -------------------------------------------------------------- rejilla --
@@ -166,7 +235,7 @@ export function rejillaAvatares(modo: 'coleccion' | 'gacha') {
   const sugerencias = h('div', {class: 'filtro-sugerencias', role: 'listbox'});
   const cajaFiltro = h('div', {class: 'filtro-caja'}, filtroIn, sugerencias);
   const sinTilde = (x: string) => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const visibles = () => { const c = coleccion(); return modo === 'coleccion' ? AVATARES.filter(a => c.tengo[a.id]) : AVATARES; };
+  const visibles = () => { const c = coleccion(); return modo === 'coleccion' ? AVATARES.filter(a => c.tengo[a.id]) : AVATARES.filter(a => a.origen === 'gacha'); };
   let marcada = 0;
   const opciones = () => {
     const q = sinTilde(filtroIn.value.trim());
@@ -241,13 +310,12 @@ export function rejillaAvatares(modo: 'coleccion' | 'gacha') {
       const tarjeta = h('div', {class: 'avatar-carta' + (copias ? '' : ' bloqueado') + (elegido && modo === 'coleccion' ? ' elegido' : '') + (copias && modo === 'gacha' ? ' poseido' : ''),
         style: {'--rc': r.color}, tabindex: '0', title: titulo, 'data-id': a.id},
         h('span', {class: 'avatar-rareza'}, r.estrellas),
-        copias > 1 ? h('span', {class: 'avatar-copias'}, '×' + copias) : null,
         copias && modo === 'gacha' ? h('span', {class: 'avatar-tengo'}, '✓') : null,
         avatarImg(a.id),
         h('div', {class: 'avatar-nombre'}, a.nombre),
         h('small', {class: 'avatar-autor'}, a.autor));
       const usar = () => {
-        if (modo === 'gacha') { toast(copias ? tr(`${a.nombre}: ya lo tienes. Equípalo desde tu perfil.`, `${a.nombre}: you own it. Equip it from your profile.`) : tr(`🔒 ${a.nombre}: ${r.nombre}. Consíguelo abriendo fichas.`, `🔒 ${a.nombre}: ${r.nombre}. Get it by opening tokens.`)); return; }
+        if (modo === 'gacha') { toast(copias ? tr(`${a.nombre}: ya lo tienes. Equípalo desde tu perfil.`, `${a.nombre}: you own it. Equip it from your profile.`) : tr(`🔒 ${a.nombre}: ${r.nombre}. Puede salir al abrir un ticket.`, `🔒 ${a.nombre}: ${r.nombre}. Can drop from a ticket.`)); return; }
         elegirAvatar(a.id);
       };
       tarjeta.addEventListener('click', usar);
@@ -273,46 +341,128 @@ export function progresoColeccion() {
 
 // --------------------------------------------------------------- gacha --
 export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
-  const cab = h('div', {class: 'gacha-cab'});
+  type Pestana = 'gacha' | 'tienda' | 'pases';
+  const guardada = storage.get<string>('cnx.pestanaGacha', 'gacha');
+  let pestana: Pestana = guardada === 'tienda' || guardada === 'pases' ? guardada : 'gacha';
+  const irA = (p: Pestana) => { pestana = p; storage.set('cnx.pestanaGacha', p); pintarPestanas(); pintarCuerpo(); };
+  const saldo = h('div', {class: 'saldo'});
+  const pestanas = h('div', {class: 'pestanas', role: 'tablist'});
+  const cuerpo = h('div', {class: 'gacha-cuerpo'});
   const catalogo = rejillaAvatares('gacha');
+  const cab = h('div', {class: 'gacha-cab'});
+  const tienda = h('div', {class: 'tienda'});
+
+  const pintarSaldo = () => {
+    const c = coleccion();
+    saldo.innerHTML = '';
+    saldo.append(h('span', {class: 'saldo-pv', title: tr('Puntos Victoria', 'Victory Points')}, textoPV(c.pv)),
+      h('span', {class: 'saldo-tickets', title: tr('Tickets de gacha', 'Gacha tickets')}, iconoTicket(), h('b', {}, String(c.fichas))));
+  };
+  const pintarPestanas = () => {
+    pestanas.innerHTML = '';
+    for (const [id, txt] of [['gacha', tr('Gacha', 'Gacha')], ['tienda', tr('Tienda', 'Shop')], ['pases', tr('Pases', 'Passes')]] as const)
+      pestanas.append(h('button', {class: 'pestana' + (pestana === id ? ' activa' : ''), role: 'tab', 'aria-selected': String(pestana === id), 'data-pestana': id,
+        onclick: () => irA(id)}, txt));
+  };
 
   const pintarCab = () => {
     const c = coleccion();
-    const {tengo, total} = progresoColeccion();
+    const quedan = pendientesGacha(c).length;
+    const max = Math.min(10, c.fichas, quedan);
     cab.innerHTML = '';
     cab.append(
       h('div', {class: 'gacha-maquina'},
-        h('div', {class: 'gacha-fichas'}, h('span', {class: 'ficha-icono grande'}, '🎟'), h('b', {}, String(c.fichas)), h('small', {}, tr('fichas', 'tokens'))),
+        h('div', {class: 'gacha-fichas'}, iconoTicket('grande'), h('b', {}, String(c.fichas)), h('small', {}, tr('tickets', 'tickets'))),
         h('div', {class: 'gacha-botones'},
-          h('button', {class: 'btn', disabled: c.fichas < 1, onclick: () => abrir(1)}, tr('Abrir 1 ficha', 'Open 1 token')),
-          c.fichas >= 5 ? h('button', {class: 'btn btn-sec', onclick: () => abrir(Math.min(10, c.fichas))}, tr(`Abrir ${Math.min(10, c.fichas)}`, `Open ${Math.min(10, c.fichas)}`)) : null),
+          h('button', {class: 'btn', disabled: c.fichas < 1 || !quedan, onclick: () => abrir(1)}, tr('Abrir 1 ticket', 'Open 1 ticket')),
+          max >= 2 ? h('button', {class: 'btn btn-sec', onclick: () => abrir(max)}, tr(`Abrir ${max}`, `Open ${max}`)) : null,
+          h('button', {class: 'btn btn-sec', onclick: () => irA('tienda')}, tr('Conseguir tickets', 'Get tickets'))),
+        !quedan ? h('b', {class: 'gacha-completo'}, tr('¡Tienes todos los entrenadores del gacha!', 'You have every gacha trainer!')) : null,
         h('small', {class: 'tenue gacha-ayuda'},
-          tr(`Ganas fichas al vencer: contra la IA (${RECOMPENSAS.ia}% de probabilidad), online (${RECOMPENSAS.online} segura) y +${RECOMPENSAS.serieGanada} por ganar una serie al mejor de 3. Los repetidos suman copias (×2, ×3…).`,
-            `You earn tokens by winning: vs the AI (${RECOMPENSAS.ia}% chance), online (${RECOMPENSAS.online} guaranteed) and +${RECOMPENSAS.serieGanada} for winning a best-of-3 series. Duplicates just add copies (×2, ×3…).`)),
+          tr(`Cada ticket da un entrenador que todavía no tienes: nunca salen repetidos. Los tickets se compran en la Tienda con PV (Puntos Victoria), que ganas en cada combate.`,
+            `Each ticket gives a trainer you don't have yet: no duplicates. Buy tickets in the Shop with PV (Victory Points), earned in every battle.`)),
         h('div', {class: 'gacha-probs'}, ...(['comun', 'raro', 'epico', 'legendario'] as Rareza[]).map(r =>
           h('span', {class: 'prob', style: {'--rc': RAREZAS[r].color}}, `${RAREZAS[r].nombre} ${PROB[r]}%`))),
-        h('small', {class: 'gacha-col'}, tr(`Colección: ${tengo}/${total}`, `Collection: ${tengo}/${total}`))));
+        h('small', {class: 'gacha-col'}, tr(`Te faltan ${quedan} del gacha`, `${quedan} gacha trainers left`))));
+  };
+
+  // Botón de compra en dos pasos (Comprar → Confirmar), sin ventanas emergentes
+  const botonCompra = (texto: string, precio: number, puede: boolean, comprar: () => ResultadoCompra) => {
+    const b = h('button', {class: 'btn btn-compra', disabled: !puede}, texto);
+    let armado = false, t = 0;
+    b.addEventListener('click', () => {
+      if (b.disabled) return;
+      if (!armado) {
+        armado = true; b.classList.add('confirmar'); b.textContent = tr(`¿Gastar PV ${precio}?`, `Spend PV ${precio}?`);
+        t = window.setTimeout(() => { armado = false; b.classList.remove('confirmar'); b.textContent = texto; }, 3500);
+        return;
+      }
+      clearTimeout(t);
+      b.disabled = true;           // evita un segundo clic mientras se procesa
+      const r = comprar();
+      toast(r.texto);
+      if (!r.ok) { b.disabled = false; armado = false; b.classList.remove('confirmar'); b.textContent = texto; }
+      // al guardarse, la pantalla se repinta con el saldo nuevo
+    });
+    return b;
+  };
+
+  const pintarTienda = () => {
+    const c = coleccion();
+    const fila = (icono: HTMLElement, titulo: string, sub: string, precio: number, boton: HTMLElement) =>
+      h('div', {class: 'tienda-item'}, h('div', {class: 'tienda-icono'}, icono), h('div', {class: 'tienda-texto'}, h('b', {}, titulo), h('small', {class: 'tenue'}, sub)),
+        h('span', {class: 'tienda-precio'}, textoPV(precio)), boton);
+    tienda.innerHTML = '';
+    tienda.append(
+      h('h3', {class: 'seccion-titulo'}, tr('Tickets de gacha', 'Gacha tickets')),
+      fila(iconoTicket('grande'), tr('1 ticket', '1 ticket'), tr('Un entrenador nuevo del gacha', 'One new gacha trainer'), ECO.ticket,
+        botonCompra(tr('Comprar', 'Buy'), ECO.ticket, c.pv >= ECO.ticket, () => comprarTickets(1))),
+      fila(h('span', {class: 'pack-tickets'}, iconoTicket('grande'), h('b', {}, '×10')), tr('Pack de 10 tickets', 'Pack of 10 tickets'),
+        tr(`Sale a ${Math.round(ECO.pack10 / 10)} PV cada uno`, `${Math.round(ECO.pack10 / 10)} PV each`), ECO.pack10,
+        botonCompra(tr('Comprar', 'Buy'), ECO.pack10, c.pv >= ECO.pack10, () => comprarTickets(10))),
+      h('h3', {class: 'seccion-titulo'}, tr('Entrenadores de la tienda', 'Shop trainers')),
+      h('small', {class: 'tenue'}, tr('Solo se consiguen aquí, no salen en el gacha. El precio depende de la rareza.', 'Only available here, never in the gacha. Price depends on rarity.')),
+      h('div', {class: 'tienda-avatares'}, ...AVATARES_TIENDA().map(a => {
+        const precio = precioAvatar(a), r = RAREZAS[a.rareza], tengo = !!c.tengo[a.id];
+        return h('div', {class: 'avatar-carta tienda-avatar' + (tengo ? ' poseido' : ''), style: {'--rc': r.color}, 'data-id': a.id},
+          h('span', {class: 'avatar-rareza'}, r.estrellas),
+          avatarImg(a.id),
+          h('div', {class: 'avatar-nombre'}, a.nombre),
+          h('small', {style: {color: r.color}}, r.nombre),
+          tengo ? h('span', {class: 'tienda-tengo'}, tr('Ya lo tienes', 'Owned'))
+            : botonCompra(textoPV(precio), precio, c.pv >= precio, () => comprarAvatar(a.id)));
+      })),
+      h('h3', {class: 'seccion-titulo'}, tr('Pases', 'Passes')),
+      h('small', {class: 'tenue'}, tr('El precio depende de cuánto contenido trae cada pase. Los pases anteriores cuestan menos. Los pases no caducan.', 'Price depends on how much each pass contains. Older passes cost less. Passes never expire.')),
+      ...PASES.map(p => fila(p.imagen ? h('img', {class: 'icono-ticket grande', src: p.imagen, alt: ''}) : h('span', {}),
+        p.nombre, tr(`${p.niveles.length} recompensas`, `${p.niveles.length} rewards`) + (estadoPases().pases[p.id] ? tr(' · ya lo tienes', ' · owned') : ''), precioPase(p),
+        h('button', {class: 'btn btn-sec', onclick: () => irA('pases')}, tr('Ver pase', 'View pass')))));
+  };
+
+  const pintarCuerpo = () => {
+    cuerpo.innerHTML = '';
+    if (pestana === 'gacha') { pintarCab(); cuerpo.append(cab, h('h3', {class: 'seccion-titulo'}, tr('Entrenadores que pueden salir', 'Trainers you can get')), catalogo.el); catalogo.pintar(); }
+    else if (pestana === 'tienda') { pintarTienda(); cuerpo.append(tienda); }
+    else cuerpo.append(panelPases(botonCompra).el);
   };
 
   async function abrir(veces: number) {
-    const res: ReturnType<typeof tirar>[] = [];
+    const res: NonNullable<ReturnType<typeof tirar>>[] = [];
     for (let i = 0; i < veces; i++) { const r = tirar(); if (!r) break; res.push(r); }
     if (!res.length) return;
-    await mostrarResultados(res.filter(Boolean) as NonNullable<ReturnType<typeof tirar>>[]);
+    await mostrarResultados(res);
   }
 
   raiz.innerHTML = '';
   raiz.append(
-    h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')), h('h2', {}, tr('Gacha', 'Gacha'))),
-    cab,
-    h('h3', {class: 'seccion-titulo'}, tr('Entrenadores que pueden salir', 'Trainers you can get')),
-    catalogo.el);
-  pintarCab();
-  alCambiarColeccion(cab, () => { pintarCab(); catalogo.pintar(); });
+    h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')), h('h2', {}, tr('Gacha, tienda y pases', 'Gacha, shop & passes')), saldo),
+    pestanas, cuerpo);
+  pintarSaldo(); pintarPestanas(); pintarCuerpo();
+  alCambiarColeccion(cuerpo, () => { pintarSaldo(); pintarCuerpo(); });
 }
 
 /** Animación de apertura y resultados */
-async function mostrarResultados(res: {avatar: Avatar, nuevo: boolean, copias: number}[]) {
+async function mostrarResultados(res: {avatar: Avatar, nuevo: boolean}[]) {
   const orden: Rareza[] = ['comun', 'raro', 'epico', 'legendario'];
   const mejor = res.reduce((m, r) => orden.indexOf(r.avatar.rareza) > orden.indexOf(m) ? r.avatar.rareza : m, 'comun' as Rareza);
   const fondo = h('div', {class: 'gacha-modal', style: {'--rc': RAREZAS[mejor].color}});
@@ -331,35 +481,17 @@ async function mostrarResultados(res: {avatar: Avatar, nuevo: boolean, copias: n
     const ra = RAREZAS[r.avatar.rareza];
     return h('div', {class: 'gacha-premio r-' + r.avatar.rareza, style: {'--rc': ra.color, animationDelay: (i * 0.08) + 's'}},
       h('span', {class: 'avatar-rareza'}, ra.estrellas),
-      r.nuevo ? h('span', {class: 'premio-nuevo'}, tr('¡NUEVO!', 'NEW!')) : h('span', {class: 'premio-repe'}, tr(`Repe ×${r.copias}`, `Dupe ×${r.copias}`)),
+      h('span', {class: 'premio-nuevo'}, tr('¡NUEVO!', 'NEW!')),
       avatarImg(r.avatar.id),
       h('div', {class: 'avatar-nombre'}, r.avatar.nombre),
       h('small', {style: {color: ra.color}}, ra.nombre));
   });
   const uno = res.length === 1 ? res[0] : null;
   caja.append(
-    h('h3', {}, res.length > 1 ? tr(`¡${res.length} fichas abiertas!`, `${res.length} tokens opened!`) : tr('¡Ficha abierta!', 'Token opened!')),
+    h('h3', {}, res.length > 1 ? tr(`¡${res.length} tickets abiertos!`, `${res.length} tickets opened!`) : tr('¡Ticket abierto!', 'Ticket opened!')),
     h('div', {class: 'gacha-premios' + (uno ? ' uno' : '')}, ...tarjetas),
     h('div', {class: 'fin-botones'},
-      uno && uno.nuevo ? h('button', {class: 'btn', onclick: (e: Event) => { e.stopPropagation(); elegirAvatar(uno.avatar.id); cerrar(); }}, tr('Usar ahora', 'Use now')) : null,
+      uno ? h('button', {class: 'btn', onclick: (e: Event) => { e.stopPropagation(); elegirAvatar(uno.avatar.id); cerrar(); }}, tr('Usar ahora', 'Use now')) : null,
       h('button', {class: 'btn btn-sec', onclick: (e: Event) => { e.stopPropagation(); cerrar(); }}, tr('Cerrar', 'Close'))));
   fondo.addEventListener('click', e => { if (e.target === fondo) cerrar(); });
-}
-
-/** Barra superior estilo Showdown: avatar, nombre y fichas */
-export function barraJugador(nombre: HTMLInputElement, irAvatares: () => void) {
-  const barra = h('div', {class: 'barra-jugador'});
-  const pintar = () => {
-    const c = coleccion();
-    barra.innerHTML = '';
-    barra.append(
-      h('button', {class: 'bj-avatar', title: tr('Cambiar avatar', 'Change avatar'), onclick: irAvatares}, avatarImg(c.avatar, '', 'busto')),
-      h('div', {class: 'bj-nombre'}, h('div', {class: 'bj-niveles'}, insignia('ia', nivelDe('ia')), insignia('online', nivelDe('online'))), nombre),
-      h('button', {class: 'bj-fichas', title: tr('Abrir fichas de gacha', 'Open gacha tokens'), onclick: irAvatares},
-        h('span', {class: 'ficha-icono'}, '🎟'), h('b', {}, String(c.fichas)), c.fichas ? h('span', {class: 'bj-punto'}) : null));
-  };
-  pintar();
-  // (se suscribe cuando ya está en la página)
-  requestAnimationFrame(() => alCambiarColeccion(barra, pintar));
-  return barra;
 }

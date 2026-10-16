@@ -2,6 +2,7 @@
 import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {INFO} from './mod';
+import {bloqueo} from './pases';
 import {
   dex, h, esc, tipoBadge, spriteImg, iconImg, itemIcon, nombreVisible, calcStat, toast,
   NATURALEZAS, STATS_CORTO, TIPOS_ES, CATEGORIA_ES, TIPO_COLOR,
@@ -73,7 +74,8 @@ function opcionesEspecie(): Opcion[] {
     out.push({
       id: sp.name, nombre: sp.name, buscar: sp.id + toID(nombreVisible(sp.name)), grupo: custom ? 'custom' : '',
       render: () => h('div', {class: 'fila-especie'}, iconImg(sp.name),
-        h('span', {class: 'nombre'}, custom ? h('b', {class: 'estrella', title: tr('Personalizado', 'Custom')}, '★ ') : null, nombreVisible(sp.name)),
+        h('span', {class: 'nombre'}, custom ? h('b', {class: 'estrella', title: tr('Personalizado', 'Custom')}, '★ ') : null, nombreVisible(sp.name),
+          (() => { const b = bloqueo(sp.name); return b ? h('span', {class: 'candado', title: tr(`Bloqueado: se consigue en ${b}`, `Locked: get it from ${b}`)}, ' 🔒 ' + b) : null; })()),
         h('span', {class: 'tipos'}, ...sp.types.map(t => tipoBadge(t, true))),
         h('span', {class: 'stats-mini'}, ...STATS.map(s => h('span', {}, h('small', {}, STATS_CORTO[s]), ' ', (sp.baseStats as any)[s]))),
         h('span', {class: 'bst'}, String(bst))),

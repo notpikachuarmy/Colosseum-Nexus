@@ -3,6 +3,7 @@ import {tr} from './idioma';
 import {Teams, toID} from 'pkmn-sim';
 import {dex, storage} from './util';
 import {INFO} from './mod';
+import {bloqueo} from './pases';
 
 export interface SetPkm {
   name: string; species: string; item: string; ability: string; moves: string[];
@@ -118,6 +119,8 @@ export function validarEquipo(eq: Equipo): string[] {
     const n = s.name || s.species;
     if (!sp.exists) { errs.push(tr(`${n}: el Pokémon no existe.`, `${n}: this Pokémon doesn't exist.`)); continue; }
     if (sp.battleOnly) errs.push(tr(`${n}: esa forma solo aparece en combate.`, `${n}: that forme only appears in battle.`));
+    const bloq = bloqueo(sp.name);
+    if (bloq) errs.push(tr(`${n}: todavía no lo tienes desbloqueado (se consigue en: ${bloq}).`, `${n}: not unlocked yet (get it from: ${bloq}).`));
     // Formas regionales y tus versiones cuentan como Pokémon distintos (ver claveEspecie)
     const clave = claveEspecie(sp.name);
     if (vistos.has(clave)) errs.push(tr(`${n}: no puedes repetir Pokémon (cláusula de especie).`, `${n}: you can't repeat Pokémon (species clause).`));

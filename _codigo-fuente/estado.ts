@@ -45,6 +45,12 @@ export class Estado {
   terminado = false;
   /** ya se ha sumado al marcador de la serie */
   contado = false;
+  /** Poderes usados por cada lado (mega, z, dynamax, tera): para los títulos */
+  poderes: {[k in LadoId]: Set<string>} = {p1: new Set(), p2: new Set()};
+  /** Especies de mi equipo tal y como empezaron (antes de megaevolucionar, etc.) */
+  especiesIniciales: string[] = [];
+  /** Te has quedado con un solo Pokémon mientras al rival le quedaban 3 o más (título «Remontada») */
+  remontada = false;
 
   constructor(yo: LadoId) {
     this.yo = yo;
@@ -73,6 +79,7 @@ export class Estado {
       nuevos.push(mon);
     }
     lado.equipo = nuevos;
+    if (!this.especiesIniciales.length) this.especiesIniciales = nuevos.map(m => m.species);
   }
 
   parseIdent(ident: string): {lado: Lado, pos: number, name: string} | null {
@@ -121,6 +128,15 @@ export class Estado {
 
   /** Aplica una línea de protocolo y devuelve el texto en español (si lo hay) */
   aplicar(line: string): {texto?: string, clase?: string, anim?: any} {
+    const r = this.aplicarLinea(line);
+    if (line.startsWith('|faint|')) {
+      const vivos = (l: LadoId) => this.lados[l].tamano - this.lados[l].equipo.filter(m => m.fainted).length;
+      if (vivos(this.yo) === 1 && vivos(this.rival) >= 3) this.remontada = true;
+    }
+    return r;
+  }
+
+  aplicarLinea(line: string): {texto?: string, clase?: string, anim?: any} {
     if (!line.startsWith('|')) return {};
     const parts = line.slice(1).split('|');
     const cmd = parts[0];
@@ -131,6 +147,9 @@ export class Estado {
       const m = /^\[(\w+)\](?: ?(.*))?$/.exec(a);
       if (m) kw[m[1]] = m[2] ?? ''; else pos.push(a);
     }
+    // Poderes usados (para los títulos)
+    const poder = cmd === '-mega' ? 'mega' : cmd === '-zpower' ? 'z' : cmd === '-terastallize' ? 'tera' : cmd === '-start' && /dynamax/i.test(pos[1] || '') ? 'dynamax' : '';
+    if (poder) { const l = (pos[0] || '').slice(0, 2); if (l === 'p1' || l === 'p2') this.poderes[l].add(poder); }
     const N = (i: string) => this.Nombre(i);
     const n = (i: string) => this.nombre(i);
     const efecto = (e: string) => limpiaEfecto(e);

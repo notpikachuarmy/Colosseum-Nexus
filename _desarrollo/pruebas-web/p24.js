@@ -40,7 +40,7 @@ const datos = sel => p => p.$$eval(sel + ' .pf-dato', e => e.map(x => x.querySel
     // Gacha: separado, con el catálogo completo
     await p.click('text=← Inicio'); await p.click('.mp-tarjeta[data-id=gacha]'); await p.waitForSelector('.gacha-maquina');
     const total = await p.$$eval('.avatares-grid .avatar-carta', e => e.length), bloq = await p.$$eval('.avatares-grid .avatar-carta.bloqueado', e => e.length);
-    ok(`${nombre}: gacha enseña todo (${total}) con ${bloq} bloqueados`, total > 50 && bloq === total - 3);
+    ok(`${nombre}: gacha enseña su catálogo (${total}) con ${bloq} bloqueados`, total > 50 && bloq === total - 2);
     ok(`${nombre}: el gacha ya no tiene el perfil dentro`, !(await p.$('.gacha-actual')) && !(await p.$('.pf-stats')));
     await p.screenshot({path: SHOTS + `gacha-${nombre}.png`});
     if (nombre === 'pc') {

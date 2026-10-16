@@ -28,8 +28,9 @@ const {SHOTS, nuevaPagina, preparar, jugar} = require('./comun');
   // jugar unos turnos
   for (let t = 0; t < 4; t++) {
     for (const p of [host, guest]) {
-      const b = await p.waitForSelector('.controles .btn-movimiento:not([disabled]), .controles .btn-cambio:not([disabled])', {timeout: 20000});
-      await b.click();
+      // Si solo un jugador tiene que cambiar de Pokémon (el otro espera), se salta al que no tiene nada que elegir
+      const b = await p.waitForSelector('.controles .btn-movimiento:not([disabled]), .controles .btn-cambio:not([disabled])', {timeout: 8000}).catch(() => null);
+      if (b) await b.click();
     }
     await host.waitForTimeout(1500);
   }
