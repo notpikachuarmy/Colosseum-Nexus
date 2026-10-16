@@ -6,7 +6,7 @@ import {abrirAjustes} from './ajustes';
 import {perfil, rango, nombreModo, TipoNivel} from './nivel';
 import {TITULOS, tituloDe, tituloEquipado, titulosConseguidos, selectorTitulo, progresoTitulo, revisarTitulos} from './titulos';
 import {selectorFondos} from './fondos';
-import {avatarImg, coleccion, datosAvatar, alCambiarColeccion, rejillaAvatares, progresoColeccion, RAREZAS} from './avatares';
+import {avatarImg, coleccion, datosAvatar, alCambiarColeccion, rejillaAvatares, progresoColeccion, RAREZAS, iconoAzar} from './avatares';
 
 /** Bloque de estadísticas de un modo (online o IA) */
 function bloqueStats(tipo: TipoNivel) {
@@ -38,12 +38,12 @@ export function pantallaPerfil(raiz: HTMLElement, volver: () => void) {
     const a = datosAvatar(c.avatar);
     cab.innerHTML = '';
     cab.append(
-      h('div', {class: 'pf-avatar', style: {'--rc': RAREZAS[a.rareza].color}}, avatarImg(a.id)),
+      h('div', {class: 'pf-avatar', style: {'--rc': c.azar ? 'var(--acento)' : RAREZAS[a.rareza].color}}, c.azar ? iconoAzar('grande') : avatarImg(a.id)),
       h('div', {class: 'pf-id'},
         h('div', {class: 'pf-nick'}, nombreJugador() || tr('Entrenador', 'Trainer')),
         tituloDe(tituloEquipado()) ? h('span', {class: 'titulo-jugador'}, tituloDe(tituloEquipado())!.nombre) : null,
         h('label', {class: 'pf-titulo-fila'}, h('small', {class: 'tenue'}, tr('Título en el VS:', 'Title in the VS:')), selectorTitulo(() => { pintarCab(); pintarTitulos(); })),
-        h('small', {class: 'tenue'}, a.nombre + ' · ' + tr('sprite: ', 'sprite: ') + a.autor),
+        h('small', {class: 'tenue'}, c.azar ? tr('Avatar aleatorio: uno de los tuyos, distinto en cada combate', 'Random avatar: one of yours, different each battle') : a.nombre + ' · ' + tr('sprite: ', 'sprite: ') + a.autor),
         h('button', {class: 'btn btn-sec btn-sm', onclick: () => abrirAjustes(() => pintarCab())}, tr('Cambiar nombre', 'Change name'))));
     const {tengo, total} = progresoColeccion();
     contador.textContent = tr(`Colección: ${tengo}/${total}`, `Collection: ${tengo}/${total}`);
@@ -59,7 +59,7 @@ export function pantallaPerfil(raiz: HTMLElement, volver: () => void) {
     for (const t of [...TITULOS].sort((a, b) => +tengo.has(b.id) - +tengo.has(a.id))) {
       const prog = tengo.has(t.id) ? '' : progresoTitulo(t.id);
       titulosEl.append(h('div', {class: 'titulo-item' + (tengo.has(t.id) ? ' tengo' : ''), 'data-titulo': t.id},
-        h('b', {}, (tengo.has(t.id) ? '' : '🔒 ') + t.nombre),
+        h('b', {}, t.nombre),
         h('small', {class: 'tenue'}, t.texto),
         prog ? h('small', {class: 'ti-prog'}, prog) : null,
         t.pv ? h('small', {class: 'ti-pv'}, tengo.has(t.id) ? tr(`+${t.pv} PV conseguidos`, `+${t.pv} PV earned`) : tr(`Premio: ${t.pv} PV`, `Reward: ${t.pv} PV`)) : null));
@@ -74,7 +74,7 @@ export function pantallaPerfil(raiz: HTMLElement, volver: () => void) {
       bloqueStats('online'),
       bloqueStats('ia'),
       h('div', {class: 'pf-col-cab'}, h('h3', {}, tr('Tu colección', 'Your collection')), contador,
-        h('small', {class: 'tenue'}, tr('Toca un entrenador para usarlo como avatar. Los nuevos se consiguen en el Gacha.', 'Tap a trainer to use it as your avatar. Get new ones in the Gacha.'))),
+        h('small', {class: 'tenue'}, tr('Toca un entrenador para usarlo como avatar, o «Aleatorio» para llevar uno distinto en cada combate. Los nuevos se consiguen en el Gacha.', 'Tap a trainer to use it as your avatar, or "Random" to use a different one each battle. Get new ones in the Gacha.'))),
       col.el,
       h('div', {class: 'pf-col-cab'}, h('h3', {}, tr('Fondo de combate', 'Battle background')),
         h('small', {class: 'tenue'}, tr('El fondo que ves en tus combates. «Aleatorio» elige uno distinto en cada combate entre los que tienes.', 'The background you see in your battles. "Random" picks a different one each battle among those you own.'))),

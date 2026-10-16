@@ -89,7 +89,7 @@ window.HISTORIA = [
           { species: 'Galvantula', nickname: 'Stormsilk', item: 'Focus Sash', ability: 'Compound Eyes', nature: 'Timid', evs: { hp: 4, spa: 252, spe: 252 }, moves: ['Sticky Web', 'Thunder', 'Bug Buzz', 'Volt Switch'] },
           { species: 'Jolteon', nickname: 'VVeVV', item: 'Choice Specs', ability: 'Volt Absorb', nature: 'Timid', evs: { hp: 4, spa: 252, spe: 252 }, moves: ['Thunderbolt', 'Shadow Ball', 'Volt Switch', 'Hyper Voice'] },
           { species: 'Electivire', nickname: 'ZigZag', item: 'Life Orb', ability: 'Motor Drive', nature: 'Adamant', evs: { hp: 4, atk: 252, spe: 252 }, moves: ['Wild Charge', 'Ice Punch', 'Earthquake', 'Cross Chop'] },
-          { species: 'Magneton', nickname: 'Magneto', item: 'Eviolite', ability: 'Magnet Pull', nature: 'Modest', evs: { hp: 252, spa: 252, spd: 4 }, moves: ['Thunderbolt', 'Flash Cannon', 'Volt Switch', 'Tri Attack'] },
+          { species: 'Magnezone', nickname: 'Magneto', item: 'Assault Vest', ability: 'Magnet Pull', nature: 'Modest', evs: { hp: 252, spa: 252, spd: 4 }, moves: ['Thunderbolt', 'Flash Cannon', 'Volt Switch', 'Tri Attack'] },
           { species: 'Inteleon', nickname: 'Sobel', teraType: 'Electric', item: 'Choice Specs', ability: 'Sniper', nature: 'Timid', evs: { hp: 4, spa: 252, spe: 252 }, moves: ['Tera Blast', 'Hydro Pump', 'Ice Beam', 'U-turn'] },
           { species: 'Dedenne', nickname: 'NotPikachu', item: 'Sitrus Berry', ability: 'Cheek Pouch', nature: 'Timid', evs: { hp: 252, spa: 4, spe: 252 }, moves: ['Thunderbolt', 'Dazzling Gleam', 'Nuzzle', 'Super Fang'] },
         ],
@@ -167,8 +167,9 @@ window.HISTORIA = [
       },
       {
         id: 'aracamara', nombre: 'Director Aracamara', avatar: 'handsome', pokemon: 'Aracamara', x: 82, y: 28, requiere: ['cabina'], jefe: true,
-        // Jefe de incursión aprobado: PS ×4, resto ×1,3, barra de 3 tramos, Telón de 2 turnos, 12 turnos
-        incursion: { hp: 4, stats: 1.3, tramos: 3, escudo: 2, turnos: 12 },
+        // Jefe de incursión: PS ×4, resto ×1,3, barra de 3 tramos, Telón de 1 turno, sin límite de turnos
+        // (turnos: 0 = sin límite). El jefe nunca usa Dinamax, Teracristal, Mega ni Z.
+        incursion: { hp: 4, stats: 1.3, tramos: 3, escudo: 1, turnos: 0 },
         antes: [
           { quien: 'handsome', texto: '¡Ahí está! Un Aracamara gigante… ¡grabando con su propia cámara de seda!' },
           { quien: 'pk:Aracamara', texto: '¡Arac… ¡ACCIÓN!' },

@@ -33,7 +33,7 @@ const MARCA = {spikes: '📌', stealthrock: '🪨', toxicspikes: '☠', stickywe
     ok(`${nombre}: z-index tinte<peligros<pokémon<clima (${z})`, +z[0] < +z[1] && +z[2] < +z[3] && +z[3] < +z[z.length - 1]);
     // Jugar comprobando en cada paso que lo dibujado coincide con lo que dice el combate
     let visto = {clima: false, campo: false, peligroR: false, peligroY: false}, malos = [], shot = false;
-    for (let paso = 0; paso < 40; paso++) {
+    for (let paso = 0; paso < 80; paso++) {   // movimientos al azar: con 80 pasos da tiempo a ver clima, campo y trampas
       if (await p.$('.fin-combate')) break;
       const btns = await p.$$('.controles button.btn-movimiento:not([disabled]), .controles button.btn-cambio:not([disabled])');
       if (btns.length) { await btns[Math.floor(Math.random() * btns.length)].click(); }

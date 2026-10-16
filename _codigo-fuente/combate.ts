@@ -6,7 +6,7 @@ import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
 import {cambiarPantalla, nav} from './nucleo';
-import {avatarImg, datosAvatar} from './avatares';
+import {avatarImg, datosAvatar, siguienteAvatarAzar} from './avatares';
 import {insignia, TipoNivel} from './nivel';
 import {adjuntarInfo, fichaPokemon, fichaMovimiento, tiposEfectivos, ocultarInfo, esTactil, setModoInfo, getModoInfo} from './ficha';
 import {
@@ -230,6 +230,8 @@ export class PantallaCombate {
         let res: any = {};
         try { res = this.estado.aplicar(line); } catch (e) { console.error('Error en línea', line, e); }
         this.capas.actualizar(this.estado);   // capas visuales al día (solo repinta si algo cambió)
+        // Clima, campos y trampas: los avisos de arriba cambian a la vez que las capas (no al acabar el turno)
+        if (/^\|-(weather|fieldstart|fieldend|sidestart|sideend)\|/.test(line) && !res.anim) this.dibujarInfoCampo();
         if (res.texto) this.log(res.texto, res.clase || '');
         if (res.anim) await this.animar(res.anim);
         else if (res.texto && res.clase !== 'turno' && res.clase !== 'dano-num') await sleep(this.ms(220));
@@ -714,7 +716,7 @@ export class PantallaCombate {
     this.botonesCambio(req, slot, false));
   }
 
-  destruir() { this.destruido = true; ocultarInfo(); setModoInfo(false); }
+  destruir() { if (!this.destruido) siguienteAvatarAzar(); this.destruido = true; ocultarInfo(); setModoInfo(false); }
 
   /** Salir siempre es posible, aunque la conexión se haya cortado */
   salirAlInicio() {

@@ -8,7 +8,7 @@
  *    { tipo: 'tickets', n: 3 }                        → tickets de gacha
  *    { tipo: 'pokemon', especies: ['Magiceon'] }      → desbloquea esos Fakemon (nombre interno)
  *    { tipo: 'titulo',  id: 'duelista', nombre: 'Duelista' } → título (se usarán en la fase 7)
- *  antiguo: true → ya hay pases más nuevos (sigue a la venta, más barato).
+ *  antiguo: true → ya hay pases más nuevos (sigue a la venta al mismo precio).
  * ========================================================================== */
 window.PASES = [
   {

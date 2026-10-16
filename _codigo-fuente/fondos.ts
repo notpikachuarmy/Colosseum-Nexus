@@ -100,7 +100,7 @@ export function selectorFondos(alCambiar?: () => void) {
     const tarjeta = (id: string, nombre: string, img: HTMLElement, bloqueado: string | null) => {
       const b = h('button', {class: 'fondo-carta' + (elegido === id ? ' elegido' : '') + (bloqueado ? ' bloqueado' : ''), 'data-fondo': id, disabled: !!bloqueado,
         title: bloqueado ? tr(`Bloqueado: ${bloqueado}`, `Locked: ${bloqueado}`) : nombre,
-        onclick: () => { elegirFondo(id); pintar(); alCambiar?.(); }}, img, h('b', {}, (bloqueado ? '🔒 ' : '') + nombre), bloqueado ? h('small', {class: 'tenue'}, bloqueado) : null);
+        onclick: () => { elegirFondo(id); pintar(); alCambiar?.(); }}, img, h('b', {}, nombre), bloqueado ? h('small', {class: 'tenue'}, bloqueado) : null);
       return b;
     };
     raiz.append(tarjeta('azar', tr('Aleatorio', 'Random'), h('div', {class: 'fondo-azar'}, '?'), null));

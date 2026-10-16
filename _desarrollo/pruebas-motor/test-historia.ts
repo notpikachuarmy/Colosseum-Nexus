@@ -45,7 +45,7 @@ for (const c of CAPITULOS) {
 }
 // El jefe Randes conserva su equipo exacto
 const randes = CAPITULOS[0].nodos.find(n => n.id === 'randes')!;
-ok('Randes: 6 Pokémon con sus apodos', randes.equipo!.map(s => `${s.species}:${s.nickname}`).join() === 'Galvantula:Stormsilk,Jolteon:VVeVV,Electivire:ZigZag,Magneton:Magneto,Inteleon:Sobel,Dedenne:NotPikachu');
+ok('Randes: 6 Pokémon con sus apodos', randes.equipo!.map(s => `${s.species}:${s.nickname}`).join() === 'Galvantula:Stormsilk,Jolteon:VVeVV,Electivire:ZigZag,Magnezone:Magneto,Inteleon:Sobel,Dedenne:NotPikachu');
 ok('Randes: Inteleon con teratipo Eléctrico', randes.equipo!.find(s => s.species === 'Inteleon')!.teraType === 'Electric');
 // El cine: solo Pokémon (nada de entrenadores humanos) y los hablantes 'pk:' existen
 const cine = CAPITULOS.find(c => c.id === 'cine')!;
@@ -57,7 +57,7 @@ ok('todos los nodos se pueden jugar', CAPITULOS.every(c => c.nodos.every(nodoJug
 // Aracamara: jefe de incursión con los datos aprobados, y el combate arranca
 const {formatoJefe} = await import('../../_codigo-fuente/mod');
 const ara = cine.nodos.find(n => n.id === 'aracamara')!;
-ok('Aracamara: incursión 4 / 1,3 / 3 / 2 / 12', JSON.stringify(ara.incursion) === JSON.stringify({hp: 4, stats: 1.3, tramos: 3, escudo: 2, turnos: 12}));
+ok('Aracamara: incursión 4 / 1,3 / 3 tramos / Telón 1 / sin límite', JSON.stringify(ara.incursion) === JSON.stringify({hp: 4, stats: 1.3, tramos: 3, escudo: 1, turnos: 0}));
 {
   const b = new Battle({formatid: formatoJefe(ara.incursion) as any, seed: [1, 2, 3, 4] as any});
   const mio = equipoNPC(CAPITULOS[0].nodos.find(n => n.id === 'randes')!).map(s => ({...s, name: s.name || s.species}));
@@ -65,7 +65,7 @@ ok('Aracamara: incursión 4 / 1,3 / 3 / 2 / 12', JSON.stringify(ara.incursion) =
   b.makeChoices('default', 'default');
   const jefe = b.p2.active[0];
   ok('Aracamara: es jefe de incursión (PS ×4)', !!jefe.volatiles['jefeincursion'] && jefe.maxhp > 3 * jefe.baseStoredStats.hp);
-  for (let i = 0; i < 30 && !b.ended; i++) b.makeChoices('default', 'default');
-  ok('Aracamara: el combate termina (como mucho en 12 turnos)', b.ended && b.turn <= 13);
+  for (let i = 0; i < 300 && !b.ended; i++) b.makeChoices('default', 'default');
+  ok(`Aracamara: el combate termina (turno ${b.turn})`, b.ended);
 }
 process.exit(fails ? 1 : 0);

@@ -27,7 +27,7 @@ const datos = sel => p => p.$$eval(sel + ' .pf-dato', e => e.map(x => x.querySel
     ok(`${nombre}: online V/D/racha/% = ${on}`, on.join() === '7,3,5,70%');
     ok(`${nombre}: IA V/D/racha/% = ${ia}`, ia.join() === '2,2,0,50%');
     ok(`${nombre}: online antes que IA`, (await p.$$eval('.pf-stats', e => e.map(x => x.dataset.modo))).join() === 'online,ia');
-    const cartas = await p.$$eval('.avatares-grid .avatar-carta', e => e.map(x => x.dataset.id));
+    const cartas = await p.$$eval('.avatares-grid .avatar-carta:not(.carta-azar)', e => e.map(x => x.dataset.id));
     ok(`${nombre}: colección solo con los que tienes: ${cartas}`, cartas.length === 3 && !(await p.$('.avatares-grid .bloqueado')));
     const cont = await p.textContent('.pf-contador');
     ok(`${nombre}: contador ${cont}`, /^Colección: 3\/\d+$/.test(cont) && +cont.split('/')[1] > 50);

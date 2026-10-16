@@ -9,7 +9,7 @@ const poner = (p, k, v) => p.evaluate(([k, v]) => localStorage.setItem(k, JSON.s
   const p = await nuevaPagina(ctx, errs, 'pc'); p.on('dialog', d => d.accept());
   await preparar(p);
   await p.evaluate(() => localStorage.removeItem('cnx.historia.v1'));
-  await poner(p, 'cnx.modoHistoria', 'aleatorio');
+  // En la historia solo vale un equipo propio: se usa «Custom A» (individual) de las pruebas
   await p.reload(); await p.waitForSelector('.mp-fila');
   ok('Historia ya no está "Próximamente"', !(await p.$('.mp-tarjeta[data-id=historia].pronto')));
   await p.click('.mp-tarjeta[data-id=historia]'); await p.waitForSelector('.hist-cap');
@@ -23,6 +23,8 @@ const poner = (p, k, v) => p.evaluate(([k, v]) => localStorage.setItem(k, JSON.s
   ok('Randes: ya no está pendiente y no sale «null»', !(await p.textContent('.hist-panel')).includes('null') && !(await p.$('.hist-panel .avisos')));
   ok('Randes: se ve su equipo con apodos', (await p.textContent('.hp-iconos')).includes('NotPikachu'));
   await p.click('.hist-nodo[data-nodo=volta]');
+  ok('sin opción de equipo aleatorio', !(await p.$('.hist-panel option[value=aleatorio]')) && !(await p.textContent('.hist-panel')).includes('aleatorio'));
+  await p.selectOption('.hist-panel select', 'e1');
   await p.click('.hist-panel .btn-grande'); await p.waitForSelector('.dialogo');
   ok('diálogo antes del combate, con el nombre del NPC', (await p.textContent('.dialogo-nombre')) === 'Técnico Volta' && (await p.textContent('.dialogo-texto')).includes('Randes'));
   await p.screenshot({path: SHOTS + 'historia-dialogo.png'});
@@ -59,8 +61,9 @@ const poner = (p, k, v) => p.evaluate(([k, v]) => localStorage.setItem(k, JSON.s
   await p.click('.mp-tarjeta[data-id=historia]'); await p.click('.hist-cap[data-capitulo=cine]'); await p.waitForSelector('.hist-mapa');
   await p.click('.hist-nodo[data-nodo=aracamara]');
   const panel = await p.textContent('.hist-panel');
-  ok('Aracamara: explica las reglas del jefe y se puede combatir', panel.includes('Jefe de incursión') && panel.includes('12 turnos') && !!(await p.$('.hist-panel .btn-grande')));
+  ok('Aracamara: explica las reglas del jefe y se puede combatir', panel.includes('Jefe de incursión') && panel.includes('no usa Dinamax') && !panel.includes('pierdes') && !!(await p.$('.hist-panel .btn-grande')));
   await p.screenshot({path: SHOTS + 'historia-aracamara.png'});
+  await p.selectOption('.hist-panel select', 'e1');
   await p.click('.hist-panel .btn-grande'); await p.waitForSelector('.dialogo');
   ok('diálogo con hablante Pokémon', !!(await p.$('.dialogo-sprite')) || (await p.textContent('.dialogo-nombre')) === 'Handsome');
   await p.click('.dialogo-botones .btn-sec');
@@ -73,6 +76,11 @@ const poner = (p, k, v) => p.evaluate(([k, v]) => localStorage.setItem(k, JSON.s
   await p.waitForTimeout(800); await p.screenshot({path: SHOTS + 'historia-barra-jefe.png'});
   ok('combate de jefe terminado', await jugar(p, 300, 999));
   await p.screenshot({path: SHOTS + 'historia-jefe-fin.png'});
+  // Sin equipos propios: aviso para crear uno, sin botón de combatir
+  await p.evaluate(() => localStorage.setItem('cnx.equipos.v1', '[]'));
+  await p.goto('http://127.0.0.1:8080/index.html'); await p.waitForSelector('.mp-fila');
+  await p.click('.mp-tarjeta[data-id=historia]'); await p.click('.hist-cap[data-capitulo=linternita]'); await p.waitForSelector('.hist-mapa');
+  ok('sin equipos: pide crear uno', !!(await p.$('.hp-sin-equipo')) && !(await p.$('.hist-panel .btn-grande')));
   ok('sin errores', !errs.length); if (errs.length) console.log(errs);
   await b.close(); console.log(fallos.length ? 'FALLOS: ' + fallos.length : 'Todo OK'); process.exit(fallos.length ? 1 : 0);
 })();

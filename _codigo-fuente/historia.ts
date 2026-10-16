@@ -4,7 +4,6 @@ import {tr} from './idioma';
 import {h, storage, toast, dex, iconImg, spriteImg, nombreVisible} from './util';
 import {app, cambiarPantalla, setLimpiar, nav, nombreJugador, selectorEquipo} from './nucleo';
 import {validarEquipo, SetPkm} from './equipos';
-import {equiposParejos} from './aleatorio';
 import {PantallaCombate} from './combate';
 import {Motor, IA} from './motor';
 import {empaquetarSets} from './serie';
@@ -87,8 +86,10 @@ export function ganarNodo(c: Capitulo, n: Nodo): string[] {
 /** Explicación sencilla de las reglas del jefe de incursión */
 function textoIncursion(cfg: Partial<ConfigJefe>) {
   const c = {...JEFE_POR_DEFECTO, ...cfg};
-  return tr(`Jefe de incursión: tus 6 Pokémon contra él solo. Tiene ${c.hp} veces más PS y sus demás estadísticas ×${c.stats}. Cada vez que le quitas un tramo de vida (${c.tramos} tramos) levanta el Telón: durante ${c.escudo} turnos recibe la mitad de daño y borra tus mejoras de estadísticas. Inmune a los ataques de golpe directo y de porcentaje. Si no lo vences en ${c.turnos} turnos, pierdes.`,
-    `Raid boss: your 6 Pokémon against it alone. It has ${c.hp}× HP and its other stats ×${c.stats}. Each time you take away a section of its HP (${c.tramos} sections) it raises the Curtain: for ${c.escudo} turns it takes half damage and clears your stat boosts. Immune to OHKO and percentage moves. If you don't beat it in ${c.turnos} turns, you lose.`);
+  const turnos = c.escudo === 1 ? tr('ese turno y el siguiente', 'that turn and the next') : tr(`${c.escudo} turnos`, `${c.escudo} turns`);
+  return tr(`Jefe de incursión: tus 6 Pokémon contra él solo. Tiene ${c.hp} veces más PS y sus demás estadísticas ×${c.stats}. Cada vez que le quitas un tramo de vida (${c.tramos} tramos) baja el Telón: recibe la mitad de daño ${turnos} y borra tus mejoras de estadísticas. Inmune a los ataques de golpe directo y de porcentaje, y no usa Dinamax, Teracristal, Mega ni Z.`,
+    `Raid boss: your 6 Pokémon against it alone. It has ${c.hp}× HP and its other stats ×${c.stats}. Each time you take away a section of its HP (${c.tramos} sections) the Curtain falls: it takes half damage for ${turnos} and clears your stat boosts. Immune to OHKO and percentage moves, and it never uses Dynamax, Terastal, Mega or Z.`)
+    + (c.turnos > 0 ? tr(` Si no lo vences en ${c.turnos} turnos, pierdes.`, ` If you don't beat it in ${c.turnos} turns, you lose.`) : '');
 }
 
 /** En los diálogos, cada NPC se llama como su nodo («Técnico Volta», no solo «Técnico») */
@@ -168,7 +169,7 @@ function pantallaCapitulo(c: Capitulo) {
       mapa.append(h('button', {class: `hist-nodo ${estado}` + (n.jefe ? ' jefe' : '') + (n === elegido ? ' elegido' : ''), 'data-nodo': n.id,
         style: {left: n.x + '%', top: n.y + '%'}, 'aria-label': n.nombre,
         onclick: () => { elegido = n; pintarMapa(); pintarPanel(); }},
-        h('span', {class: 'hn-cara'}, cara), ganado ? h('span', {class: 'hn-check'}, '✓') : !disp ? h('span', {class: 'hn-candado'}, '🔒') : null,
+        h('span', {class: 'hn-cara'}, cara), ganado ? h('span', {class: 'hn-check'}, '✓') : null,
         h('span', {class: 'hn-nombre'}, n.nombre)));
     }
   };
@@ -177,12 +178,9 @@ function pantallaCapitulo(c: Capitulo) {
     const n = elegido;
     const ganado = nodoGanado(c, n), disp = nodoDisponible(c, n), jugable = nodoJugable(n);
     panel.innerHTML = '';
+    // En la historia solo se juega con equipos propios (sin equipo aleatorio)
     const sel = selectorEquipo('normal');
-    const modo = h('select', {class: 'select'}, h('option', {value: 'mio'}, tr('Mi equipo', 'My team')), h('option', {value: 'aleatorio'}, tr('Equipo aleatorio', 'Random team')));
-    modo.value = storage.get('cnx.modoHistoria', sel.vacio ? 'aleatorio' : 'mio');
     const filaEquipo = h('label', {class: 'campo'}, h('span', {class: 'etq'}, tr('Tu equipo', 'Your team')), sel.el);
-    const actualizarModo = () => { filaEquipo.style.display = modo.value === 'mio' ? '' : 'none'; storage.set('cnx.modoHistoria', modo.value); };
-    modo.addEventListener('change', actualizarModo);
     const requisitos = n.requiere.map(r => c.nodos.find(x => x.id === r)?.nombre).filter(Boolean).join(', ');
     panel.append(...[
       h('div', {class: 'hp-cab'},
@@ -190,28 +188,27 @@ function pantallaCapitulo(c: Capitulo) {
         h('div', {},
           h('small', {class: 'tenue'}, n.incursion ? tr('Jefe de incursión', 'Raid boss') : n.jefe ? tr('Jefe del capítulo', 'Chapter boss') : n.pokemon ? tr('Pokémon salvajes', 'Wild Pokémon') : tr('Entrenador', 'Trainer')),
           h('h3', {}, n.nombre),
-          ganado ? h('span', {class: 'hp-estado ok'}, tr('✓ Ganado', '✓ Won')) : !disp ? h('span', {class: 'hp-estado'}, tr(`🔒 Gana antes a: ${requisitos}`, `🔒 First beat: ${requisitos}`)) : null)),
+          ganado ? h('span', {class: 'hp-estado ok'}, tr('✓ Ganado', '✓ Won')) : !disp ? h('span', {class: 'hp-estado'}, tr(`Gana antes a: ${requisitos}`, `First beat: ${requisitos}`)) : null)),
       n.equipo?.length ? h('div', {class: 'hp-equipo'}, h('small', {class: 'tenue'}, tr('Su equipo', 'Their team')),
         h('div', {class: 'hp-iconos'}, ...n.equipo.map(s => h('span', {class: 'hp-poke', title: (s.nickname ? s.nickname + ' · ' : '') + nombreVisible(s.species)}, iconImg(s.species), s.nickname ? h('small', {}, s.nickname) : null)))) : null,
       n.incursion ? h('div', {class: 'avisos hp-incursion'}, textoIncursion(n.incursion)) : null,
       n.recompensas?.length ? h('div', {class: 'hp-recompensas'}, h('small', {class: 'tenue'}, ganado ? tr('Recompensas (conseguidas)', 'Rewards (claimed)') : tr('Recompensas', 'Rewards')),
         h('ul', {}, ...n.recompensas.map(r => h('li', {class: ganado ? 'hecha' : ''}, textoRecompensa(r))))) : null,
       n.pendiente ? h('div', {class: 'avisos'}, '⏳ ' + n.pendiente) : null,
-      disp && jugable ? h('div', {class: 'hp-combatir'},
-        h('label', {class: 'campo'}, h('span', {class: 'etq'}, tr('Equipo', 'Team')), modo), filaEquipo,
-        h('button', {class: 'btn btn-grande', onclick: () => empezar(n, modo.value === 'mio' ? sel.equipo()?.sets : null)},
-          ganado ? tr('Repetir combate', 'Rematch') : tr('¡Combatir!', 'Battle!'))) : null,
+      disp && jugable ? (sel.vacio
+        ? h('div', {class: 'avisos hp-sin-equipo'}, tr('Para el modo historia necesitas un equipo tuyo (individual). Créalo en ', 'Story mode needs a team of your own (singles). Build one in '),
+            h('button', {class: 'btn btn-sec btn-sm', onclick: () => cambiarPantalla(nav.equipos)}, tr('Equipos', 'Teams')))
+        : h('div', {class: 'hp-combatir'}, filaEquipo,
+          h('button', {class: 'btn btn-grande', onclick: () => empezar(n, sel.equipo()?.sets)},
+            ganado ? tr('Repetir combate', 'Rematch') : tr('¡Combatir!', 'Battle!')))) : null,
     ].filter(Boolean) as HTMLElement[]);
-    actualizarModo();
   };
 
-  const empezar = (n: Nodo, sets: SetPkm[] | null | undefined) => {
-    if (sets === undefined) { toast(tr('Elige uno de tus equipos o usa uno aleatorio', 'Pick one of your teams or use a random one')); return; }
-    if (sets) {
-      const errs = validarEquipo({id: 'h', nombre: 'h', formato: 'singles', sets});
-      if (errs.length) { toast(errs[0], 5000); return; }
-    }
-    const mio = (sets || equiposParejos('mezcla', 6)[0].sets).slice(0, 6);
+  const empezar = (n: Nodo, sets: SetPkm[] | undefined) => {
+    if (!sets) { toast(tr('Elige uno de tus equipos', 'Pick one of your teams')); return; }
+    const errs = validarEquipo({id: 'h', nombre: 'h', formato: 'singles', sets});
+    if (errs.length) { toast(errs[0], 5000); return; }
+    const mio = sets.slice(0, 6);
     dialogo(n.antes || [], () => cambiarPantalla(() => combateHistoria(c, n, mio)), nombresCapitulo(c));
   };
 

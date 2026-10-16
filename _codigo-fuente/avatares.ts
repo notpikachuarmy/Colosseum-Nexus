@@ -10,7 +10,8 @@ export type Rareza = 'comun' | 'raro' | 'epico' | 'legendario' | 'base';
 export type Origen = 'gacha' | 'tienda' | 'pase' | 'historia' | 'base';
 export interface Avatar {id: string; nombre: string; autor: string; rareza: Rareza; etiquetas: string[]; origen: Origen}
 /** fichas = tickets de gacha sin abrir · pv = Puntos Victoria · premiados = últimos combates que ya dieron premio (para no darlo dos veces) */
-export interface Coleccion {fichas: number; pv: number; tengo: {[id: string]: number}; avatar: string; tiradas: number; premiados: string[]}
+/** azar: si está activo, se usa un avatar al azar de los que tienes (cambia en cada combate) */
+export interface Coleccion {fichas: number; pv: number; tengo: {[id: string]: number}; avatar: string; azar: boolean; tiradas: number; premiados: string[]}
 
 const W: any = window;
 const clave = (s: string) => s.replace(/^[^\p{L}\p{N}]+/u, '');
@@ -33,7 +34,7 @@ export const ECO = {
   pack10: num(E.tickets?.pack10, 450),
   avatarPorRareza: {comun: 150, raro: 250, epico: 400, legendario: 650, ...(E.avatarPorRareza || {})} as {[r: string]: number},
   fakemon: ((E.fakemon || []) as any[]).filter(f => f && f.especie).map(f => ({especie: String(f.especie), precio: num(f.precio, 1000)})),
-  pase: {base: num(E.pase?.base, 300), porRecompensa: num(E.pase?.porRecompensa, 45), descuentoAntiguo: Math.min(1, Math.max(0, +(E.pase?.descuentoAntiguo ?? 0.7)))},
+  pase: {base: num(E.pase?.base, 300), porRecompensa: num(E.pase?.porRecompensa, 45)},
 };
 /** Turnos mínimos para que un combate dé premio (evita rendiciones al momento) */
 const TURNOS_MINIMOS = 3;
@@ -75,7 +76,7 @@ export function coleccion(): Coleccion {
   for (const [id, n] of Object.entries(c.tengo || {})) if (POR_ID.has(id) && +n > 0) tengo[id] = Math.floor(+n);
   tengo[AVATAR_BASE] = Math.max(1, tengo[AVATAR_BASE] || 0);
   const avatar = c.avatar && tengo[c.avatar] ? c.avatar : AVATAR_BASE;
-  return {fichas: Math.max(0, Math.floor(+(c.fichas || 0))), pv: Math.max(0, Math.floor(+(c.pv || 0))), tengo, avatar, tiradas: c.tiradas || 0,
+  return {fichas: Math.max(0, Math.floor(+(c.fichas || 0))), pv: Math.max(0, Math.floor(+(c.pv || 0))), tengo, avatar, azar: c.azar === true, tiradas: c.tiradas || 0,
     premiados: Array.isArray(c.premiados) ? c.premiados.filter(x => typeof x === 'string').slice(-200) : []};
 }
 /**
@@ -99,13 +100,42 @@ function guardar(c: Coleccion) {
   for (const f of [...oyentes]) { try { f(); } catch (e) { console.error(e); } }
 }
 
-export const avatarActual = () => coleccion().avatar;
+/** Avatar en modo aleatorio: se elige uno de los que tienes y se mantiene hasta el siguiente combate */
+let delAzar = '';
+export function avatarActual() {
+  const c = coleccion();
+  if (!c.azar) return c.avatar;
+  if (!delAzar || !c.tengo[delAzar]) {
+    const tengo = Object.keys(c.tengo).filter(id => POR_ID.has(id));
+    const otros = tengo.length > 1 ? tengo.filter(id => id !== delAzar) : tengo;
+    delAzar = otros[Math.floor(Math.random() * otros.length)] || AVATAR_BASE;
+  }
+  return delAzar;
+}
+/** Al acabar un combate, el modo aleatorio cambia de avatar para el siguiente */
+export function siguienteAvatarAzar() {
+  if (!coleccion().azar) return;
+  const antes = avatarActual();
+  delAzar = '';
+  const c = coleccion();
+  const tengo = Object.keys(c.tengo).filter(id => POR_ID.has(id) && id !== antes);
+  delAzar = tengo[Math.floor(Math.random() * tengo.length)] || antes;
+  for (const f of [...oyentes]) { try { f(); } catch (e) { console.error(e); } }
+}
 export function elegirAvatar(id: string) {
   const c = coleccion();
   if (!c.tengo[id]) return;
   c.avatar = id;
+  c.azar = false;
   guardar(c);
 }
+export function elegirAvatarAzar() {
+  const c = coleccion();
+  c.azar = true;
+  guardar(c);
+}
+/** Dibujo del modo aleatorio (un «?» del mismo tamaño que un avatar) */
+export const iconoAzar = (cls = '') => h('span', {class: 'avatar-azar ' + cls, role: 'img', 'aria-label': tr('Aleatorio', 'Random')}, '?');
 /** Id válido para mostrar (los de otros jugadores pueden venir mal o de otra versión) */
 export const avatarValido = (id: any) => typeof id === 'string' && POR_ID.has(id) ? id : AVATAR_BASE;
 export const datosAvatar = (id: string) => POR_ID.get(avatarValido(id))!;
@@ -308,6 +338,14 @@ export function rejillaAvatares(modo: 'coleccion' | 'gacha') {
     const q = sinTilde(buscar.value.trim());
     grid.innerHTML = '';
     let n = 0;
+    if (modo === 'coleccion' && !q && !filtros.length && !rareza) {
+      const azar = h('div', {class: 'avatar-carta carta-azar' + (c.azar ? ' elegido' : ''), tabindex: '0', 'data-id': 'azar',
+        title: tr('Un entrenador al azar de los que tienes, distinto en cada combate', 'A random trainer you own, different each battle')},
+        iconoAzar(), h('div', {class: 'avatar-nombre'}, tr('Aleatorio', 'Random')), h('small', {class: 'avatar-autor'}, tr('Cambia en cada combate', 'Changes every battle')));
+      azar.addEventListener('click', elegirAvatarAzar);
+      azar.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); elegirAvatarAzar(); } });
+      grid.append(azar);
+    }
     for (const a of visibles()) {
       if (filtros.some(t => !a.etiquetas.includes(t))) continue;
       if (rareza && a.rareza !== rareza) continue;
@@ -316,7 +354,7 @@ export function rejillaAvatares(modo: 'coleccion' | 'gacha') {
       if (q && !texto.includes(q)) continue;
       n++;
       const r = RAREZAS[a.rareza];
-      const elegido = c.avatar === a.id;
+      const elegido = !c.azar && c.avatar === a.id;
       const titulo = !copias ? tr(`Bloqueado · puede salir en el gacha (${r.nombre})`, `Locked · can drop from the gacha (${r.nombre})`)
         : modo === 'gacha' ? tr('Ya lo tienes', 'You own it')
         : elegido ? tr('Avatar actual', 'Current avatar') : tr('Usar este avatar', 'Use this avatar');
@@ -328,7 +366,7 @@ export function rejillaAvatares(modo: 'coleccion' | 'gacha') {
         h('div', {class: 'avatar-nombre'}, a.nombre),
         h('small', {class: 'avatar-autor'}, a.autor));
       const usar = () => {
-        if (modo === 'gacha') { toast(copias ? tr(`${a.nombre}: ya lo tienes. Equípalo desde tu perfil.`, `${a.nombre}: you own it. Equip it from your profile.`) : tr(`🔒 ${a.nombre}: ${r.nombre}. Puede salir al abrir un ticket.`, `🔒 ${a.nombre}: ${r.nombre}. Can drop from a ticket.`)); return; }
+        if (modo === 'gacha') { toast(copias ? tr(`${a.nombre}: ya lo tienes. Equípalo desde tu perfil.`, `${a.nombre}: you own it. Equip it from your profile.`) : tr(`${a.nombre}: ${r.nombre}. Puede salir al abrir un ticket.`, `${a.nombre}: ${r.nombre}. Can drop from a ticket.`)); return; }
         elegirAvatar(a.id);
       };
       tarjeta.addEventListener('click', usar);
@@ -458,7 +496,7 @@ export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
             : botonCompra(textoPV(precio), precio, c.pv >= precio, () => comprarAvatar(a.id)));
       })),
       h('h3', {class: 'seccion-titulo'}, tr('Pases', 'Passes')),
-      h('small', {class: 'tenue'}, tr('El precio depende de cuánto contenido trae cada pase. Los pases anteriores cuestan menos. Los pases no caducan.', 'Price depends on how much each pass contains. Older passes cost less. Passes never expire.')),
+      h('small', {class: 'tenue'}, tr('El precio depende de cuánto contenido trae cada pase. Los pases no caducan.', 'Price depends on how much each pass contains. Passes never expire.')),
       ...PASES.map(p => fila(p.imagen ? h('img', {class: 'icono-ticket grande', src: p.imagen, alt: ''}) : h('span', {}),
         p.nombre, tr(`${p.niveles.length} recompensas`, `${p.niveles.length} rewards`) + (estadoPases().pases[p.id] ? tr(' · ya lo tienes', ' · owned') : ''), precioPase(p),
         h('button', {class: 'btn btn-sec', onclick: () => irA('pases')}, tr('Ver pase', 'View pass')))));

@@ -80,10 +80,11 @@ export function formatoCon(formato: 'singles' | 'doubles', prohibidos: Poder[] =
  *  - Al romper un tramo levanta el Telón durante «escudo» turnos (recibe la mitad de daño de los
  *    movimientos) y quita las mejoras de stats a tus Pokémon en el campo.
  *  - Inmune a los KO en un golpe y al daño por porcentaje.
- *  - Si no cae antes del final del turno «turnos», gana el jefe.
+ *  - Si no cae antes del final del turno «turnos», gana el jefe (turnos: 0 = sin límite).
+ *  - El jefe no puede usar poderes (Dinamax, Teracristal, Mega ni Z).
  */
 export interface ConfigJefe {hp: number; stats: number; tramos: number; escudo: number; turnos: number}
-export const JEFE_POR_DEFECTO: ConfigJefe = {hp: 4, stats: 1.3, tramos: 3, escudo: 2, turnos: 12};
+export const JEFE_POR_DEFECTO: ConfigJefe = {hp: 4, stats: 1.3, tramos: 3, escudo: 1, turnos: 0};
 const msgDoble = (es: string, en: string) => `${es} ‖ ${en}`;
 const DANO_PORCENTAJE = ['superfang', 'endeavor', 'painsplit', 'ruination', 'naturesmadness', 'guardianofalola', 'finalgambit'];
 
@@ -479,6 +480,11 @@ export function buildMod() {
         if (no.includes('z')) delete data.canZMove;
         if (no.includes('tera')) delete data.canTerastallize;
         if (no.includes('dynamax') && !this.volatiles['dynamax']) { delete data.canDynamax; delete data.maxMoves; }
+        // El jefe de incursión no usa poderes
+        if (this.battle.format.jefe && side.id === 'p2') {
+          delete data.canMegaEvo; delete data.canMegaEvoX; delete data.canMegaEvoY; delete data.canUltraBurst;
+          delete data.canZMove; delete data.canTerastallize; delete data.canDynamax; delete data.maxMoves;
+        }
         if (side.poderUsado || side.zMoveUsed || side.dynamaxUsed) {
           delete data.canMegaEvo; delete data.canMegaEvoX; delete data.canMegaEvoY; delete data.canUltraBurst;
           delete data.canZMove; delete data.canTerastallize;
@@ -501,7 +507,9 @@ export function buildMod() {
     },
     start(this: any) {
       const no: string[] = this.format.prohibidos || [];
-      for (const side of this.sides) if (side) side.dynamaxUsed = no.includes('dynamax');
+      for (const side of this.sides) if (side) side.dynamaxUsed = no.includes('dynamax') || (!!this.format.jefe && side.id === 'p2');
+      // El jefe de incursión no puede usar ningún poder (ni aunque se pida a mano)
+      if (this.format.jefe) for (const p of this.sides[1]?.pokemon || []) { p.canTerastallize = null; p.canMegaEvo = null; p.canMegaEvoX = null; p.canMegaEvoY = null; p.canUltraBurst = null; }
       if (no.length) this.add('-message', MSG_PODERES(no));
       return (Battle.prototype as any).start.call(this);
     },
@@ -558,8 +566,9 @@ export function buildMod() {
         pokemon.baseMaxhp = pokemon.maxhp = Math.floor(pokemon.maxhp * c.hp);
         pokemon.hp = pokemon.maxhp;
       }
-      this.add('-message', msgDoble(`¡${pokemon.name} es un JEFE! Su barra tiene ${c.tramos} tramos y tienes ${c.turnos} turnos para vencerlo.`,
-        `${pokemon.name} is a BOSS! Its bar has ${c.tramos} sections and you have ${c.turnos} turns to beat it.`));
+      this.add('-message', c.turnos > 0
+        ? msgDoble(`¡${pokemon.name} es un JEFE! Su barra tiene ${c.tramos} tramos y tienes ${c.turnos} turnos para vencerlo.`, `${pokemon.name} is a BOSS! Its bar has ${c.tramos} sections and you have ${c.turnos} turns to beat it.`)
+        : msgDoble(`¡${pokemon.name} es un JEFE! Su barra tiene ${c.tramos} tramos.`, `${pokemon.name} is a BOSS! Its bar has ${c.tramos} sections.`));
     },
     onTryHitPriority: 2,
     onTryHit(this: any, target: any, source: any, move: any) {
@@ -582,8 +591,9 @@ export function buildMod() {
         d = target.hp - suelo;                           // el golpe se queda justo en el borde del tramo
         st.escudo = c.escudo + 1;                        // +1 porque este mismo turno ya resta uno al final
         this.add('-start', target, 'Telón');
-        this.add('-message', msgDoble(`¡La barra de ${target.name} se ha roto! Baja el Telón: recibirá la mitad de daño ${c.escudo} turnos.`,
-          `${target.name}'s bar broke! The Curtain falls: it takes half damage for ${c.escudo} turns.`));
+        this.add('-message', c.escudo === 1
+          ? msgDoble(`¡La barra de ${target.name} se ha roto! Baja el Telón: este turno y el siguiente recibirá la mitad de daño.`, `${target.name}'s bar broke! The Curtain falls: it takes half damage this turn and the next.`)
+          : msgDoble(`¡La barra de ${target.name} se ha roto! Baja el Telón: recibirá la mitad de daño ${c.escudo} turnos.`, `${target.name}'s bar broke! The Curtain falls: it takes half damage for ${c.escudo} turns.`));
         for (const foe of target.side.foe.active) {
           if (foe && !foe.fainted && Object.values(foe.boosts).some((v: any) => v > 0)) {
             for (const s in foe.boosts) if (foe.boosts[s] > 0) foe.boosts[s] = 0;
@@ -597,7 +607,7 @@ export function buildMod() {
     onResidual(this: any, pokemon: any) {
       const st = this.effectState, c: ConfigJefe = st.cfg;
       if (st.escudo > 0) { st.escudo--; if (!st.escudo) this.add('-end', pokemon, 'Telón'); }
-      if (this.turn >= c.turnos && pokemon.hp > 0) {
+      if (c.turnos > 0 && this.turn >= c.turnos && pokemon.hp > 0) {
         this.add('-message', msgDoble(`¡Se acabó el tiempo! ${pokemon.name} ha terminado su película…`, `Time's up! ${pokemon.name} finished its movie…`));
         this.win(pokemon.side);
       }

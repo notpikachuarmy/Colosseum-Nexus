@@ -3,7 +3,7 @@ import {tr} from './idioma';
 import {INFO} from './mod';
 import {h, dex, spriteImg, toast} from './util';
 import {app, cambiarPantalla, nav, nombreJugador} from './nucleo';
-import {avatarImg, coleccion, alCambiarColeccion} from './avatares';
+import {avatarImg, coleccion, alCambiarColeccion, avatarActual} from './avatares';
 import {insignia, nivelDe} from './nivel';
 import {abrirAjustes} from './ajustes';
 
@@ -48,7 +48,7 @@ export function menuPrincipal() {
   const perfil = h('button', {class: 'mp-perfil', title: tr('Ver perfil', 'View profile'), onclick: () => cambiarPantalla(nav.perfil)});
   const pintarPerfil = () => {
     perfil.innerHTML = '';
-    perfil.append(avatarImg(coleccion().avatar, '', 'busto'),
+    perfil.append(avatarImg(avatarActual(), '', 'busto'),
       h('span', {class: 'mp-perfil-texto'}, h('b', {}, nombreJugador() || tr('Entrenador', 'Trainer')),
         h('span', {class: 'mp-niveles'}, insignia('online', nivelDe('online')), insignia('ia', nivelDe('ia')))));
   };

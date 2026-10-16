@@ -6,8 +6,8 @@ buildMod();
 type S = {species: string, item?: string, ability?: string, moves: string[], evs?: any, nature?: string};
 const mk = (s: S) => ({name: s.species, species: s.species, item: s.item || '', ability: s.ability || '', moves: s.moves, nature: s.nature || 'Hardy', evs: s.evs || {}, ivs: {}, level: 100, gender: '', shiny: false});
 const JEFE = {species: 'Aracamara', ability: 'Cursed Body', moves: ['Proyección Maldita', 'Shadow Ball', 'Bug Buzz', 'Quiver Dance']};
-function battle(t1: S[], jefe: S = JEFE, seed = [1, 2, 3, 4]) {
-  const b = new Battle({formatid: formatoJefe() as any, seed: seed as any});
+function battle(t1: S[], jefe: S = JEFE, seed = [1, 2, 3, 4], cfg: any = {}) {
+  const b = new Battle({formatid: formatoJefe(cfg) as any, seed: seed as any});
   b.setPlayer('p1', {name: 'A', team: t1.map(mk) as any}); b.setPlayer('p2', {name: 'B', team: [jefe].map(mk) as any});
   b.makeChoices('default', 'default'); return b;
 }
@@ -47,10 +47,29 @@ const check = (n: string, c: boolean, b?: Battle) => { console.log((c ? 'OK  ' :
   check('inmune a Frío Polar', j.hp === j.maxhp && b.log.some(l => l.includes('-immune|p2a: Aracamara')), b);
   b.makeChoices('switch 2', 'move 4'); const antes = j.hp; b.makeChoices('move 1', 'move 4');
   check('inmune a Superdiente', j.hp === antes, b); }
-// Límite de turnos: gana el jefe
+// Sin límite de turnos (por defecto): el combate sigue pasado el turno 12
 { const b = battle([{species: 'Blissey', item: 'Leftovers', moves: ['Protect', 'Soft-Boiled']}]);
+  for (let i = 0; i < 16 && !b.ended; i++) b.makeChoices(i % 2 ? 'move 2' : 'move 1', 'move 4');
+  check(`sin límite de turnos: sigue en el turno ${b.turn}`, !b.ended && b.turn > 13, b); }
+// Con límite (opcional, turnos > 0): gana el jefe
+{ const b = battle([{species: 'Blissey', item: 'Leftovers', moves: ['Protect', 'Soft-Boiled']}], JEFE, [1, 2, 3, 4], {turnos: 12});
   for (let i = 0; i < 14 && !b.ended; i++) b.makeChoices(i % 2 ? 'move 2' : 'move 1', 'move 4');
-  check(`a los 12 turnos gana el jefe (turno ${b.turn}, ganador ${b.winner})`, b.ended && b.winner === 'B' && b.turn <= 13, b); }
+  check(`con turnos: 12, a los 12 turnos gana el jefe (turno ${b.turn}, ganador ${b.winner})`, b.ended && b.winner === 'B' && b.turn <= 13, b); }
+// El jefe no puede usar poderes; el jugador sí
+{ const b = battle([{species: 'Blissey', moves: ['Splash']}]);
+  const rj = (b.p2 as any).activeRequest?.active?.[0] || {}, rp = (b.p1 as any).activeRequest?.active?.[0] || {};
+  check('el jefe no puede Dinamax ni Teracristal', !rj.canDynamax && !rj.canTerastallize && !rj.maxMoves, b);
+  check('el jugador sí', !!rp.canDynamax || !!rp.canTerastallize, b);
+  let error = false; try { b.makeChoices('move 1', 'move 1 terastallize'); } catch { error = true; }
+  check('si se fuerza, el simulador no le deja teracristalizar', error || !b.log.some(l => l.startsWith('|-terastallize|p2a')), b); }
+// Telón de 1 turno: dura el turno en que se rompe y el siguiente
+{ const b = battle([{species: 'Kyogre', item: 'Choice Specs', nature: 'Modest', evs: {spa: 252}, moves: ['Water Spout']}]);
+  const jj = b.p2.active[0]; jj.hp = Math.round(jj.maxhp * 2 / 3) + 20;   // casi al borde del primer tramo
+  b.makeChoices('move 1', 'move 4');
+  const telon = () => b.log.filter(l => /-start\|p2a: Aracamara\|Tel/.test(l)).length, fin = () => b.log.filter(l => /-end\|p2a: Aracamara\|Tel/.test(l)).length;
+  const t0 = b.turn, roto = telon(), finTrasRotura = fin();
+  b.makeChoices('move 1', 'move 4');
+  check(`Telón de 1 turno: sigue tras el turno de la rotura (${roto} inicio, ${fin()} fin)`, roto === 1 && finTrasRotura === 0 && fin() === 1 && b.turn === t0 + 1, b); }
 // Se puede ganar: varios golpes rompen la barra entera
 { const b = battle([{species: 'Kyogre', item: 'Choice Specs', nature: 'Modest', evs: {spa: 252}, moves: ['Water Spout']}, {species: 'Mewtwo', nature: 'Modest', evs: {spa: 252}, moves: ['Psystrike']}, {species: 'Kingambit', moves: ['Kowtow Cleave']}], JEFE, [9, 9, 9, 9]);
   for (let i = 0; i < 12 && !b.ended; i++) {

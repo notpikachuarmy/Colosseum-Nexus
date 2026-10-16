@@ -29,6 +29,5 @@ window.ECONOMIA = {
 
   // Pases: el precio depende de cuánto contenido traen (los pases no caducan).
   // precio = base + porRecompensa × número de recompensas del pase.
-  // Un pase antiguo (cuando ya hay otros más nuevos) cuesta menos.
-  pase: { base: 300, porRecompensa: 45, descuentoAntiguo: 0.7 },
+  pase: { base: 300, porRecompensa: 45 },
 };

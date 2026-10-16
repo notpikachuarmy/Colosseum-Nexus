@@ -986,9 +986,11 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
 .fondos-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .fondo-carta { display: grid; gap: 4px; padding: 8px; border-radius: 12px; background: var(--panel); border: 2px solid var(--borde); color: var(--texto); font: inherit; text-align: left; cursor: pointer; }
 .fondo-carta.elegido { border-color: var(--acento); box-shadow: 0 0 0 2px var(--acento); }
-.fondo-carta.bloqueado { cursor: not-allowed; opacity: .6; }
-.fondo-carta.bloqueado .fondo-mini { filter: grayscale(1) brightness(.5); }
-.fondo-mini, .fondo-azar { width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; object-fit: cover; image-rendering: pixelated; }
+.fondo-carta.bloqueado { cursor: not-allowed; opacity: .55; }
+.fondo-carta.bloqueado .fondo-mini { filter: grayscale(1) brightness(.35); }
+.fondo-carta.bloqueado b { color: var(--tenue); }
+.fondo-carta { min-width: 0; align-content: start; }
+.fondo-mini, .fondo-azar { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 8px; object-fit: cover; image-rendering: pixelated; box-sizing: border-box; align-self: start; min-width: 0; }
 .fondo-azar { display: grid; place-items: center; font-size: 42px; font-weight: 900; background: linear-gradient(135deg, #2c3046, #3a3f5c); color: var(--acento); }
 /* Peligros de mi lado: junto a mi Pokémon pero sin quedar tapados por su ficha */
 .peligros-yo { left: 26%; bottom: 3%; width: 30%; }
@@ -1087,3 +1089,19 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
   .dialogo-sprite { width: 80px; height: 80px; }
   .cara-pokemon.en-combate { width: 30px; height: 30px; }
 }
+
+/* ---- Bloqueados: sin candado, más oscuros ---- */
+.titulo-item:not(.tengo) { opacity: .6; filter: saturate(.4); }
+.hist-nodo.bloqueado { opacity: .6; }
+.hist-nodo.bloqueado .hn-cara { filter: grayscale(1) brightness(.4); }
+.fila-especie.bloqueada { opacity: .5; }
+.fila-especie.bloqueada img { filter: grayscale(1) brightness(.5); }
+.candado { color: var(--tenue); }
+
+/* ---- Avatar aleatorio: un «?» del tamaño de un avatar, siempre dentro del marco ---- */
+.avatar-azar { display: grid; place-items: center; width: 92px; height: 92px; max-width: 100%; box-sizing: border-box; border-radius: 14px;
+  background: linear-gradient(135deg, #2c3046, #3a3f5c); color: var(--acento); font-size: 48px; font-weight: 900; line-height: 1; overflow: hidden; }
+.pf-avatar .avatar-azar.grande { width: 140px; height: 140px; font-size: 72px; }
+@media (max-width: 640px) { .pf-avatar .avatar-azar.grande { width: 110px; height: 110px; font-size: 56px; } }
+.carta-azar { overflow: hidden; }
+@media (max-width: 640px) { .avatar-azar { width: 72px; height: 72px; font-size: 38px; } }

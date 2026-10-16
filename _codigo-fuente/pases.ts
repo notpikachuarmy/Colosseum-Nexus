@@ -88,7 +88,7 @@ export function desbloquear(especies: string[]) {
 export const paseDe = (id: string) => PASES.find(p => p.id === id);
 export function precioPase(p: Pase) {
   const bruto = ECO.pase.base + ECO.pase.porRecompensa * p.niveles.length;
-  return Math.round(bruto * (p.antiguo ? ECO.pase.descuentoAntiguo : 1) / 10) * 10;
+  return Math.round(bruto / 10) * 10;
 }
 export const xpMaxima = (p: Pase) => p.xpPorNivel * p.niveles.length;
 export const nivelDePase = (p: Pase, xp: number) => Math.min(p.niveles.length, Math.floor(xp / p.xpPorNivel));
