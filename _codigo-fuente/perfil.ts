@@ -5,6 +5,7 @@ import {nombreJugador} from './nucleo';
 import {abrirAjustes} from './ajustes';
 import {perfil, rango, nombreModo, TipoNivel} from './nivel';
 import {TITULOS, tituloDe, tituloEquipado, titulosConseguidos, selectorTitulo, progresoTitulo, revisarTitulos} from './titulos';
+import {selectorFondos} from './fondos';
 import {avatarImg, coleccion, datosAvatar, alCambiarColeccion, rejillaAvatares, progresoColeccion, RAREZAS} from './avatares';
 
 /** Bloque de estadísticas de un modo (online o IA) */
@@ -75,6 +76,9 @@ export function pantallaPerfil(raiz: HTMLElement, volver: () => void) {
       h('div', {class: 'pf-col-cab'}, h('h3', {}, tr('Tu colección', 'Your collection')), contador,
         h('small', {class: 'tenue'}, tr('Toca un entrenador para usarlo como avatar. Los nuevos se consiguen en el Gacha.', 'Tap a trainer to use it as your avatar. Get new ones in the Gacha.'))),
       col.el,
+      h('div', {class: 'pf-col-cab'}, h('h3', {}, tr('Fondo de combate', 'Battle background')),
+        h('small', {class: 'tenue'}, tr('El fondo que ves en tus combates. «Aleatorio» elige uno distinto en cada combate entre los que tienes.', 'The background you see in your battles. "Random" picks a different one each battle among those you own.'))),
+      selectorFondos(),
       h('div', {class: 'pf-col-cab'}, h('h3', {}, tr('Títulos', 'Titles')), contTitulos,
         h('small', {class: 'tenue'}, tr('Elige arriba cuál se enseña en el VS (o ninguno). Cada combate cuenta si dura 3 turnos o más.', 'Choose above which one shows in the VS (or none). Battles count if they last 3+ turns.'))),
       titulosEl));

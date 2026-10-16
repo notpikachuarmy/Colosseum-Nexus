@@ -232,13 +232,9 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
     radial-gradient(ellipse 60% 18% at 72% 42%, rgba(255,255,255,.08), transparent 70%),
     linear-gradient(180deg, #87c6ff 0%, #b8e1ff 38%, #cdeccf 38.2%, #8fcf7c 60%, #5fae55 100%);
 }
-.lado { position: absolute; display: flex; gap: 0; }
+.lado { position: absolute; z-index: 2; display: flex; gap: 0; }
 .lado-rival { right: 4%; top: 6%; flex-direction: row-reverse; }
 .lado-yo { left: 2%; bottom: 0; }
-.plataforma { position: absolute; z-index: 0; border-radius: 50%; pointer-events: none; }
-.lado-rival .plataforma { width: 300px; height: 70px; right: -20px; top: 150px; background: radial-gradient(ellipse, #7cbf62 30%, #5c9a49 70%); box-shadow: inset 0 -6px 0 rgba(0,0,0,.12); }
-.lado-yo .plataforma { width: 380px; height: 90px; left: -10px; bottom: -30px; background: radial-gradient(ellipse, #6fb056 30%, #4f8a3f 70%); box-shadow: inset 0 -8px 0 rgba(0,0,0,.12); }
-.lado.dobles .plataforma { width: 440px; }
 .posicion { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
 .lado-yo .posicion { flex-direction: column-reverse; }
 .lado.dobles.lado-rival .posicion.pos-1 { margin-top: 26px; }
@@ -389,8 +385,6 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
   .lado.dobles.lado-yo .sprite-wrap .sprite { width: 110px; height: 110px; }
   .hud { min-width: 130px; padding: 4px 6px; font-size: 12px; }
   .lado.dobles .hud { min-width: 110px; }
-  .lado-rival .plataforma { width: 180px; height: 40px; top: 96px; }
-  .lado-yo .plataforma { width: 220px; height: 50px; }
   .equipo-iconos { display: none; }
   .botones-cambio, .preview-rival { grid-template-columns: repeat(3, 1fr); }
   .editor-cab { grid-template-columns: 1fr 1fr; }
@@ -966,3 +960,40 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
 .pc-celda { overflow: hidden; min-width: 0; }
 .pc-celda .rec-pokes { flex-wrap: wrap; justify-content: center; max-width: 100%; }
 @media (max-width: 640px) { .pc-celda .rec-pokes .icono { transform: scale(.8); margin: -4px; } }
+
+/* ===================== Fondos y capas del campo (fase 8) ===================== */
+.campo-batalla.con-fondo { background-size: cover; background-position: center bottom; background-repeat: no-repeat; image-rendering: pixelated; }
+.capa-tinte, .capa-clima { position: absolute; inset: 0; pointer-events: none; }
+.capa-tinte { z-index: 0; transition: opacity .6s, background-color .6s; opacity: 0; mix-blend-mode: normal; }
+.capa-clima { z-index: 3; background-size: cover; background-position: center; image-rendering: pixelated; animation: clima-mueve 6s linear infinite; }
+.capa-clima[data-clima="RainDance"], .capa-clima[data-clima="PrimordialSea"] { animation-duration: 1.2s; }
+.capa-clima[data-clima="Snow"], .capa-clima[data-clima="Snowscape"], .capa-clima[data-clima="Hail"] { animation-duration: 5s; }
+.capa-clima[data-clima="SunnyDay"], .capa-clima[data-clima="DesolateLand"] { animation: sol-pulso 4s ease-in-out infinite; }
+.capa-clima[data-clima="Sandstorm"] { animation: arena-mueve 3s linear infinite; }
+@keyframes clima-mueve { from { background-position: 0 0; } to { background-position: -40px 100%; } }
+@keyframes arena-mueve { from { background-position: 0 0; } to { background-position: -100% 0; } }
+@keyframes sol-pulso { 50% { opacity: .75; } }
+.capa-peligros { position: absolute; z-index: 1; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 0 4px; pointer-events: none; }
+.peligros-rival { right: 6%; top: 34%; width: 32%; }
+.peligros-yo { left: 3%; bottom: 3%; width: 40%; }
+.peligro { width: 46px; height: 46px; image-rendering: pixelated; filter: drop-shadow(0 2px 1px rgba(0,0,0,.35)); animation: peligro-entra .35s ease-out; }
+.peligros-yo .peligro { width: 58px; height: 58px; }
+@keyframes peligro-entra { from { transform: translateY(-14px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .capa-clima, .peligro { animation: none !important; } }
+@media (max-width: 680px) { .peligro { width: 30px; height: 30px; } .peligros-yo .peligro { width: 38px; height: 38px; } }
+
+/* Selector de fondos del perfil */
+.fondos-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.fondo-carta { display: grid; gap: 4px; padding: 8px; border-radius: 12px; background: var(--panel); border: 2px solid var(--borde); color: var(--texto); font: inherit; text-align: left; cursor: pointer; }
+.fondo-carta.elegido { border-color: var(--acento); box-shadow: 0 0 0 2px var(--acento); }
+.fondo-carta.bloqueado { cursor: not-allowed; opacity: .6; }
+.fondo-carta.bloqueado .fondo-mini { filter: grayscale(1) brightness(.5); }
+.fondo-mini, .fondo-azar { width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; object-fit: cover; image-rendering: pixelated; }
+.fondo-azar { display: grid; place-items: center; font-size: 42px; font-weight: 900; background: linear-gradient(135deg, #2c3046, #3a3f5c); color: var(--acento); }
+/* Peligros de mi lado: junto a mi Pokémon pero sin quedar tapados por su ficha */
+.peligros-yo { left: 26%; bottom: 3%; width: 30%; }
+/* Móvil: los peligros en texto van debajo de "Turno" y el clima para no taparlos */
+@media (max-width: 680px) { .condiciones-lados { top: 40px; } .peligros-yo { left: 40%; width: 32%; } .peligros-rival { top: 40%; } }
+/* Peligros del rival: a los pies de su Pokémon (debajo de su ficha y su sprite) */
+.peligros-rival { top: 54%; right: 8%; width: 30%; }
+@media (max-width: 680px) { .peligros-rival { top: 60%; right: 6%; } }

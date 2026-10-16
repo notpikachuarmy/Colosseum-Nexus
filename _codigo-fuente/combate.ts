@@ -1,6 +1,7 @@
 // Pantalla de combate: dibuja el campo, anima el protocolo y recoge las elecciones.
 import {musica} from './musica';
 import {tituloDe} from './titulos';
+import {fondoParaCombate, crearCapas, FONDOS} from './fondos';
 import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
@@ -29,6 +30,8 @@ export interface OpcionesCombate {
   niveles?: {p1?: [TipoNivel, number], p2?: [TipoNivel, number]};
   /** Título que enseña cada jugador en el VS (id de datos/titulos.js) */
   titulos?: {p1?: string, p2?: string};
+  /** Fondo fijo para este combate (p. ej. un jefe del modo historia). Si no, el que elija el jugador. */
+  fondo?: string;
 }
 
 const BOOST_CORTO: {[k: string]: string} = {...STATS_CORTO, accuracy: tr('Pre', 'Acc'), evasion: tr('Eva', 'Eva')};
@@ -71,6 +74,8 @@ export class PantallaCombate {
   rapido = storage.get('cnx.rapido', false);
   elecciones: string[] = [];
   spriteEls = new Map<string, HTMLElement>();
+  /** Capas visuales del campo: tinte, peligros y clima */
+  capas = crearCapas();
   destruido = false;
   /** Identificador de este combate: su premio solo se da una vez */
   idPremio = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -85,6 +90,8 @@ export class PantallaCombate {
   montar() {
     this.raiz.innerHTML = '';
     this.campoEl = h('div', {class: 'campo-batalla'});
+    const fondo = FONDOS.find(f => f.id === this.op.fondo) || fondoParaCombate();
+    if (fondo) { this.campoEl.style.backgroundImage = `url("${fondo.imagen}")`; this.campoEl.classList.add('con-fondo'); this.campoEl.dataset.fondo = fondo.id; }
     this.infoCampoEl = h('div', {class: 'info-campo'});
     this.registroEl = h('div', {class: 'registro-lineas', 'aria-live': 'polite'});
     this.controlesEl = h('div', {class: 'controles'}, h('div', {class: 'esperando'}, tr('Preparando el combate…', 'Preparing the battle…')));
@@ -301,6 +308,8 @@ export class PantallaCombate {
   dibujarCampo() {
     this.campoEl.innerHTML = '';
     this.spriteEls.clear();
+    // Orden de capas: fondo (del propio campo) → tinte → peligros → Pokémon → clima
+    this.campoEl.append(this.capas.tinte, this.capas.peligros.rival, this.capas.peligros.yo);
     const e = this.estado;
     const nPos = e.gametype === 'doubles' ? 2 : 1;
     for (const ladoId of [e.rival, e.yo] as LadoId[]) {
@@ -319,9 +328,9 @@ export class PantallaCombate {
         }
         ladoEl.append(pos);
       }
-      ladoEl.append(h('div', {class: 'plataforma'}));
       this.campoEl.append(ladoEl);
     }
+    this.campoEl.append(this.capas.clima);
     this.dibujarInfoCampo();
   }
 
@@ -372,6 +381,7 @@ export class PantallaCombate {
 
   dibujarInfoCampo() {
     const e = this.estado;
+    this.capas.actualizar(e);
     this.infoCampoEl.innerHTML = '';
     const chips: HTMLElement[] = [];
     if (e.turno) chips.push(h('span', {class: 'chip-campo chip-turno'}, tr(`Turno ${e.turno}`, `Turn ${e.turno}`)));

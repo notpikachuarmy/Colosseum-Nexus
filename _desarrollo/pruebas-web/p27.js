@@ -21,7 +21,7 @@ const poner = (p, k, v) => p.evaluate(([k, v]) => localStorage.setItem(k, JSON.s
   ok(`PV de premio una vez: ${c.pv}`, c.pv === 200 + 50 + 150);
   await p.reload(); await p.waitForSelector('.mp-fila'); await p.click('.mp-perfil'); await p.waitForSelector('.titulos-lista');
   ok('al volver no se repite el premio', (await leer(p, 'cnx.coleccion.v1')).pv === 400);
-  ok('contador de títulos', /^Títulos: 3\/35$/.test(await p.textContent('.pf-col-cab >> nth=1 >> .pf-contador')));
+  ok('contador de títulos', /^Títulos: 3\/35$/.test(await p.textContent('.pf-contador:has-text("Títulos")')));
   ok('progreso de un logro: Cazaholos 0/25', (await p.textContent('.titulo-item[data-titulo=cazaholos]')).includes('0/25'));
   // Equipar
   await p.selectOption('.pf-titulo-fila select', 'maestro-kanto'); await p.waitForTimeout(200);
