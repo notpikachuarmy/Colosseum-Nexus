@@ -35,7 +35,8 @@ export function pantallaCreditos(raiz: HTMLElement, volver: () => void) {
   const grupos = new Map<string, {a: Autores, especies: string[]}>();
   for (const id of INFO.custom) {
     const sp = d.species.get(id);
-    if (!sp.exists || sp.battleOnly) continue;
+    // Las formas solo de combate no salen, salvo las megaevoluciones (Mega Metagross X)
+    if (!sp.exists || (sp.battleOnly && !sp.isMega && !sp.requiredItem)) continue;
     const a = creditosDe(sp.name);
     if (!a) continue;
     const k = `${a.idea}|${a.diseno}|${a.sprites}`;
@@ -53,6 +54,8 @@ export function pantallaCreditos(raiz: HTMLElement, volver: () => void) {
   raiz.append(
     h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')), h('h2', {}, tr('Créditos', 'Credits'))),
     h('div', {class: 'creditos'},
+      h('section', {class: 'tarjeta cred-lema'}, h('b', {}, tr('Colosseum Nexus es y será gratis: sin anuncios, sin compras externas (con dinero real) y sin ventajas de pago.',
+        'Colosseum Nexus is and will always be free: no ads, no external purchases (with real money) and no pay-to-win advantages.'))),
       h('section', {class: 'tarjeta'},
         h('h3', {}, tr('Fakemon', 'Fakemon')),
         ...[...grupos.values()].sort((x, y) => y.especies.length - x.especies.length).map(g => h('div', {class: 'cred-grupo'},

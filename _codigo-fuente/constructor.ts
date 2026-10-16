@@ -69,7 +69,7 @@ function opcionesEspecie(): Opcion[] {
     if (!sp.exists || sp.battleOnly || (sp.isNonstandard && malos.has(sp.isNonstandard)) || sp.name.endsWith('-Totem')) continue;
     if (sp.name.includes('-Gmax')) continue;
     const custom = INFO.custom.has(sp.id);
-    const bst = Object.values(sp.baseStats).reduce((a, b) => a + b, 0);
+    const bst = (Object.values(sp.baseStats) as number[]).reduce((a, b) => a + b, 0);
     out.push({
       id: sp.name, nombre: sp.name, buscar: sp.id + toID(nombreVisible(sp.name)), grupo: custom ? 'custom' : '',
       render: () => h('div', {class: 'fila-especie'}, iconImg(sp.name),

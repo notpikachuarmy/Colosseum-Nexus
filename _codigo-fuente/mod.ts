@@ -2,6 +2,10 @@
 import {Dex, Battle, toID} from 'pkmn-sim';
 
 export const MOD_ID = 'gen9arena';
+/** Poderes especiales que se pueden desactivar en una sala online */
+export type Poder = 'dynamax' | 'tera' | 'mega' | 'z';
+export const PODERES: Poder[] = ['dynamax', 'tera', 'mega', 'z'];
+
 export const FORMATOS = {
   singles: '[Gen 9] Arena Individual',
   doubles: '[Gen 9] Arena Dobles',
@@ -25,6 +29,8 @@ export interface InfoCustom {
   nombresForma: {[id: string]: string};
   /** Ids de tus versiones de Pokémon oficiales (Lapras-Custom...) */
   versiones: Set<string>;
+  /** Ids que se muestran como «Especie Jagara» (tus versiones y las formas con regional: true) */
+  regionales: Set<string>;
   /** ids de objetos personalizados */
   objetos: Set<string>;
   /** id de objeto -> archivo de sprite */
@@ -35,9 +41,35 @@ export interface InfoCustom {
   quitarTipos: {[id: string]: string[]};
 }
 
-export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, versiones: new Set(), objetos: new Set(), spritesObjeto: {}, editados: new Set(), quitarTipos: {}};
+export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, versiones: new Set(), regionales: new Set(), objetos: new Set(), spritesObjeto: {}, editados: new Set(), quitarTipos: {}};
 
 let cached: any = null;
+
+const BASES_FORMATO: {[k: string]: AnyObj} = {};
+const variantes = new Set<string>();
+const NOMBRE_PODER: {[p in Poder]: [string, string]} = {
+  dynamax: ['Dinamax', 'Dynamax'], tera: ['Teracristal', 'Terastal'], mega: ['Megaevolución', 'Mega Evolution'], z: ['Movimientos Z', 'Z-Moves'],
+};
+const MSG_PODERES = (no: string[]) => {
+  const es = no.map(p => NOMBRE_PODER[p as Poder]?.[0] || p).join(', '), en = no.map(p => NOMBRE_PODER[p as Poder]?.[1] || p).join(', ');
+  return `Desactivado en esta sala: ${es} ‖ Disabled in this room: ${en}`;
+};
+
+/**
+ * Formato de combate con algunos poderes desactivados (Dinamax, Teracristal, Mega, Z).
+ * Crea la variante la primera vez que se pide; sin nada desactivado devuelve el formato normal.
+ */
+export function formatoCon(formato: 'singles' | 'doubles', prohibidos: Poder[] = []): string {
+  buildMod();
+  const no = PODERES.filter(p => prohibidos.includes(p));
+  if (!no.length) return FORMATOS[formato];
+  const nombre = `${FORMATOS[formato]} (sin ${no.join('-')})`;
+  if (!variantes.has(nombre)) {
+    Dex.formats.extend([{...BASES_FORMATO[formato], name: nombre, prohibidos: no}] as any);
+    variantes.add(nombre);
+  }
+  return nombre;
+}
 
 export function buildMod() {
   if (cached) return cached;
@@ -81,6 +113,27 @@ export function buildMod() {
       },
     };
     void cat;
+  }
+  // Protección y similares no impiden que Hacha Pétrea y Tajo Metralla dejen su trampa:
+  // solo paran el daño al rival (la trampa va al campo, no al Pokémon).
+  const TRAMPA_DE_ATAQUE: {[m: string]: string} = {stoneaxe: 'stealthrock', ceaselessedge: 'spikes'};
+  for (const pid of ['protect', 'detect', 'kingsshield', 'spikyshield', 'banefulbunker', 'obstruct', 'silktrap', 'burningbulwark', 'maxguard']) {
+    const cond = base.data.Moves[pid]?.condition;
+    if (!cond?.onTryHit) continue;
+    const orig = cond.onTryHit;
+    Moves[pid] = {
+      ...(Moves[pid] || {}), inherit: true,
+      condition: {
+        inherit: true,
+        onTryHit(this: any, target: any, source: any, move: any) {
+          const t = TRAMPA_DE_ATAQUE[move?.id];
+          if (t && move.flags?.protect && !move.hasSheerForce && source?.hp && source !== target) {
+            for (const side of source.side.foeSidesWithConditions()) side.addSideCondition(t);
+          }
+          return orig.call(this, target, source, move);
+        },
+      },
+    };
   }
   // Trampas propias (movimientos con "trampa: true"): Giro Rápido, Giro Mortal, Limpieza General,
   // Despejar y Cambio de Cancha las tratan igual que a Púas, Trampa Rocas, etc.
@@ -274,6 +327,7 @@ export function buildMod() {
         be.formeOrder = [...(fieldOf(toID(bsp), 'formeOrder') || [bsp]).filter((x: string) => x !== name), name];
         INFO.nombresForma[id] = FORMA;
         INFO.versiones.add(id);
+        INFO.regionales.add(id);
         // Preevolución: la versión personalizada de su preevolución original (si existe)
         if (!p.preevo && src.prevo && versiones.has(toID(src.prevo))) enlaces.push([name, versiones.get(toID(src.prevo))!]);
       } else if (!p.forma && !p.megaPiedra) {
@@ -353,6 +407,7 @@ export function buildMod() {
           be.formeOrder = [bsp, ...others];
         }
         if (p.nombreForma) INFO.nombresForma[id] = p.nombreForma;
+        if (p.regional) INFO.regionales.add(id);
       }
     }
 
@@ -387,6 +442,12 @@ export function buildMod() {
       getMoveRequestData(this: any) {
         const data = Object.getPrototypeOf(this).getMoveRequestData.call(this);
         const side = this.side;
+        // Poderes desactivados en la sala (formatoCon)
+        const no: string[] = this.battle.format.prohibidos || [];
+        if (no.includes('mega')) { delete data.canMegaEvo; delete data.canMegaEvoX; delete data.canMegaEvoY; delete data.canUltraBurst; }
+        if (no.includes('z')) delete data.canZMove;
+        if (no.includes('tera')) delete data.canTerastallize;
+        if (no.includes('dynamax') && !this.volatiles['dynamax']) { delete data.canDynamax; delete data.maxMoves; }
         if (side.poderUsado || side.zMoveUsed || side.dynamaxUsed) {
           delete data.canMegaEvo; delete data.canMegaEvoX; delete data.canMegaEvoY; delete data.canUltraBurst;
           delete data.canZMove; delete data.canTerastallize;
@@ -408,7 +469,9 @@ export function buildMod() {
       },
     },
     start(this: any) {
-      for (const side of this.sides) if (side) side.dynamaxUsed = false;
+      const no: string[] = this.format.prohibidos || [];
+      for (const side of this.sides) if (side) side.dynamaxUsed = no.includes('dynamax');
+      if (no.length) this.add('-message', MSG_PODERES(no));
       return (Battle.prototype as any).start.call(this);
     },
     // Banda de Relevo: al cambiar manualmente, el que entra recibe las subidas.
@@ -445,6 +508,9 @@ export function buildMod() {
     {name: FORMATOS.singles, mod: MOD_ID, gameType: 'singles', ruleset: reglas},
     {name: FORMATOS.doubles, mod: MOD_ID, gameType: 'doubles', ruleset: reglas.filter(r => r !== 'Sleep Clause Mod')},
   ];
+  BASES_FORMATO.singles = Formats[0];
+  BASES_FORMATO.doubles = Formats[1];
+  variantes.clear();
 
   const Conditions: AnyObj = {};
   for (const [id, data] of Object.entries<AnyObj>(W.DATOS_CONDICIONES || {})) Conditions[toID(id)] = {...data};

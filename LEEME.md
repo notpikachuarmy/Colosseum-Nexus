@@ -1,19 +1,27 @@
-# Arena Fakemon
+# Colosseum Nexus
 
-Combates Pokémon online entre amigos con Pokémon, movimientos, habilidades y objetos personalizados.
+Combates Pokémon online entre amigos con Fakemon, movimientos, habilidades y objetos personalizados.
 Funciona con GitHub Pages: no hace falta servidor ni pagar nada.
+
+Colosseum Nexus es y será gratis: sin anuncios, sin compras externas (con dinero real) y sin ventajas de pago.
+
+Web: https://notpikachuarmy.github.io/Colosseum-Nexus/
 
 ## Cómo publicarlo
 
-1. Sube **todo el contenido de esta carpeta** a un repositorio de GitHub (por ejemplo `arena-fakemon`).
+1. Sube **todo el contenido de esta carpeta** al repositorio de GitHub (`Colosseum-Nexus`).
 2. En el repositorio: *Settings → Pages → Branch: main / (root) → Save*.
-3. En un par de minutos estará en `https://TU-USUARIO.github.io/arena-fakemon/`.
+3. En un par de minutos estará en `https://notpikachuarmy.github.io/Colosseum-Nexus/`.
+
+Si cambias algo en `_codigo-fuente/`, hay que volver a generar `app.js`: los pasos están en `_desarrollo/LEEME.md`. Los cambios en `datos/` no necesitan nada más.
 
 ## Cómo jugar con un amigo
 
-1. Los dos entráis en la página y creáis un equipo en **Mis equipos**.
-2. Uno pulsa **Combatir online → Crear sala** y le pasa el código de 5 letras al otro.
+1. Los dos entráis en la página y creáis un equipo en **Equipos**.
+2. Uno pulsa **Combate online → Crear sala** y le pasa el código de 5 letras al otro.
 3. El otro pulsa **Unirse**, escribe el código y el anfitrión elige el tipo de partida y pulsa **¡Empezar!**
+
+En la sala, el anfitrión puede desactivar poderes con **Poderes permitidos** (Megaevolución, Movimiento Z, Dinamax, Teracristal). Lo que quite no se podrá usar en esa partida, y el invitado lo ve antes de empezar.
 
 El combate se calcula en el navegador del anfitrión, así que debe tener la pestaña abierta durante la partida.
 
@@ -25,22 +33,27 @@ El combate se calcula en el navegador del anfitrión, así que debe tener la pes
 
 ## Novedades
 
+- **Menú principal nuevo:** tarjetas al estilo consola (Combate online, Combate de práctica, Equipos, Historia, Pokédex, Gacha y Créditos). Se puede usar con el ratón, tocando o con las flechas del teclado. Arriba a la derecha está tu perfil (avatar, nombre y niveles) y el botón de **Ajustes**. **Historia** sale como «Próximamente».
+- **Ajustes:** nombre de entrenador, idioma, volumen de la música, silenciar y animaciones rápidas. Se guardan en el navegador.
+- **Música:** una pista en los menús (`audio/menu.mp3`) y otra en los combates (`audio/combate.mp3`). Al cambiar, una se apaga poco a poco y entra la otra. Los navegadores no dejan sonar nada hasta el primer clic o toque, así que empieza entonces. Para cambiarla, sustituye esos archivos manteniendo el nombre. Música creada con Suno.
+- **Perfil:** se abre tocando tu avatar en el menú. Enseña tu avatar en grande, tu nombre, y por separado las estadísticas online y contra la IA (nivel, experiencia, victorias, derrotas, racha máxima de victorias seguidas y % de victorias). Debajo está tu colección: solo los entrenadores que tienes, con buscador, filtros y el contador «Colección: X/Y». Toca uno para usarlo como avatar.
+- **Combate de práctica:** ahora siempre te enfrentas a un **holoentrenador** al azar, controlado por la IA.
 - **Poderes:** en combate puedes elegir Megaevolución, Movimiento Z, Dinamax/Gigamax o Teracristal. Solo uno por combate y jugador. Si el Pokémon lleva una megapiedra o un cristal Z, ese es su poder.
 - **Fichas de información:** pasa el ratón por encima de un Pokémon, de un movimiento o de un botón de cambio (en el móvil, mantén pulsado). Del rival se ve lo que se ha descubierto: habilidad, objeto y movimientos usados.
-- **Equipos aleatorios parejos:** en "Practicar" y en las salas online. Los Pokémon se reparten por parejas de poder parecido, uno para cada jugador, con objetos que encajan con sus movimientos.
-- **Al mejor de 3 y draft:** en el draft cada uno lleva una plantilla de 7 a 12 Pokémon (en "Mis equipos" → "Plantilla draft") y antes de cada combate elige 6, viendo la plantilla del rival.
+- **Equipos aleatorios parejos:** en "Combate de práctica" y en las salas online. Los Pokémon se reparten por parejas de poder parecido, uno para cada jugador, con objetos que encajan con sus movimientos.
+- **Al mejor de 3 y draft:** en el draft cada uno lleva una plantilla de 7 a 12 Pokémon (en "Equipos" → "Plantilla draft") y antes de cada combate elige 6, viendo la plantilla del rival.
 - **Cancelar tu elección:** mientras el rival no haya elegido, puedes pulsar "↩ Cambiar mi elección".
 - **Pokédex renovada:** pestañas de Pokémon, movimientos, habilidades y objetos con iconos y tipos a color.
-- **Exportar a PBS (Pokémon Essentials v21):** en la Pokédex, pestaña "Exportar a PBS", descargas `pokemon`, `pokemon_forms`, `moves`, `abilities` e `items` para Essentials 21.1, todo en inglés. Los movimientos oficiales salen a su nivel real; los de tus Fakemon nuevos se reparten por niveles automáticamente, así que revísalos. Al final de `pokemon_custom.txt` hay una lista de cambios a mano para Pokémon oficiales (evoluciones nuevas de Eevee, movimientos añadidos a Darkrai…).
+- **Exportar a PBS (Pokémon Essentials v21):** está oculto. Se abre con **Ctrl + Alt + Ñ** (en Windows también AltGr + Ñ) desde cualquier pantalla que no sea un campo de texto, o añadiendo `#pbs` al final de la dirección de la web. Desde ahí descargas `pokemon`, `pokemon_forms`, `moves`, `abilities` e `items` para Essentials 21.1, todo en inglés. Los movimientos oficiales salen a su nivel real; los de tus Fakemon nuevos se reparten por niveles automáticamente, así que revísalos. Al final de `pokemon_custom.txt` hay una lista de cambios a mano para Pokémon oficiales (evoluciones nuevas de Eevee, movimientos añadidos a Darkrai…).
 - **En el móvil:** toca un Pokémon o su barra de vida para ver su ficha. Para ver la info de un ataque o de un Pokémon del banquillo, mantén pulsado o activa el botón **ℹ** del campo (mientras está activo, tocar no elige: enseña los datos).
 - **Salir siempre:** en el combate hay un botón **⌂ Salir** que funciona aunque se haya cortado la conexión (si el combate no ha terminado, cuenta como rendirse).
 - **Paquete para Essentials 21.1:** en la carpeta `plugin/` del repositorio están todas las habilidades, movimientos y objetos personalizados listos para Pokémon Essentials (plugins, PBS e iconos, con un LEEME con los pasos para instalarlo).
 - **Trampa Mental:** trampa de entrada de tipo Psíquico que confunde al rival al entrar (los de tipo Siniestro son inmunes). Se quita como las demás con Giro Rápido, Despejar, etc.
-- **Entrenadores y gacha:** cada jugador tiene un avatar (al empezar, **Sombra**). Al ganar consigues fichas de gacha: contra la IA hay un 50% de que caiga una, online es segura y ganar una serie al mejor de 3 da una más (el combate tiene que durar al menos 3 turnos). Cada ficha da un entrenador al azar: Común 60%, Raro 28%, Épico 10%, Legendario 2%. Pueden salir repetidos (se ven como ×2, ×3…, sin dar nada a cambio). La lista está en orden alfabético, con buscador y un filtro que se autocompleta (escribe "Kanto", "Líderes"…): los filtros elegidos salen debajo y se pueden combinar y quitar. Los avatares se ven en el combate y en la sala online.
-- **Niveles de jugador:** hay dos niveles, uno contra la IA (🤖) y otro online (🌐). Ganar da más experiencia que perder y ganar una serie da un extra. El nivel online se ve en la sala y en el combate, con un rango (Novato, Entrenador, Veterano, As, Maestro, Campeón y Tryhard 🔥). La experiencia de cada resultado se cambia al final de `datos/avatares.js`.
+- **Entrenadores y gacha:** cada jugador tiene un avatar (al empezar, **Sombra**). Al ganar consigues fichas de gacha: contra la IA hay un 50% de que caiga una, online es segura y ganar una serie al mejor de 3 da una más (el combate tiene que durar al menos 3 turnos). Cada ficha da un entrenador al azar: Común 60%, Raro 28%, Épico 10%, Legendario 2%. Pueden salir repetidos (se ven como ×2, ×3…, sin dar nada a cambio). En la pantalla **Gacha** está el catálogo de todo lo que puede salir (lo que no tienes sale en sombra); tu colección está en el **Perfil**. La lista está en orden alfabético, con buscador y un filtro que se autocompleta (escribe "Kanto", "Líderes"…): los filtros elegidos salen debajo y se pueden combinar y quitar. Los avatares se ven en el combate y en la sala online.
+- **Niveles de jugador:** hay dos niveles, uno contra la IA y otro online, cada uno con sus propias estadísticas. Ganar da más experiencia que perder y ganar una serie da un extra. El nivel online se ve en la sala y en el combate, con un rango (Novato, Entrenador, Veterano, As, Maestro, Campeón y Tryhard). La experiencia de cada resultado se cambia al final de `datos/avatares.js`.
 - **Créditos:** en la ficha de cada Fakemon de la Pokédex salen sus autores (idea, diseño final y sprites), y hay una pantalla de **Créditos** con todos los autores de los Fakemon, de los sprites de entrenador y del motor.
 - **Habilidades nuevas (v3):** Cimientos (no le afectan las trampas de entrada), Botín de Guerra (si debilita a un rival sin llevar objeto, se queda el suyo) y Sonámbulo (ataca aunque esté dormido, con un 25% menos de daño).
-- **Idioma:** en la pantalla de inicio puedes elegir Español o English. Los textos de tus datos personalizados (descripciones de tus objetos, movimientos…) salen tal y como los escribas.
+- **Idioma:** en **Ajustes** puedes elegir Español o English. Los textos de tus datos personalizados (descripciones de tus objetos, movimientos…) salen tal y como los escribas.
 
 ## Cómo cambiar los datos
 
@@ -65,12 +78,12 @@ Campos útiles de `datos/pokemon.js`:
 - Los objetos de evolución propios (Cómic, Carta Antigua…) están al final de `datos/objetos.js`, en `OBJETOS_EVOLUCION`.
 - Los mensajes de combate de tus movimientos y objetos se escriben en los dos idiomas: `MSG('¡Texto en español!', 'English text!')`.
 
-Tus versiones de Pokémon que ya existen (Lapras, Metagross, Pikachu…) aparecen como una **forma nueva** (`Lapras-Custom`) y conviven con el original. El nombre de esa forma se cambia en la primera línea de `datos/pokemon.js` (`FORMA_PERSONALIZADA`).
+Tus versiones de Pokémon que ya existen (Lapras, Metagross, Pikachu…) son formas de la región **Jagara**: en el juego se ven como «Lapras Jagara», aunque por dentro se llaman `Lapras-Custom`, y conviven con el original. El nombre que se enseña se cambia con `NOMBRE_REGION` en `datos/pokemon.js`. El nombre interno (`FORMA_PERSONALIZADA`) mejor no cambiarlo: se perderían los equipos guardados con esas formas.
 
 Los nombres de movimientos, habilidades y objetos oficiales salen en español gracias a `traduccion-es.js`.
 
 Los sprites están en `sprites/custom/` (front, back, front-shiny, back-shiny, icons). Los de entrenador, en `sprites/avatares/` (para añadir uno, copia el PNG ahí y añade su línea en `datos/avatares.js`).
-Si algo de los datos está mal escrito (un movimiento que no existe, por ejemplo), aparecerá un aviso en la pantalla de inicio.
+Si algo de los datos está mal escrito (un movimiento que no existe, por ejemplo), aparecerá un aviso en el menú principal.
 
 **Importante:** los dos jugadores tienen que tener la misma versión de los datos (si cambias algo, recargad los dos la página).
 

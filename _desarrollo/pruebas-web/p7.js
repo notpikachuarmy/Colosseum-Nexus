@@ -1,0 +1,26 @@
+const {chromium} = require('playwright');
+const {SHOTS, nuevaPagina, preparar} = require('./comun');
+(async () => {
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({viewport: {width: 390, height: 844}, deviceScaleFactor: 2, isMobile: true, hasTouch: true});
+  const errs = [];
+  const page = await nuevaPagina(ctx, errs, 'M');
+  await preparar(page);
+  await page.screenshot({path: SHOTS + 'movil-inicio.png'});
+  await page.click('.mp-tarjeta[data-id=practica]');
+  await page.selectOption('.formulario select >> nth=1', 'doubles');
+  await page.click('text=¡A combatir!');
+  await page.waitForSelector('.preview');
+  await page.click('.botones-cambio .btn-cambio >> nth=0');
+  await page.click('.botones-cambio .btn-cambio >> nth=1');
+  await page.waitForSelector('.btn-movimiento');
+  await page.waitForTimeout(600);
+  await page.screenshot({path: SHOTS + 'movil-combate.png', fullPage: true});
+  await page.goto('http://127.0.0.1:8080/index.html');
+  await page.click('.mp-tarjeta[data-id=equipos]');
+  await page.click('.slot >> nth=0');
+  await page.screenshot({path: SHOTS + 'movil-equipo.png', fullPage: true});
+  const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
+  console.log('scrollWidth', ancho, errs);
+  await browser.close();
+})();

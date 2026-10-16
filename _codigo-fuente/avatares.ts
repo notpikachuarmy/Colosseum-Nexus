@@ -1,7 +1,7 @@
 // Avatares de jugador: colección, fichas de gacha y pantalla de selección.
 import {tr, EN} from './idioma';
 import {h, storage, toast, sleep} from './util';
-import {registrarCombate, insignia, nivelDe, barraNivel, TipoNivel} from './nivel';
+import {registrarCombate, insignia, nivelDe, TipoNivel} from './nivel';
 
 export type Rareza = 'comun' | 'raro' | 'epico' | 'legendario' | 'base';
 export interface Avatar {id: string; nombre: string; autor: string; rareza: Rareza; etiquetas: string[]}
@@ -42,7 +42,7 @@ export function etiquetas(): string[] {
 }
 
 // ------------------------------------------------------------- colección --
-const CLAVE = 'arena.coleccion.v1';
+const CLAVE = 'cnx.coleccion.v1';
 let oyentes: (() => void)[] = [];
 /** Avisar cuando cambian las fichas o el avatar. 'el' = el aviso se quita solo cuando el elemento sale de la pantalla */
 export function alCambiarColeccion(el: HTMLElement, f: () => void) {
@@ -88,6 +88,11 @@ export function avatarImg(id: string, cls = '', modo: 'entero' | 'busto' = 'ente
 
 /** Avatar al azar para la IA */
 export const avatarAleatorio = () => AVATARES[Math.floor(Math.random() * AVATARES.length)]?.id || AVATAR_BASE;
+/** Holoentrenador al azar (rivales del combate de práctica): avatares con la etiqueta Hologramas */
+export function avatarHolograma(): string {
+  const holos = AVATARES.filter(a => a.etiquetas.includes('Hologramas'));
+  return (holos[Math.floor(Math.random() * holos.length)] || AVATARES[0])?.id || AVATAR_BASE;
+}
 
 // ---------------------------------------------------------------- fichas --
 export function darFichas(n: number) {
@@ -145,41 +150,49 @@ export function tirar(): {avatar: Avatar, nuevo: boolean, copias: number} | null
   return {avatar: av, nuevo, copias: c.tengo[av.id]};
 }
 
-// -------------------------------------------------------------- pantalla --
-export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
-  let filtros = storage.get<string[]>('arena.filtrosAvatar', []).filter(t => etiquetas().includes(t));
-  let rareza = storage.get<string>('arena.rarezaAvatar', '');
-  let soloMios = storage.get<boolean>('arena.soloMios', false);
-  const buscar = h('input', {class: 'input buscador', placeholder: tr('Buscar entrenador…', 'Search trainer…')});
-  const cab = h('div', {class: 'gacha-cab'});
+// -------------------------------------------------------------- rejilla --
+/**
+ * Buscador + filtros + rejilla de entrenadores. Se usa en dos sitios:
+ * - 'coleccion' (perfil): SOLO los que tienes; al tocar uno, lo equipas.
+ * - 'gacha': el catálogo completo de lo que puede salir; los que no tienes salen bloqueados.
+ */
+export function rejillaAvatares(modo: 'coleccion' | 'gacha') {
+  const pref = modo === 'coleccion' ? 'cnx.col' : 'cnx.gacha';
+  let filtros = storage.get<string[]>(pref + '.filtros', []).filter(t => etiquetas().includes(t));
+  let rareza = storage.get<string>(pref + '.rareza', '');
+  const buscar = h('input', {class: 'input buscador', placeholder: modo === 'coleccion' ? tr('Buscar en tu colección…', 'Search your collection…') : tr('Buscar entrenador…', 'Search trainer…')});
   const chips = h('div', {class: 'filtros-chips'});
   const filtroIn = h('input', {class: 'input filtro-input', placeholder: tr('Filtrar: Kanto, Líderes, Custom…', 'Filter: Kanto, Gym Leaders, Custom…'), autocomplete: 'off'});
   const sugerencias = h('div', {class: 'filtro-sugerencias', role: 'listbox'});
   const cajaFiltro = h('div', {class: 'filtro-caja'}, filtroIn, sugerencias);
-  const sinTilde = (x: string) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const sinTilde = (x: string) => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const visibles = () => { const c = coleccion(); return modo === 'coleccion' ? AVATARES.filter(a => c.tengo[a.id]) : AVATARES; };
   let marcada = 0;
   const opciones = () => {
     const q = sinTilde(filtroIn.value.trim());
-    return etiquetas().filter(t => !filtros.includes(t) && (!q || sinTilde(t + ' ' + nomEtiqueta(t)).includes(q)));
+    const base = visibles();
+    return etiquetas().filter(t => !filtros.includes(t) && base.some(a => a.etiquetas.includes(t)) && (!q || sinTilde(t + ' ' + nomEtiqueta(t)).includes(q)));
   };
   const cerrarSug = () => { sugerencias.classList.remove('abierta'); };
   const pintarSug = () => {
     const ops = opciones();
+    const base = visibles();
     marcada = Math.min(marcada, Math.max(0, ops.length - 1));
     sugerencias.innerHTML = '';
     if (!ops.length) sugerencias.append(h('div', {class: 'sug-vacia'}, tr('No hay más filtros', 'No more filters')));
     ops.forEach((t, i) => {
-      const n = AVATARES.filter(a => a.etiquetas.includes(t)).length;
+      const n = base.filter(a => a.etiquetas.includes(t)).length;
       sugerencias.append(h('button', {class: 'sug' + (i === marcada ? ' marcada' : ''), type: 'button', role: 'option',
         onmousedown: (e: Event) => e.preventDefault(), onclick: () => anadirFiltro(t)}, nomEtiqueta(t), h('small', {class: 'tenue'}, String(n))));
     });
     sugerencias.classList.add('abierta');
   };
+  const guardarFiltros = () => storage.set(pref + '.filtros', filtros);
   const anadirFiltro = (t: string) => {
     if (!filtros.includes(t)) filtros.push(t);
-    storage.set('arena.filtrosAvatar', filtros);
+    guardarFiltros();
     filtroIn.value = ''; marcada = 0;
-    pintarChips(); pintarGrid();
+    pintarChips(); pintar();
     if (document.activeElement === filtroIn) pintarSug(); else cerrarSug();
   };
   filtroIn.addEventListener('focus', pintarSug);
@@ -191,33 +204,83 @@ export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
     else if (e.key === 'ArrowUp') { e.preventDefault(); marcada = Math.max(0, marcada - 1); pintarSug(); }
     else if (e.key === 'Enter') { e.preventDefault(); if (ops[marcada]) anadirFiltro(ops[marcada]); }
     else if (e.key === 'Escape') { cerrarSug(); filtroIn.blur(); }
-    else if (e.key === 'Backspace' && !filtroIn.value && filtros.length) { filtros.pop(); storage.set('arena.filtrosAvatar', filtros); pintarChips(); pintarGrid(); pintarSug(); }
+    else if (e.key === 'Backspace' && !filtroIn.value && filtros.length) { filtros.pop(); guardarFiltros(); pintarChips(); pintar(); pintarSug(); }
   });
   const grid = h('div', {class: 'avatares-grid'});
   const contador = h('span', {class: 'tenue'});
   const selRareza = h('select', {class: 'select select-sm'}, h('option', {value: ''}, tr('Todas las rarezas', 'All rarities')),
     ...(['legendario', 'epico', 'raro', 'comun', 'base'] as Rareza[]).map(r => h('option', {value: r}, RAREZAS[r].estrellas + ' ' + RAREZAS[r].nombre)));
   selRareza.value = rareza;
-  selRareza.addEventListener('change', () => { rareza = selRareza.value; storage.set('arena.rarezaAvatar', rareza); pintarGrid(); });
-  const chkMios = h('label', {class: 'toggle'}, (() => {
-    const c = h('input', {type: 'checkbox', checked: soloMios});
-    c.addEventListener('change', () => { soloMios = c.checked; storage.set('arena.soloMios', soloMios); pintarGrid(); });
-    return c;
-  })(), tr(' Solo los que tengo', ' Only owned'));
+  selRareza.addEventListener('change', () => { rareza = selRareza.value; storage.set(pref + '.rareza', rareza); pintar(); });
+
+  const pintarChips = () => {
+    chips.innerHTML = '';
+    if (!filtros.length) return;
+    chips.append(...filtros.map(t => h('button', {class: 'chip-filtro activo', title: tr('Quitar filtro', 'Remove filter'),
+      onclick: () => { filtros = filtros.filter(x => x !== t); guardarFiltros(); pintarChips(); pintar(); }}, nomEtiqueta(t) + ' ✕')),
+      h('button', {class: 'chip-limpiar', onclick: () => { filtros = []; guardarFiltros(); pintarChips(); pintar(); }}, tr('Quitar todos', 'Clear all')));
+  };
+
+  const pintar = () => {
+    const c = coleccion();
+    const q = sinTilde(buscar.value.trim());
+    grid.innerHTML = '';
+    let n = 0;
+    for (const a of visibles()) {
+      if (filtros.some(t => !a.etiquetas.includes(t))) continue;
+      if (rareza && a.rareza !== rareza) continue;
+      const copias = c.tengo[a.id] || 0;
+      const texto = sinTilde(a.nombre + ' ' + a.autor + ' ' + a.etiquetas.map(nomEtiqueta).join(' '));
+      if (q && !texto.includes(q)) continue;
+      n++;
+      const r = RAREZAS[a.rareza];
+      const elegido = c.avatar === a.id;
+      const titulo = !copias ? tr(`Bloqueado · puede salir en el gacha (${r.nombre})`, `Locked · can drop from the gacha (${r.nombre})`)
+        : modo === 'gacha' ? tr('Ya lo tienes', 'You own it')
+        : elegido ? tr('Avatar actual', 'Current avatar') : tr('Usar este avatar', 'Use this avatar');
+      const tarjeta = h('div', {class: 'avatar-carta' + (copias ? '' : ' bloqueado') + (elegido && modo === 'coleccion' ? ' elegido' : '') + (copias && modo === 'gacha' ? ' poseido' : ''),
+        style: {'--rc': r.color}, tabindex: '0', title: titulo, 'data-id': a.id},
+        h('span', {class: 'avatar-rareza'}, r.estrellas),
+        copias > 1 ? h('span', {class: 'avatar-copias'}, '×' + copias) : null,
+        copias && modo === 'gacha' ? h('span', {class: 'avatar-tengo'}, '✓') : null,
+        avatarImg(a.id),
+        h('div', {class: 'avatar-nombre'}, a.nombre),
+        h('small', {class: 'avatar-autor'}, a.autor));
+      const usar = () => {
+        if (modo === 'gacha') { toast(copias ? tr(`${a.nombre}: ya lo tienes. Equípalo desde tu perfil.`, `${a.nombre}: you own it. Equip it from your profile.`) : tr(`🔒 ${a.nombre}: ${r.nombre}. Consíguelo abriendo fichas.`, `🔒 ${a.nombre}: ${r.nombre}. Get it by opening tokens.`)); return; }
+        elegirAvatar(a.id);
+      };
+      tarjeta.addEventListener('click', usar);
+      tarjeta.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); usar(); } });
+      grid.append(tarjeta);
+    }
+    contador.textContent = tr(`${n} entrenador${n === 1 ? '' : 'es'}`, `${n} trainer${n === 1 ? '' : 's'}`);
+    if (!n) grid.append(h('p', {class: 'tenue centro'}, tr('Ninguno coincide con la búsqueda.', 'Nothing matches the search.')));
+  };
+  buscar.addEventListener('input', pintar);
+  const el = h('div', {class: 'tarjeta avatares-panel'},
+    h('div', {class: 'avatares-herramientas'}, buscar, cajaFiltro, selRareza, contador),
+    chips, grid);
+  pintarChips(); pintar();
+  return {el, pintar};
+}
+
+/** Cuántos tienes del total que cuenta para la colección */
+export function progresoColeccion() {
+  const c = coleccion();
+  return {tengo: AVATARES.filter(a => c.tengo[a.id]).length, total: AVATARES.length};
+}
+
+// --------------------------------------------------------------- gacha --
+export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
+  const cab = h('div', {class: 'gacha-cab'});
+  const catalogo = rejillaAvatares('gacha');
 
   const pintarCab = () => {
     const c = coleccion();
-    const a = datosAvatar(c.avatar);
-    const total = AVATARES.length, tengo = AVATARES.filter(x => c.tengo[x.id]).length;
+    const {tengo, total} = progresoColeccion();
     cab.innerHTML = '';
     cab.append(
-      h('div', {class: 'gacha-actual'},
-        h('div', {class: 'gacha-actual-img', style: {'--rc': RAREZAS[a.rareza].color}}, avatarImg(a.id)),
-        h('div', {}, h('small', {class: 'tenue'}, tr('Tu avatar', 'Your avatar')), h('div', {class: 'gacha-nombre'}, a.nombre),
-          h('small', {class: 'tenue'}, tr('Sprite: ', 'Sprite: ') + a.autor),
-          h('div', {class: 'gacha-progreso'}, h('span', {style: {width: (tengo / total * 100).toFixed(1) + '%'}})),
-          h('small', {}, tr(`Colección: ${tengo}/${total}`, `Collection: ${tengo}/${total}`)),
-          barraNivel('ia'), barraNivel('online'))),
       h('div', {class: 'gacha-maquina'},
         h('div', {class: 'gacha-fichas'}, h('span', {class: 'ficha-icono grande'}, '🎟'), h('b', {}, String(c.fichas)), h('small', {}, tr('fichas', 'tokens'))),
         h('div', {class: 'gacha-botones'},
@@ -227,49 +290,8 @@ export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
           tr(`Ganas fichas al vencer: contra la IA (${RECOMPENSAS.ia}% de probabilidad), online (${RECOMPENSAS.online} segura) y +${RECOMPENSAS.serieGanada} por ganar una serie al mejor de 3. Los repetidos suman copias (×2, ×3…).`,
             `You earn tokens by winning: vs the AI (${RECOMPENSAS.ia}% chance), online (${RECOMPENSAS.online} guaranteed) and +${RECOMPENSAS.serieGanada} for winning a best-of-3 series. Duplicates just add copies (×2, ×3…).`)),
         h('div', {class: 'gacha-probs'}, ...(['comun', 'raro', 'epico', 'legendario'] as Rareza[]).map(r =>
-          h('span', {class: 'prob', style: {'--rc': RAREZAS[r].color}}, `${RAREZAS[r].nombre} ${PROB[r]}%`)))));
-  };
-
-  const pintarChips = () => {
-    chips.innerHTML = '';
-    if (!filtros.length) return;
-    chips.append(...filtros.map(t => h('button', {class: 'chip-filtro activo', title: tr('Quitar filtro', 'Remove filter'),
-      onclick: () => { filtros = filtros.filter(x => x !== t); storage.set('arena.filtrosAvatar', filtros); pintarChips(); pintarGrid(); }}, nomEtiqueta(t) + ' ✕')),
-      h('button', {class: 'chip-limpiar', onclick: () => { filtros = []; storage.set('arena.filtrosAvatar', filtros); pintarChips(); pintarGrid(); }}, tr('Quitar todos', 'Clear all')));
-  };
-
-  const pintarGrid = () => {
-    const c = coleccion();
-    const q = buscar.value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    grid.innerHTML = '';
-    let n = 0;
-    for (const a of AVATARES) {
-      if (filtros.some(t => !a.etiquetas.includes(t))) continue;
-      if (rareza && a.rareza !== rareza) continue;
-      const copias = c.tengo[a.id] || 0;
-      if (soloMios && !copias) continue;
-      const texto = (a.nombre + ' ' + a.autor + ' ' + a.etiquetas.map(nomEtiqueta).join(' ')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-      if (q && !texto.includes(q)) continue;
-      n++;
-      const r = RAREZAS[a.rareza];
-      const elegido = c.avatar === a.id;
-      const tarjeta = h('div', {class: 'avatar-carta' + (copias ? '' : ' bloqueado') + (elegido ? ' elegido' : ''), style: {'--rc': r.color}, tabindex: '0',
-        title: copias ? (elegido ? tr('Avatar actual', 'Current avatar') : tr('Usar este avatar', 'Use this avatar')) : tr(`Bloqueado · consíguelo en el gacha (${r.nombre})`, `Locked · get it from the gacha (${r.nombre})`)},
-        h('span', {class: 'avatar-rareza'}, r.estrellas),
-        copias > 1 ? h('span', {class: 'avatar-copias'}, '×' + copias) : null,
-        avatarImg(a.id),
-        h('div', {class: 'avatar-nombre'}, a.nombre),
-        h('small', {class: 'avatar-autor'}, a.autor));
-      const usar = () => {
-        if (!copias) { toast(tr(`🔒 ${a.nombre}: ${r.nombre}. Consíguelo abriendo fichas.`, `🔒 ${a.nombre}: ${r.nombre}. Get it by opening tokens.`)); return; }
-        elegirAvatar(a.id);
-      };
-      tarjeta.addEventListener('click', usar);
-      tarjeta.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); usar(); } });
-      grid.append(tarjeta);
-    }
-    contador.textContent = tr(`${n} entrenador${n === 1 ? '' : 'es'}`, `${n} trainer${n === 1 ? '' : 's'}`);
-    if (!n) grid.append(h('p', {class: 'tenue centro'}, tr('Ninguno coincide con el filtro.', 'Nothing matches the filter.')));
+          h('span', {class: 'prob', style: {'--rc': RAREZAS[r].color}}, `${RAREZAS[r].nombre} ${PROB[r]}%`))),
+        h('small', {class: 'gacha-col'}, tr(`Colección: ${tengo}/${total}`, `Collection: ${tengo}/${total}`))));
   };
 
   async function abrir(veces: number) {
@@ -279,16 +301,14 @@ export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
     await mostrarResultados(res.filter(Boolean) as NonNullable<ReturnType<typeof tirar>>[]);
   }
 
-  buscar.addEventListener('input', pintarGrid);
   raiz.innerHTML = '';
   raiz.append(
-    h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')), h('h2', {}, tr('Entrenadores y gacha', 'Trainers & gacha'))),
+    h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: volver}, tr('← Inicio', '← Home')), h('h2', {}, tr('Gacha', 'Gacha'))),
     cab,
-    h('div', {class: 'tarjeta avatares-panel'},
-      h('div', {class: 'avatares-herramientas'}, buscar, cajaFiltro, selRareza, chkMios, contador),
-      chips, grid));
-  pintarCab(); pintarChips(); pintarGrid();
-  alCambiarColeccion(cab, () => { pintarCab(); pintarGrid(); });
+    h('h3', {class: 'seccion-titulo'}, tr('Entrenadores que pueden salir', 'Trainers you can get')),
+    catalogo.el);
+  pintarCab();
+  alCambiarColeccion(cab, () => { pintarCab(); catalogo.pintar(); });
 }
 
 /** Animación de apertura y resultados */

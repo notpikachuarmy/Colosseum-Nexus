@@ -136,9 +136,14 @@ export function itemIcon(item: string) {
   return el;
 }
 
+const NOMBRE_REGION = () => String((globalThis as any).NOMBRE_REGION || 'Jagara');
 export function nombreVisible(species: string) {
   const d = dex();
   const sp = d.species.get(species);
+  // Tus versiones de Pokémon oficiales se ven como «Diglett Jagara» (el nombre interno sigue siendo Diglett-Custom)
+  if (INFO.regionales.has(sp.id)) return `${sp.baseSpecies} ${NOMBRE_REGION()}`;
+  // Megaevoluciones personalizadas: «Mega Metagross X»
+  if (INFO.custom.has(sp.id) && /^Mega(-|$)/.test(sp.forme || '')) return `Mega ${sp.baseSpecies}${sp.forme.slice(4).replace(/-/g, ' ')}`;
   return INFO.nombresForma[sp.id] ? `${sp.baseSpecies} (${INFO.nombresForma[sp.id]})` : sp.name;
 }
 

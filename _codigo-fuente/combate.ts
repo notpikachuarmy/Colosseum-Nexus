@@ -1,4 +1,5 @@
 // Pantalla de combate: dibuja el campo, anima el protocolo y recoge las elecciones.
+import {musica} from './musica';
 import {tr} from './idioma';
 import {toID} from 'pkmn-sim';
 import {Estado, LadoId, Pkm} from './estado';
@@ -64,7 +65,7 @@ export class PantallaCombate {
   req: any = null;
   reqMostrada: any = null;
   ultimaPeticion: any = null;
-  rapido = storage.get('arena.rapido', false);
+  rapido = storage.get('cnx.rapido', false);
   elecciones: string[] = [];
   spriteEls = new Map<string, HTMLElement>();
   destruido = false;
@@ -72,6 +73,7 @@ export class PantallaCombate {
   constructor(raiz: HTMLElement, public op: OpcionesCombate) {
     this.raiz = raiz;
     this.estado = new Estado(op.yo);
+    musica('combate');
     this.montar();
   }
 
@@ -87,7 +89,7 @@ export class PantallaCombate {
     });
     const rapidoBtn = h('label', {class: 'toggle'}, (() => {
       const c = h('input', {type: 'checkbox', checked: this.rapido});
-      c.addEventListener('change', () => { this.rapido = c.checked; storage.set('arena.rapido', this.rapido); });
+      c.addEventListener('change', () => { this.rapido = c.checked; storage.set('cnx.rapido', this.rapido); });
       return c;
     })(), tr(' Animaciones rápidas', ' Fast animations'));
     // Móvil: botón para activar el "modo info" (tocar = ver datos en vez de elegir)

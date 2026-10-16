@@ -5,6 +5,7 @@ import {cargarEquipos, validarEquipo, empaquetar, Equipo, SetPkm} from './equipo
 import {equiposParejos, Reserva, RESERVAS} from './aleatorio';
 import {PantallaCombate} from './combate';
 import {Motor} from './motor';
+import {PODERES, Poder} from './mod';
 import {crearSala, unirseSala, Canal, Sala} from './red';
 import {avatarImg, avatarActual, avatarValido, recompensaCombate, darFichas, RECOMPENSAS} from './avatares';
 import {nivelDe, insignia, bonusSerie} from './nivel';
@@ -51,6 +52,8 @@ interface InfoRival { nombre: string; avatar?: string; nivel?: number; nivelIA?:
 const nivelSeguro = (n: any) => Math.max(1, Math.min(999, Math.floor(+n) || 1));
 type Fase = 'lobby' | 'seleccion' | 'combate' | 'fin';
 
+const nombrePoder = (p: Poder) => ({dynamax: tr('Dinamax', 'Dynamax'), tera: tr('Teracristal', 'Terastal'), mega: tr('Megaevolución', 'Mega Evolution'), z: tr('Movimientos Z', 'Z-Moves')} as {[k in Poder]: string})[p];
+
 /** Sala del anfitrión: ejecuta el motor, decide el modo y retransmite al invitado. */
 function salaAnfitrion() {
   let activo = true;
@@ -62,10 +65,12 @@ function salaAnfitrion() {
   let sala: Sala | null = null;
   let codigo = '';
   let avisoConexion = '';
-  let formato: 'singles' | 'doubles' = storage.get('arena.formatoOnline', 'singles');
-  let aleatorio: boolean = storage.get('arena.aleatorioOnline', cargarEquipos().length === 0);
-  let reserva: Reserva = storage.get('arena.reserva', 'mezcla');
-  let tipoSerie = storage.get<TipoSerie>('arena.serieOnline', 'uno');
+  let formato: 'singles' | 'doubles' = storage.get('cnx.formatoOnline', 'singles');
+  let aleatorio: boolean = storage.get('cnx.aleatorioOnline', cargarEquipos().length === 0);
+  let reserva: Reserva = storage.get('cnx.reserva', 'mezcla');
+  let tipoSerie = storage.get<TipoSerie>('cnx.serieOnline', 'uno');
+  // Poderes desactivados por el anfitrión (Dinamax, Teracristal, Mega, Z)
+  let sinPoderes: Poder[] = storage.get<Poder[]>('cnx.sinPoderes', []).filter(p => PODERES.includes(p));
   let sel = selectorEquipo(tipoSerie === 'draft' ? 'draft' : 'normal');
   // Estado de la serie en curso
   let fase: Fase = 'lobby';
@@ -82,7 +87,7 @@ function salaAnfitrion() {
   let premioHost: HTMLElement | null = null;
 
   const enviar = (m: any) => canal?.enviar(m);
-  const avisarModo = () => enviar({t: 'modo', formato, aleatorio, reserva, serie: tipoSerie});
+  const avisarModo = () => enviar({t: 'modo', formato, aleatorio, reserva, serie: tipoSerie, sinPoderes});
 
   setLimpiar(() => {
     activo = false;
@@ -103,15 +108,23 @@ function salaAnfitrion() {
     sel = selectorEquipo(tipoSerie === 'draft' ? 'draft' : 'normal', () => pintarLobby(estado));
     const fSel = h('select', {class: 'select'}, h('option', {value: 'singles', selected: formato === 'singles'}, tr('Individual', 'Singles')),
       h('option', {value: 'doubles', selected: formato === 'doubles'}, tr('Dobles', 'Doubles')));
-    fSel.addEventListener('change', () => { formato = fSel.value as any; storage.set('arena.formatoOnline', formato); avisarModo(); });
+    fSel.addEventListener('change', () => { formato = fSel.value as any; storage.set('cnx.formatoOnline', formato); avisarModo(); });
     const mSel = h('select', {class: 'select'},
       h('option', {value: 'propios', selected: !aleatorio}, tipoSerie === 'draft' ? tr('Cada uno con su plantilla', 'Each with their own roster') : tr('Cada uno con su equipo', 'Each with their own team')),
       h('option', {value: 'aleatorio', selected: aleatorio}, tipoSerie === 'draft' ? tr('Plantillas aleatorias parejas (12 cada uno)', 'Balanced random rosters (12 each)') : tr('Equipos aleatorios parejos', 'Balanced random teams')));
-    mSel.addEventListener('change', () => { aleatorio = mSel.value === 'aleatorio'; storage.set('arena.aleatorioOnline', aleatorio); avisarModo(); pintarLobby(estado); });
+    mSel.addEventListener('change', () => { aleatorio = mSel.value === 'aleatorio'; storage.set('cnx.aleatorioOnline', aleatorio); avisarModo(); pintarLobby(estado); });
     const rSel = selectorReserva(() => { reserva = rSel.valor(); avisarModo(); });
     rSel.el.value = reserva;
-    const sSel = selectorSerie(tipoSerie, v => { tipoSerie = v; storage.set('arena.serieOnline', v); avisarModo(); pintarLobby(estado); });
+    const sSel = selectorSerie(tipoSerie, v => { tipoSerie = v; storage.set('cnx.serieOnline', v); avisarModo(); pintarLobby(estado); });
     const draft = tipoSerie === 'draft';
+    const poderesEl = h('div', {class: 'poderes-sala'}, ...PODERES.map(p => {
+      const c = h('input', {type: 'checkbox', checked: !sinPoderes.includes(p)});
+      c.addEventListener('change', () => {
+        sinPoderes = c.checked ? sinPoderes.filter(x => x !== p) : [...sinPoderes, p];
+        storage.set('cnx.sinPoderes', sinPoderes); avisarModo();
+      });
+      return h('label', {class: 'toggle poder-chip'}, c, ' ' + nombrePoder(p));
+    }));
     let infoRival: any;
     if (!rival) infoRival = h('span', {class: 'tenue pulso'}, codigo ? tr('Esperando a que se una alguien…', 'Waiting for someone to join…') : tr('Creando la sala…', 'Creating the room…'));
     else infoRival = [
@@ -135,6 +148,7 @@ function salaAnfitrion() {
               : tr('No tienes equipos guardados: elige la opción aleatoria o crea uno.', 'You have no saved teams: choose the random option or create one.'))
             : campo(draft ? tr('Tu plantilla', 'Your roster') : tr('Tu equipo', 'Your team'), sel.el),
           campo(tr('Formato del combate', 'Battle format'), fSel),
+          campo(tr('Poderes permitidos', 'Allowed powers'), poderesEl, tr('Desmarca los que no queráis usar en esta sala.', 'Untick the ones you don\'t want in this room.')),
           h('div', {class: 'rival-info'}, infoRival),
           estado ? h('div', {class: 'avisos'}, estado) : null,
           h('button', {class: 'btn btn-grande', disabled: !rival || !rivalConectado, onclick: empezarSerie}, tipoSerie === 'uno' ? tr('¡Empezar combate!', 'Start battle!') : tr('¡Empezar serie!', 'Start series!')))));
@@ -200,7 +214,7 @@ function salaAnfitrion() {
     if (!activo || !serie) return;
     fase = 'combate';
     motor?.destruir();
-    const m = new Motor(formato, {nombre: nombres[0], equipo: empaquetarSets(mio)}, {nombre: nombres[1], equipo: empaquetarSets(suyo)});
+    const m = new Motor(formato, {nombre: nombres[0], equipo: empaquetarSets(mio)}, {nombre: nombres[1], equipo: empaquetarSets(suyo)}, sinPoderes);
     motor = m;
     historial = [];
     const titulo = `${nombres[0]} vs ${nombres[1]}` + (serie.alMejorDe3 ? tr(` · Combate ${serie.juego}`, ` · Battle ${serie.juego}`) : '');
@@ -322,7 +336,7 @@ function salaInvitado(codigo: string) {
   let canal: Canal | null = null;
   let sala: Sala | null = null;
   let pantalla: PantallaCombate | null = null;
-  let modo = {formato: 'singles', aleatorio: false, reserva: '', serie: 'uno' as TipoSerie};
+  let modo = {formato: 'singles', aleatorio: false, reserva: '', serie: 'uno' as TipoSerie, sinPoderes: [] as Poder[]};
   let fase: Fase | 'conectando' = 'conectando';
   let estadoTexto = tr('Conectando…', 'Connecting…');
   let error = '';
@@ -391,6 +405,7 @@ function salaInvitado(codigo: string) {
           h('div', {class: 'rival-info'}, cabecera),
           marcadorFin ? h('div', {class: 'marcador'}, marcadorFin) : null,
           h('div', {}, tr('Partida: ', 'Match: '), h('b', {}, SERIES[modo.serie] || tr('Un combate', 'Single battle')), tr(' · Formato: ', ' · Format: '), h('b', {}, modo.formato === 'doubles' ? tr('Dobles', 'Doubles') : tr('Individual', 'Singles'))),
+          h('div', {}, tr('Poderes: ', 'Powers: '), h('b', {}, PODERES.filter(p => !modo.sinPoderes.includes(p)).map(nombrePoder).join(', ') || tr('ninguno', 'none'))),
           modo.aleatorio ? h('div', {}, draft ? tr('Plantillas: ', 'Rosters: ') : tr('Equipos: ', 'Teams: '), h('b', {}, tr('aleatorios parejos', 'balanced random')), modo.reserva ? ` (${RESERVAS[modo.reserva as Reserva] || ''})` : '')
             : sel.vacio ? h('div', {class: 'avisos'}, draft ? tr('No tienes plantillas de draft: crea una en "Mis equipos" o pide al anfitrión la opción aleatoria.', 'You have no draft rosters: create one in "My teams" or ask the host for the random option.')
               : tr('No tienes equipos: pide al anfitrión que elija la opción aleatoria.', 'You have no teams: ask the host to choose the random option.'))
@@ -404,7 +419,8 @@ function salaInvitado(codigo: string) {
       if (!activo || c !== canal) return;
       switch (msg.t) {
       case 'modo':
-        modo = {formato: msg.formato, aleatorio: !!msg.aleatorio, reserva: msg.reserva || '', serie: msg.serie || 'uno'};
+        modo = {formato: msg.formato, aleatorio: !!msg.aleatorio, reserva: msg.reserva || '', serie: msg.serie || 'uno',
+          sinPoderes: Array.isArray(msg.sinPoderes) ? msg.sinPoderes.filter((p: any) => PODERES.includes(p)) : []};
         if (fase === 'lobby' || fase === 'fin' && !pantalla) pintar();
         break;
       case 'cerrada':
@@ -421,9 +437,9 @@ function salaInvitado(codigo: string) {
         selUI = pantallaSeleccion(raiz, {
           titulo: tr(`Combate ${msg.juego} · Elige tus 6`, `Battle ${msg.juego} · Pick your 6`), marcador: msg.marcador, roster,
           rosterRival: msg.rosterRival || [], nombreRival: msg.nombreRival || tr('tu rival', 'your opponent'),
-          previa: storage.get('arena.previaDraft', undefined),
+          previa: storage.get('cnx.previaDraft', undefined),
           onListo: indices => {
-            storage.set('arena.previaDraft', indices);
+            storage.set('cnx.previaDraft', indices);
             canal?.enviar({t: 'seleccionado', indices});
             selUI?.esperando(tr('Esperando a que el anfitrión elija…', 'Waiting for the host to choose…'));
           },

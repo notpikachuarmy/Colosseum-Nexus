@@ -35,6 +35,7 @@
  *                por ejemplo 'Dream'. Si no se pone, sale 'Unknown'.
  *    entradaPokedex (opcional, en inglés) Texto de la Pokédex para Essentials.
  *    nombreFormaEN  (opcional) Nombre en inglés de la forma, para PBS.
+ *    regional       (opcional) true = se enseña como «Especie Jagara» (como Hoopa-Lampara).
  *    habilidadesExtra (opcional) Habilidades que se AÑADEN a las normales sin quitar
  *                ninguna (pueden ser más de 3). En Pokémon con editar: true, las
  *                habilidades y la oculta también se añaden, nunca sustituyen.
@@ -47,6 +48,11 @@
 // (Lapras -> "Lapras-Custom"). Si lo cambias, los equipos ya guardados con
 // esas formas tendrán que volver a elegir el Pokémon.
 window.FORMA_PERSONALIZADA = 'Custom';
+
+// Nombre de la región que se ENSEÑA en el juego para esas versiones y para las
+// formas marcadas con regional: true ("Diglett Jagara", "Hoopa Jagara").
+// Solo cambia lo que se ve: los equipos guardados y el PBS no se ven afectados.
+window.NOMBRE_REGION = 'Jagara';
 
 // --- Listas de movimientos compartidas (para no repetir) ---------------------
 const MOV_FANTASMA = ['Shadow Ball', 'Hex', 'Will-O-Wisp', 'Night Shade', 'Curse', 'Confuse Ray',
@@ -305,7 +311,7 @@ window.DATOS_POKEMON = [
   { nombre: 'Lugia', base: 'Lugia', tipos: ['Dragon', 'Flying'], stats: [106, 110, 120, 100, 134, 110],
     movimientos: ['Golpe de Ventisca', ...MOV_DRAGON, 'Dragon Hammer'], sprite: 'LUGIA' },
   { nombre: 'Rayquaza', base: 'Rayquaza', tipos: ['Dragon', 'Flying'], stats: [110, 160, 95, 130, 90, 95], sprite: 'RAYQUAZA' },
-  { nombre: 'Hoopa-Lampara', base: 'Hoopa', tipos: ['Psychic', 'Ghost'], forma: 'Lampara',
+  { nombre: 'Hoopa-Lampara', base: 'Hoopa', tipos: ['Psychic', 'Ghost'], forma: 'Lampara', regional: true,
     nombreForma: 'Genio Místico de la Lámpara', nombreFormaEN: 'Mystic Lamp Genie', stats: [80, 100, 80, 140, 120, 80],
     habilidades: ['Magician'], movimientos: ['Sobrecarga Neural', 'Hyperspace Hole', 'Hyperspace Fury', 'Wish', 'Poltergeist',
       'Infernal Parade', 'Bitter Malice', 'Hex', 'Will-O-Wisp', 'Lunar Blessing'],

@@ -1,6 +1,6 @@
 // Motor de combate (lo ejecuta el anfitrión) y una IA sencilla para practicar.
 import {BattleStreams, toID} from 'pkmn-sim';
-import {buildMod, FORMATOS} from './mod';
+import {buildMod, formatoCon, Poder} from './mod';
 import {Estado, LadoId} from './estado';
 import {dex} from './util';
 
@@ -9,7 +9,7 @@ export class Motor {
   private oyentes: {[k: string]: ((chunk: string) => void)[]} = {p1: [], p2: [], omni: []};
   terminado = false;
 
-  constructor(formato: 'singles' | 'doubles', p1: {nombre: string, equipo: string}, p2: {nombre: string, equipo: string}) {
+  constructor(formato: 'singles' | 'doubles', p1: {nombre: string, equipo: string}, p2: {nombre: string, equipo: string}, sinPoderes: Poder[] = []) {
     buildMod();
     this.streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
     for (const k of ['p1', 'p2', 'omniscient'] as const) {
@@ -23,7 +23,7 @@ export class Motor {
         }
       })();
     }
-    const spec = {formatid: FORMATOS[formato]};
+    const spec = {formatid: formatoCon(formato, sinPoderes)};
     void this.streams.omniscient.write(`>start ${JSON.stringify(spec)}\n` +
       `>player p1 ${JSON.stringify({name: p1.nombre, team: p1.equipo})}\n` +
       `>player p2 ${JSON.stringify({name: p2.nombre, team: p2.equipo})}`);

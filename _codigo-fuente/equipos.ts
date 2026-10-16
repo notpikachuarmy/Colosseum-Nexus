@@ -31,7 +31,7 @@ export function claveEspecie(especie: string): string {
   return [toID(sp.baseSpecies), ...partes].join('-');
 }
 
-const KEY = 'arena.equipos.v1';
+const KEY = 'cnx.equipos.v1';
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 
 export function nuevoSet(species: string): SetPkm {

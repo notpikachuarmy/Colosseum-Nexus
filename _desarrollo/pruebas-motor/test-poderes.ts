@@ -1,0 +1,40 @@
+// Interruptores de poderes de las salas online (Dinamax, Teracristal, Mega, Z)
+import './load-datos-node';
+import {Motor} from '../../_codigo-fuente/motor';
+import {empaquetar} from '../../_codigo-fuente/equipos';
+let fails = 0;
+const check = (n: string, c: boolean) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + n); if (!c) fails++; };
+const set = (species: string, item: string, moves: string[]) => ({name: '', species, item, ability: '', moves, nature: 'Hardy', evs: {}, ivs: {}, level: 100, gender: '', shiny: false, teraType: 'Steel'});
+const eqMega = empaquetar({sets: [set('Metagross-Custom', 'Metagrossita X', ['Liquidation'])]} as any);
+const eqZ = empaquetar({sets: [set('Pikachu', 'Electrium Z', ['Thunderbolt'])]} as any);
+const eqNormal = empaquetar({sets: [set('Snorlax', 'Leftovers', ['Body Slam'])]} as any);
+async function peticion(sin: any[], a = eqMega, b = eqZ) {
+  const m = new Motor('singles', {nombre: 'A', equipo: a}, {nombre: 'B', equipo: b}, sin);
+  const reqs: any = {};
+  const log: string[] = [];
+  m.escuchar('omni', c => log.push(c));
+  for (const l of ['p1', 'p2'] as const) m.escuchar(l, c => { for (const x of c.split('\n')) if (x.startsWith('|request|') && x.length > 9) { const r = JSON.parse(x.slice(9)); if (r.active) reqs[l] = r.active[0]; } });
+  await new Promise(r => setTimeout(r, 50));
+  m.elegir('p1', 'default'); m.elegir('p2', 'default');
+  await new Promise(r => setTimeout(r, 150));
+  m.destruir();
+  return {a: reqs.p1 || {}, b: reqs.p2 || {}, log: log.join('\n')};
+}
+const todos = await peticion([]);
+check('sin desactivar: Mega disponible', !!todos.a.canMegaEvo);
+check('sin desactivar: Z disponible', !!todos.b.canZMove);
+const normal = await peticion([], eqNormal, eqNormal);
+check('sin desactivar: Dinamax disponible', !!normal.b.canDynamax);
+check('sin desactivar: Tera disponible', !!normal.b.canTerastallize);
+const normalNo = await peticion(['dynamax', 'tera'], eqNormal, eqNormal);
+check('Dinamax y Tera desactivados', !normalNo.b.canDynamax && !normalNo.b.canTerastallize);
+const nada = await peticion(['dynamax', 'tera', 'mega', 'z']);
+check('todo desactivado: sin Mega', !nada.a.canMegaEvo);
+check('todo desactivado: sin Z', !nada.b.canZMove);
+check('todo desactivado: sin Dinamax', !nada.b.canDynamax && !nada.a.canDynamax);
+check('todo desactivado: sin Tera', !nada.b.canTerastallize && !nada.a.canTerastallize);
+check('aviso en el registro', nada.log.includes('Desactivado en esta sala'));
+const soloZ = await peticion(['z']);
+check('solo Z desactivado: Mega sí, Z no', !!soloZ.a.canMegaEvo && !soloZ.b.canZMove);
+console.log(fails ? fails + ' FALLOS' : 'Todo OK');
+process.exit(fails ? 1 : 0);

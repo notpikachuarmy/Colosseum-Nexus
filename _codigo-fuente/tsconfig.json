@@ -1,0 +1,14 @@
+{
+  "//": "Configuración para compilar el juego (ver _desarrollo/LEEME.md). No hace falta tocarla.",
+  "compilerOptions": {
+    "target": "es2020", "module": "esnext", "moduleResolution": "bundler", "allowJs": true,
+    "skipLibCheck": true, "strict": false, "noEmit": true, "ignoreDeprecations": "6.0", "lib": ["es2022", "dom"], "types": [],
+    "baseUrl": "..",
+    "paths": {
+      "pkmn-sim": ["_desarrollo/vjs/sim/sim/index.js"],
+      "@pkmn/sets": ["_desarrollo/vjs/sets/src/index.js"],
+      "@pkmn/streams": ["_desarrollo/vjs/streams/index.js"],
+      "ts-chacha20": ["_desarrollo/vjs/shims/ts-chacha20.js"]
+    }
+  }
+}

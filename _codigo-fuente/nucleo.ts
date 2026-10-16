@@ -3,6 +3,7 @@ import {tr} from './idioma';
 import {h, storage} from './util';
 import {cargarEquipos, Equipo} from './equipos';
 import {RESERVAS, Reserva} from './aleatorio';
+import {musica} from './musica';
 
 export const app = document.getElementById('app')!;
 
@@ -12,15 +13,16 @@ export function cambiarPantalla(f: () => void) {
   const l = limpiar; limpiar = null;
   try { l?.(); } catch (e) { console.error(e); }
   window.scrollTo(0, 0);
+  musica('menu');   // si la pantalla nueva es un combate, el combate la cambia
   f();
 }
 
 /** Navegación entre pantallas (se rellena en app.ts para evitar dependencias circulares) */
-export const nav: {inicio: () => void, online: () => void, practica: () => void, equipos: () => void, pokedex: () => void, avatares: () => void, creditos: () => void} = {
-  inicio() {}, online() {}, practica() {}, equipos() {}, pokedex() {}, avatares() {}, creditos() {},
+export const nav: {inicio: () => void, online: () => void, practica: () => void, equipos: () => void, pokedex: () => void, avatares: () => void, creditos: () => void, pbs: () => void, perfil: () => void} = {
+  inicio() {}, online() {}, practica() {}, equipos() {}, pokedex() {}, avatares() {}, creditos() {}, pbs() {}, perfil() {},
 };
 
-export function nombreJugador(): string { return storage.get('arena.nombre', ''); }
+export function nombreJugador(): string { return storage.get('cnx.nombre', ''); }
 
 export const VERSION_DATOS = (() => {
   const w = window as any;
@@ -38,7 +40,7 @@ export function selectorEquipo(filtro: 'normal' | 'draft' | null, onCambio?: () 
   const equipos = todos.filter(e => !filtro || (filtro === 'draft' ? e.sets.length >= 6 : e.formato !== 'draft'));
   const sel = h('select', {class: 'select'}, ...equipos.map(e => h('option', {value: e.id},
     tr(`${e.nombre} (${ETIQUETA_FORMATO[e.formato] || ''}, ${e.sets.length} Pokémon)`, `${e.nombre} (${ETIQUETA_FORMATO[e.formato] || ''}, ${e.sets.length} Pokémon)`))));
-  const clave = filtro === 'draft' ? 'arena.ultimaPlantilla' : 'arena.ultimoEquipo';
+  const clave = filtro === 'draft' ? 'cnx.ultimaPlantilla' : 'cnx.ultimoEquipo';
   const ultimo = storage.get(clave, '');
   if (equipos.some(e => e.id === ultimo)) sel.value = ultimo;
   sel.addEventListener('change', () => { storage.set(clave, sel.value); onCambio?.(); });
@@ -47,8 +49,8 @@ export function selectorEquipo(filtro: 'normal' | 'draft' | null, onCambio?: () 
 
 export function selectorReserva(onCambio?: () => void) {
   const el = h('select', {class: 'select'}, ...Object.entries(RESERVAS).map(([k, v]) => h('option', {value: k}, v)));
-  el.value = storage.get('arena.reserva', 'mezcla');
-  el.addEventListener('change', () => { storage.set('arena.reserva', el.value); onCambio?.(); });
+  el.value = storage.get('cnx.reserva', 'mezcla');
+  el.addEventListener('change', () => { storage.set('cnx.reserva', el.value); onCambio?.(); });
   return {el, valor: () => el.value as Reserva};
 }
 

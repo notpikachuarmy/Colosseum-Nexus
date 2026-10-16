@@ -176,7 +176,7 @@ function lineasPokemon(e: EntradaPBS, conCabecera = true): string[] {
 }
 
 export function pbsPokemon(): string {
-  const L = ['# Pokémon exported from Arena Fakemon (Pokémon Essentials v21.1)',
+  const L = ['# Pokémon exported from Colosseum Nexus (Pokémon Essentials v21.1)',
     '# Level-up moves of new species are spread automatically: adjust them as you like.'];
   const lista = entradas().filter(x => !x.forma);
   for (const e of lista) L.push(...lineasPokemon(e));
@@ -212,14 +212,14 @@ function pendientesOficiales(lista: EntradaPBS[]): string[] {
 }
 
 export function pbsFormas(): string {
-  const L = ['# Alternate forms exported from Arena Fakemon (Pokémon Essentials v21.1)'];
+  const L = ['# Alternate forms exported from Colosseum Nexus (Pokémon Essentials v21.1)'];
   for (const e of entradas().filter(x => x.forma)) L.push(...lineasPokemon(e));
   return L.join('\n') + '\n';
 }
 
 export function pbsMovimientos(): string {
   const d = dex();
-  const L = ['# Moves exported from Arena Fakemon (Pokémon Essentials v21.1)',
+  const L = ['# Moves exported from Colosseum Nexus (Pokémon Essentials v21.1)',
     '# FunctionCode: the effect has to be programmed in your own plugin (Battle::Move::<FunctionCode>).'];
   for (const [nombre, m] of Object.entries<any>(W.DATOS_MOVIMIENTOS || {})) {
     const mv = d.moves.get(nombre);
@@ -239,7 +239,7 @@ export function pbsMovimientos(): string {
 }
 
 export function pbsHabilidades(): string {
-  const L = ['# Abilities exported from Arena Fakemon (Pokémon Essentials v21.1)',
+  const L = ['# Abilities exported from Colosseum Nexus (Pokémon Essentials v21.1)',
     '# The effect has to be programmed in your own plugin (Battle::AbilityEffects).'];
   for (const [nombre, a] of Object.entries<any>(W.DATOS_HABILIDADES || {})) {
     L.push('#-------------------------------', `[${a.idPBS || idPBS(nombre)}]`, `Name = ${unaLinea(a.nombreEN || nombre)}`, `Description = ${unaLinea(a.descEN || a.desc)}`);
@@ -249,7 +249,7 @@ export function pbsHabilidades(): string {
 
 export function pbsObjetos(): string {
   const d = dex();
-  const L = ['# Items exported from Arena Fakemon (Pokémon Essentials v21.1)',
+  const L = ['# Items exported from Colosseum Nexus (Pokémon Essentials v21.1)',
     '# Item graphics go in Graphics/Items/ named as the ID (e.g. ENERGYDRINK.png).'];
   const plural = (n: string) => /(s|x|ch|sh)$/i.test(n) ? n + 'es' : n + 's';
   for (const id of INFO.objetos) {

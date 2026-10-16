@@ -21,4 +21,5 @@ window.CREDITOS_OTROS = [
   { que: 'Sprites de Pokémon oficiales', queEN: 'Official Pokémon sprites', quien: 'Pokémon Showdown / Smogon (play.pokemonshowdown.com)' },
   { que: 'Motor de combate', queEN: 'Battle engine', quien: 'Pokémon Showdown (licencia MIT) · @pkmn/sim' },
   { que: 'Pokémon', queEN: 'Pokémon', quien: 'Nintendo · Game Freak · Creatures' },
+  { que: 'Música', queEN: 'Music', quien: 'Música creada con Suno' },
 ];

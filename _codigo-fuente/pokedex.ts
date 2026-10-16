@@ -14,15 +14,19 @@ type Pestana = 'pokemon' | 'movimientos' | 'habilidades' | 'objetos' | 'pbs';
 const W: any = window;
 const ICONO_CAT: {[k: string]: string} = {Physical: '⚔', Special: '✦', Status: '◎'};
 
-export function pokedex() {
-  let pestana = storage.get<Pestana>('arena.pestanaDex', 'pokemon');
+/** Pokédex. El exportador PBS no tiene pestaña visible: se abre con Ctrl+Alt+Ñ (o con #pbs en la dirección). */
+export function pokedex(abrirPBS = false) {
+  let pestana: Pestana = abrirPBS ? 'pbs' : storage.get<Pestana>('cnx.pestanaDex', 'pokemon');
+  if (pestana === 'pbs' && !abrirPBS) pestana = 'pokemon';
   app.innerHTML = '';
   const cont = h('div', {class: 'dex-contenido'});
   const tabs = h('div', {class: 'tabs'});
   const pintar = () => {
-    storage.set('arena.pestanaDex', pestana);
+    if (pestana !== 'pbs') storage.set('cnx.pestanaDex', pestana);
     tabs.innerHTML = '';
-    const nombres: [Pestana, string][] = [['pokemon', tr('Pokémon', 'Pokémon')], ['movimientos', tr('Movimientos', 'Moves')], ['habilidades', tr('Habilidades', 'Abilities')], ['objetos', tr('Objetos', 'Items')], ['pbs', tr('Exportar a PBS', 'Export to PBS')]];
+    const nombres: [Pestana, string][] = [['pokemon', tr('Pokémon', 'Pokémon')], ['movimientos', tr('Movimientos', 'Moves')], ['habilidades', tr('Habilidades', 'Abilities')], ['objetos', tr('Objetos', 'Items')]];
+    // La pestaña del exportador solo aparece mientras está abierto (con el atajo)
+    if (pestana === 'pbs') nombres.push(['pbs', tr('Exportar a PBS', 'Export to PBS')]);
     for (const [id, txt] of nombres) tabs.append(h('button', {class: 'tab' + (id === pestana ? ' activo' : ''), onclick: () => { pestana = id; pintar(); }}, txt));
     cont.innerHTML = '';
     ({pokemon: seccionPokemon, movimientos: seccionMovimientos, habilidades: seccionHabilidades, objetos: seccionObjetos, pbs: seccionPBS})[pestana](cont);
@@ -68,12 +72,12 @@ function seccionPokemon(cont: HTMLElement) {
       const habs = [...new Set(Object.values(sp.abilities) as string[])];
       const texto = [sp.name, ...sp.types, ...sp.types.map(t => TIPOS_ES[t]), ...habs, ...habs.map(nomHab)].join(' ').toLowerCase();
       if (q && !texto.includes(q)) continue;
-      const bst = Object.values(sp.baseStats).reduce((a, b) => a + b, 0);
+      const bst = (Object.values(sp.baseStats) as number[]).reduce((a, b) => a + b, 0);
       grid.append(h('div', {class: 'dex-tarjeta', style: {'--c1': TIPO_COLOR[sp.types[0]], '--c2': TIPO_COLOR[sp.types[1] || sp.types[0]]}},
         h('div', {class: 'dex-cab'}, spriteImg(sp.name),
           h('div', {}, h('div', {class: 'dex-nombre'}, nombreVisible(sp.name)), h('div', {}, ...sp.types.map(t => tipoBadge(t, true))),
             sp.prevo ? h('small', {class: 'tenue'}, tr('Evoluciona de ', 'Evolves from ') + nombreVisible(sp.prevo)) : null)),
-        h('div', {class: 'dex-stats'}, ...Object.entries(sp.baseStats).map(([k, v]) => h('div', {class: 'fila-stat-mini'},
+        h('div', {class: 'dex-stats'}, ...(Object.entries(sp.baseStats) as [string, number][]).map(([k, v]) => h('div', {class: 'fila-stat-mini'},
           h('span', {}, STATS_CORTO[k]), h('b', {}, String(v)), h('span', {class: 'barra-stat'}, h('span', {style: {width: Math.min(100, v / 1.8) + '%', background: colorStat(v)}})))),
           h('div', {class: 'fila-stat-mini total'}, h('span', {}, 'Total'), h('b', {}, String(bst)))),
         h('div', {class: 'dex-habs'}, ...habs.map(a => {
@@ -85,7 +89,7 @@ function seccionPokemon(cont: HTMLElement) {
     }
   };
   buscar.addEventListener('input', pintar);
-  cont.append(h('p', {class: 'tenue centro'}, tr('Los datos marcados como PROVISIONAL en datos/pokemon.js se pueden cambiar cuando quieras.', 'Data marked PROVISIONAL in datos/pokemon.js can be changed whenever you want.')), buscar, grid);
+  cont.append(buscar, grid);
   if (INFO.editados.size) {
     cont.append(h('div', {class: 'dex-nota'}, h('b', {}, tr('Pokémon oficiales con añadidos personalizados: ', 'Official Pokémon with custom additions: ')),
       iconosPokemon([...INFO.editados].map(id => d.species.get(id).name), 60)));
@@ -114,7 +118,7 @@ function seccionMovimientos(cont: HTMLElement) {
       mv.flags?.['contact'] ? h('span', {class: 'ti-etiqueta'}, tr('Contacto', 'Contact')) : null,
       h('div', {class: 'ti-pie'}, h('small', {class: 'tenue'}, tr('Lo aprenden:', 'Learned by:')), iconosPokemon(quien.get(mv.id) || []))));
   }
-  cont.append(h('p', {class: 'tenue centro'}, tr('Movimientos de datos/movimientos.js. Pasa el ratón por los iconos para ver quién los aprende.', 'Moves from datos/movimientos.js. Hover over the icons to see who learns them.')), grid);
+  cont.append(grid);
 }
 
 function seccionHabilidades(cont: HTMLElement) {
@@ -150,7 +154,7 @@ function seccionObjetos(cont: HTMLElement) {
         h('div', {}, h('div', {class: 'ti-nombre'}, EN ? o.nombreEN || o.nombre : o.nombre), h('small', {class: 'tenue'}, tr('Objeto de evolución', 'Evolution item') + ' · ' + id))),
       h('p', {class: 'ti-desc'}, EN ? o.descEN || o.desc : o.desc)));
   }
-  cont.append(h('p', {class: 'tenue centro'}, tr('Objetos de datos/objetos.js (los valores de balance están al principio del archivo).', 'Items from datos/objetos.js (balance values are at the top of the file).')), grid);
+  cont.append(grid);
 }
 
 function seccionPBS(cont: HTMLElement) {

@@ -1,59 +1,53 @@
 // Punto de entrada: pantalla de inicio y navegación.
-import {tr, IDIOMA, cambiarIdioma} from './idioma';
-import {buildMod, INFO} from './mod';
-import {h, spriteImg, storage} from './util';
+import {tr, IDIOMA} from './idioma';
+import {buildMod} from './mod';
+import {h} from './util';
 import {pantallaEquipos} from './constructor';
-import {cargarEquipos} from './equipos';
-import {app, cambiarPantalla, nav, nombreJugador} from './nucleo';
+import {app, cambiarPantalla, nav} from './nucleo';
 import {practica} from './practica';
 import {online} from './online';
 import {pokedex} from './pokedex';
-import {pantallaAvatares, barraJugador} from './avatares';
+import {pantallaAvatares} from './avatares';
 import {pantallaCreditos} from './creditos';
+import {menuPrincipal} from './menu';
+import {iniciarMusica} from './musica';
+import {pantallaPerfil} from './perfil';
 
-function inicio() {
-  app.innerHTML = '';
-  const nombre = h('input', {class: 'input input-nombre', value: nombreJugador(), placeholder: tr('Tu nombre de entrenador', 'Your trainer name'), maxlength: '18'});
-  nombre.addEventListener('change', () => storage.set('arena.nombre', nombre.value.trim()));
-  const nEquipos = cargarEquipos().length;
-  const idioma = h('div', {class: 'selector-idioma', title: tr('Idioma', 'Language')},
-    ...([['es', 'Español'], ['en', 'English']] as const).map(([id, txt]) =>
-      h('button', {class: 'idioma-btn' + (IDIOMA === id ? ' activo' : ''), onclick: () => { if (IDIOMA !== id) cambiarIdioma(id); }}, txt)));
-  app.append(h('div', {class: 'inicio'},
-    h('div', {class: 'barra-superior'}, h('div', {class: 'marca'}, h('img', {src: 'img/icono.png', alt: ''}), 'Arena Fakemon'), idioma,
-      barraJugador(nombre, () => cambiarPantalla(nav.avatares))),
-    h('div', {class: 'logo'},
-      h('div', {class: 'logo-sprites'}, ...['Somnistera', 'Railspike', 'Hazmadger'].map(s => spriteImg(s))),
-      h('h1', {}, 'Arena Fakemon'),
-      h('p', {class: 'subtitulo'}, tr('Combates Pokémon con tus criaturas, objetos y habilidades personalizadas', 'Pokémon battles with your own creatures, items and abilities'))),
-    h('div', {class: 'menu'},
-      boton('⚔', tr('Combatir online', 'Battle online'), tr('Crea una sala y pasa el código a un amigo', 'Create a room and send the code to a friend'), () => cambiarPantalla(nav.online), 'principal'),
-      boton('🤖', tr('Practicar contra la IA', 'Practice against the AI'), tr('Combates sueltos, al mejor de 3 o draft', 'Single battles, best of 3 or draft'), () => cambiarPantalla(nav.practica), 'principal'),
-      boton('🧩', tr('Mis equipos', 'My teams'), nEquipos ? tr(`${nEquipos} equipo${nEquipos > 1 ? 's' : ''} guardado${nEquipos > 1 ? 's' : ''}`, `${nEquipos} saved team${nEquipos > 1 ? 's' : ''}`) : tr('Crea tu primer equipo', 'Create your first team'), () => cambiarPantalla(nav.equipos)),
-      boton('📖', tr('Pokédex personalizada', 'Custom Pokédex'), tr('Fakemon, movimientos, habilidades, objetos y exportar a PBS', 'Fakemon, moves, abilities, items and PBS export'), () => cambiarPantalla(nav.pokedex)),
-      boton('🎟', tr('Entrenadores y gacha', 'Trainers & gacha'), tr('Elige tu avatar y abre fichas', 'Pick your avatar and open tokens'), () => cambiarPantalla(nav.avatares)),
-      boton('✎', tr('Créditos', 'Credits'), tr('Autores de los Fakemon y los sprites', 'Fakemon and sprite authors'), () => cambiarPantalla(nav.creditos))),
-    INFO.avisos.length ? h('div', {class: 'avisos'}, h('b', {}, tr('Avisos al cargar los datos:', 'Warnings while loading the data:')), ...INFO.avisos.map(a => h('div', {}, '⚠ ' + a))) : null,
-    h('footer', {class: 'pie'}, tr('Hecho con el simulador de Pokémon Showdown (licencia MIT). Pokémon es propiedad de Nintendo, Game Freak y Creatures.', 'Made with the Pokémon Showdown simulator (MIT license). Pokémon is property of Nintendo, Game Freak and Creatures.'))));
-}
-
-function boton(icono: string, titulo: string, sub: string, onclick: () => void, extra = '') {
-  return h('button', {class: 'menu-btn ' + extra, onclick}, h('span', {class: 'menu-icono'}, icono),
-    h('span', {class: 'menu-texto'}, h('b', {}, titulo), h('small', {}, sub)));
-}
-
+const inicio = menuPrincipal;
 nav.inicio = inicio;
 nav.online = online;
 nav.practica = practica;
-nav.pokedex = pokedex;
+nav.pokedex = () => pokedex();
+nav.pbs = () => pokedex(true);
 nav.avatares = () => pantallaAvatares(app, () => cambiarPantalla(inicio));
+nav.perfil = () => pantallaPerfil(app, () => cambiarPantalla(inicio));
 nav.creditos = () => pantallaCreditos(app, () => cambiarPantalla(inicio));
 nav.equipos = () => pantallaEquipos(app, () => cambiarPantalla(inicio));
 
 document.documentElement.lang = IDIOMA;
+
+// Atajo oculto del exportador PBS: Ctrl + Alt + Ñ (en Windows, AltGr + Ñ hace lo mismo).
+// Se reconoce por la tecla física (la Ñ del teclado español = 'Semicolon'), así que en otros
+// teclados es la tecla que ocupa ese sitio. Alternativa sin teclado: añadir #pbs a la dirección.
+// No se activa mientras escribes en un campo de texto. No es una medida de seguridad.
+function escribiendo(el: EventTarget | null) {
+  const e = el as HTMLElement | null;
+  return !!e && (e.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.tagName));
+}
+document.addEventListener('keydown', ev => {
+  if (!ev.ctrlKey || !ev.altKey || ev.shiftKey || ev.metaKey || ev.repeat) return;
+  if (ev.code !== 'Semicolon' && !/^ñ$/i.test(ev.key)) return;
+  if (escribiendo(ev.target)) return;
+  ev.preventDefault();
+  cambiarPantalla(nav.pbs);
+});
+const abrirPorDireccion = () => { if (location.hash === '#pbs') { history.replaceState(null, '', location.pathname + location.search); cambiarPantalla(nav.pbs); } };
+window.addEventListener('hashchange', abrirPorDireccion);
 try {
   buildMod();
+  iniciarMusica();
   inicio();
+  abrirPorDireccion();
 } catch (e: any) {
   console.error(e);
   app.innerHTML = '';

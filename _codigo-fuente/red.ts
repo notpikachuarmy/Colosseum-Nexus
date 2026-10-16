@@ -13,7 +13,8 @@ export interface Canal {
   abierto(): boolean;
 }
 
-const PREFIJO = 'arenafakemon-v1-';
+// Prefijo de las salas en PeerJS (distinto del de fanshowdown para que no se crucen las salas)
+const PREFIJO = 'colosseumnexus-v1-';
 const LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const generarCodigo = () => Array.from({length: 5}, () => LETRAS[Math.floor(Math.random() * LETRAS.length)]).join('');
 const modoLocal = () => /[?&]local=1/.test(location.search);
@@ -186,7 +187,7 @@ function traducirError(e: any): string {
 // ----------------------------------------------------- modo local (pruebas) --
 function crearSalaLocal(onCodigo: (c: string) => void, onConexion: (c: Canal) => void): Sala {
   const codigo = generarCodigo();
-  const bc = new BroadcastChannel('arena-sala-' + codigo);
+  const bc = new BroadcastChannel('cnx-sala-' + codigo);
   bc.onmessage = ev => {
     if (ev.data?.t === '__hola__') {
       const canalId = ev.data.canal;
@@ -198,14 +199,14 @@ function crearSalaLocal(onCodigo: (c: string) => void, onConexion: (c: Canal) =>
   return {codigo, cancelar() { bc.close(); }};
 }
 function unirseSalaLocal(codigo: string, onConectado: (c: Canal) => void): Sala {
-  const bc = new BroadcastChannel('arena-sala-' + codigo);
+  const bc = new BroadcastChannel('cnx-sala-' + codigo);
   const canalId = Math.random().toString(36).slice(2);
   bc.onmessage = ev => { if (ev.data?.t === '__ok__' && ev.data.canal === canalId) { bc.close(); onConectado(canalLocal(canalId, 'guest')); } };
   bc.postMessage({t: '__hola__', canal: canalId});
   return {codigo, cancelar() { bc.close(); }};
 }
 function canalLocal(id: string, rol: 'host' | 'guest'): Canal {
-  const bc = new BroadcastChannel('arena-canal-' + id);
+  const bc = new BroadcastChannel('cnx-canal-' + id);
   const mensajes: ((m: any) => void)[] = [];
   const cierres: (() => void)[] = [];
   let cerrado = false;

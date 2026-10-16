@@ -7,18 +7,17 @@ import {PantallaCombate} from './combate';
 import {Motor, IA} from './motor';
 import {app, cambiarPantalla, setLimpiar, nav, nombreJugador, selectorEquipo, selectorReserva, selectorSerie, campo, TipoSerie} from './nucleo';
 import {Serie, empaquetarSets, pantallaSeleccion} from './serie';
-import {avatarActual, avatarAleatorio, recompensaCombate} from './avatares';
+import {avatarActual, avatarHolograma, datosAvatar, recompensaCombate} from './avatares';
 import {nivelDe} from './nivel';
 
-const NOMBRE_IA = tr('IA', 'AI');
 type Modo = 'parejos' | 'mio-vs-aleatorio' | 'mio-vs-mio';
 
 export function practica() {
   app.innerHTML = '';
-  let serie = storage.get<TipoSerie>('arena.seriePractica', 'uno');
+  let serie = storage.get<TipoSerie>('cnx.seriePractica', 'uno');
   const formato = h('select', {class: 'select'}, h('option', {value: 'singles'}, tr('Individual', 'Singles')), h('option', {value: 'doubles'}, tr('Dobles', 'Doubles')));
-  formato.value = storage.get('arena.formatoPractica', 'singles');
-  formato.addEventListener('change', () => storage.set('arena.formatoPractica', formato.value));
+  formato.value = storage.get('cnx.formatoPractica', 'singles');
+  formato.addEventListener('change', () => storage.set('cnx.formatoPractica', formato.value));
   const reserva = selectorReserva();
   let sel = selectorEquipo(serie === 'draft' ? 'draft' : 'normal');
   let rival = selectorEquipo(serie === 'draft' ? 'draft' : 'normal');
@@ -28,7 +27,7 @@ export function practica() {
   const pintar = () => {
     sel = selectorEquipo(serie === 'draft' ? 'draft' : 'normal');
     rival = selectorEquipo(serie === 'draft' ? 'draft' : 'normal');
-    const actual = storage.get('arena.modoPractica', 'parejos');
+    const actual = storage.get('cnx.modoPractica', 'parejos');
     modo.innerHTML = '';
     modo.append(h('option', {value: 'parejos'}, serie === 'draft' ? tr('Plantillas aleatorias parejas (12 cada uno)', 'Balanced random rosters (12 each)') : tr('Los dos con equipos aleatorios parejos', 'Both with balanced random teams')));
     if (!sel.vacio) {
@@ -39,7 +38,7 @@ export function practica() {
     const m = modo.value as Modo;
     cont.innerHTML = '';
     cont.append(...[
-      campo(tr('Tipo de partida', 'Match type'), selectorSerie(serie, v => { serie = v; storage.set('arena.seriePractica', v); pintar(); })),
+      campo(tr('Tipo de partida', 'Match type'), selectorSerie(serie, v => { serie = v; storage.set('cnx.seriePractica', v); pintar(); })),
       campo(tr('Equipos', 'Teams'), modo),
       m !== 'mio-vs-mio' ? campo(tr('Pokémon de los equipos aleatorios', 'Pokémon in random teams'), reserva.el) : null,
       m !== 'parejos' ? campo(serie === 'draft' ? tr('Tu plantilla', 'Your roster') : tr('Tu equipo', 'Your team'), sel.el) : null,
@@ -48,7 +47,7 @@ export function practica() {
       campo(tr('Formato', 'Format'), formato),
       h('button', {class: 'btn btn-grande', onclick: empezar}, tr('¡A combatir!', 'Battle!'))].filter(Boolean) as HTMLElement[]);
   };
-  modo.addEventListener('change', () => { storage.set('arena.modoPractica', modo.value); pintar(); });
+  modo.addEventListener('change', () => { storage.set('cnx.modoPractica', modo.value); pintar(); });
 
   function empezar() {
     const f = formato.value as 'singles' | 'doubles';
@@ -73,18 +72,21 @@ export function practica() {
     cambiarPantalla(() => serieLocal(new Serie(serie), rosters, f, m === 'parejos' ? r : null));
   }
 
-  app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(nav.inicio)}, tr('← Inicio', '← Home')), h('h2', {}, tr('Practicar contra la IA', 'Practice against the AI'))), cont);
+  app.append(h('header', {class: 'barra'}, h('button', {class: 'btn btn-sec', onclick: () => cambiarPantalla(nav.inicio)}, tr('← Inicio', '← Home')), h('h2', {}, tr('Combate de práctica', 'Practice battle'))), cont);
   pintar();
 }
 
 /** Una serie contra la IA */
 function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singles' | 'doubles', reserva: Reserva | null) {
   const yo = nombreJugador() || tr('Tú', 'You');
+  // El rival es un holoentrenador (avatar con la etiqueta Hologramas) controlado por la IA
+  const avatares = {p1: avatarActual(), p2: avatarHolograma()};
+  let NOMBRE_IA = datosAvatar(avatares.p2).nombre;
+  if (NOMBRE_IA === yo) NOMBRE_IA += ' (IA)';
   const nombres: [string, string] = [yo, NOMBRE_IA];
   let previa: number[] | undefined;
   let activo = true;
   let limpiarJuego: (() => void) | null = null;
-  const avatares = {p1: avatarActual(), p2: avatarAleatorio()};
   setLimpiar(() => { activo = false; limpiarJuego?.(); });
 
   const siguiente = () => {
@@ -95,7 +97,7 @@ function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singl
       app.append(raiz);
       pantallaSeleccion(raiz, {
         titulo: tr(`Combate ${serie.juego}`, `Battle ${serie.juego}`), marcador: serie.texto(nombres), roster: rosters[0], previa,
-        rosterRival: rosters[1].map(s => ({species: s.species})), nombreRival: tr('la IA', 'the AI'),
+        rosterRival: rosters[1].map(s => ({species: s.species})), nombreRival: NOMBRE_IA,
         onListo: indices => {
           previa = indices;
           const iaIndices = [...rosters[1].keys()].sort(() => Math.random() - 0.5).slice(0, 6);
@@ -130,7 +132,7 @@ function serieLocal(serie: Serie, rosters: [SetPkm[], SetPkm[]], formato: 'singl
         if (serie.alMejorDe3) botones.push(h('div', {class: 'marcador'}, serie.texto(nombres)));
         if (!serie.terminada) botones.push(h('button', {class: 'btn', onclick: () => { limpiarJuego?.(); siguiente(); }}, tr('Siguiente combate', 'Next battle')));
         else {
-          if (serie.alMejorDe3) botones.push(h('div', {class: 'fin-serie'}, serie.marcador[0] > serie.marcador[1] ? tr('🏆 ¡Has ganado la serie!', '🏆 You won the series!') : tr('La IA gana la serie', 'The AI wins the series')));
+          if (serie.alMejorDe3) botones.push(h('div', {class: 'fin-serie'}, serie.marcador[0] > serie.marcador[1] ? tr('🏆 ¡Has ganado la serie!', '🏆 You won the series!') : tr(`${NOMBRE_IA} gana la serie`, `${NOMBRE_IA} wins the series`)));
           botones.push(h('button', {class: 'btn', onclick: () => {
             const nuevos: [SetPkm[], SetPkm[]] = reserva ? (() => { const [a, b] = equiposParejos(reserva, rosters[0].length); return [a.sets, b.sets] as [SetPkm[], SetPkm[]]; })() : rosters;
             cambiarPantalla(() => serieLocal(new Serie(serie.tipo), nuevos, formato, reserva));

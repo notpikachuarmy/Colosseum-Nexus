@@ -1,0 +1,14 @@
+{
+  "name": "colosseum-nexus-desarrollo",
+  "private": true,
+  "description": "Herramientas para generar app.js y probar Colosseum Nexus. Ver LEEME.md.",
+  "scripts": {
+    "compilar": "bun build ../_codigo-fuente/app.ts --target=browser --minify --outfile ../app.js",
+    "pruebas": "bun pruebas-motor/todas.ts",
+    "servidor": "bunx serve .. -l 8080",
+    "pruebas-web": "node pruebas-web/p17.js && node pruebas-web/p18.js && node pruebas-web/p20.js"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
