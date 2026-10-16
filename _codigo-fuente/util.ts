@@ -141,6 +141,7 @@ export function nombreVisible(species: string) {
   const d = dex();
   const sp = d.species.get(species);
   // Tus versiones de Pokémon oficiales se ven como «Diglett Jagara» (el nombre interno sigue siendo Diglett-Custom)
+  if (INFO.nombresFijos?.[sp.id]) return INFO.nombresFijos[sp.id];
   if (INFO.regionales.has(sp.id)) return `${sp.baseSpecies} ${NOMBRE_REGION()}`;
   // Megaevoluciones personalizadas: «Mega Metagross X»
   if (INFO.custom.has(sp.id) && /^Mega(-|$)/.test(sp.forme || '')) return `Mega ${sp.baseSpecies}${sp.forme.slice(4).replace(/-/g, ' ')}`;

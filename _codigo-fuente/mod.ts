@@ -31,6 +31,8 @@ export interface InfoCustom {
   versiones: Set<string>;
   /** Ids que se muestran como «Especie Jagara» (tus versiones y las formas con regional: true) */
   regionales: Set<string>;
+  /** Nombre que se enseña tal cual (campo «mostrar» de pokemon.js), p. ej. «Lugia Oscuro» */
+  nombresFijos: {[id: string]: string};
   /** ids de objetos personalizados */
   objetos: Set<string>;
   /** id de objeto -> archivo de sprite */
@@ -41,7 +43,7 @@ export interface InfoCustom {
   quitarTipos: {[id: string]: string[]};
 }
 
-export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, versiones: new Set(), regionales: new Set(), objetos: new Set(), spritesObjeto: {}, editados: new Set(), quitarTipos: {}};
+export const INFO: InfoCustom = {sprites: {}, custom: new Set(), avisos: [], nombresForma: {}, versiones: new Set(), regionales: new Set(), nombresFijos: {}, objetos: new Set(), spritesObjeto: {}, editados: new Set(), quitarTipos: {}};
 
 let cached: any = null;
 
@@ -66,6 +68,34 @@ export function formatoCon(formato: 'singles' | 'doubles', prohibidos: Poder[] =
   const nombre = `${FORMATOS[formato]} (sin ${no.join('-')})`;
   if (!variantes.has(nombre)) {
     Dex.formats.extend([{...BASES_FORMATO[formato], name: nombre, prohibidos: no}] as any);
+    variantes.add(nombre);
+  }
+  return nombre;
+}
+
+/**
+ * Jefe de incursión (1 contra 6), regla aprobada para Aracamara:
+ *  - PS ×hp y el resto de stats ×stats.
+ *  - Barra en «tramos»: un golpe no puede romper más de un tramo (el daño de más se pierde).
+ *  - Al romper un tramo levanta el Telón durante «escudo» turnos (recibe la mitad de daño de los
+ *    movimientos) y quita las mejoras de stats a tus Pokémon en el campo.
+ *  - Inmune a los KO en un golpe y al daño por porcentaje.
+ *  - Si no cae antes del final del turno «turnos», gana el jefe.
+ */
+export interface ConfigJefe {hp: number; stats: number; tramos: number; escudo: number; turnos: number}
+export const JEFE_POR_DEFECTO: ConfigJefe = {hp: 4, stats: 1.3, tramos: 3, escudo: 2, turnos: 12};
+const msgDoble = (es: string, en: string) => `${es} ‖ ${en}`;
+const DANO_PORCENTAJE = ['superfang', 'endeavor', 'painsplit', 'ruination', 'naturesmadness', 'guardianofalola', 'finalgambit'];
+
+/** Formato individual con un jefe de incursión en el lado p2 */
+export function formatoJefe(cfg: Partial<ConfigJefe> = {}): string {
+  buildMod();
+  const c = {...JEFE_POR_DEFECTO, ...cfg};
+  const nombre = `${FORMATOS.singles} (jefe ${c.hp}-${c.stats}-${c.tramos}-${c.escudo}-${c.turnos})`;
+  if (!variantes.has(nombre)) {
+    Dex.formats.extend([{...BASES_FORMATO.singles, name: nombre, jefe: c,
+      onSwitchIn(pokemon: any) { if (pokemon.side.id === 'p2' && !pokemon.volatiles['jefeincursion']) pokemon.addVolatile('jefeincursion'); },
+    }] as any);
     variantes.add(nombre);
   }
   return nombre;
@@ -409,6 +439,7 @@ export function buildMod() {
         if (p.nombreForma) INFO.nombresForma[id] = p.nombreForma;
         if (p.regional) INFO.regionales.add(id);
       }
+      if (p.mostrar) INFO.nombresFijos[id] = String(p.mostrar);
     }
 
     if (p.preevo) enlaces.push([name, resolver(p.preevo)]);
@@ -514,6 +545,64 @@ export function buildMod() {
 
   const Conditions: AnyObj = {};
   for (const [id, data] of Object.entries<AnyObj>(W.DATOS_CONDICIONES || {})) Conditions[toID(id)] = {...data};
+  // Jefe de incursión (ver formatoJefe)
+  Conditions.jefeincursion = {
+    name: 'Jefe Incursion',   // sin tilde: el id interno queda «jefeincursion»
+    onStart(this: any, pokemon: any) {
+      const c: ConfigJefe = {...JEFE_POR_DEFECTO, ...(this.format.jefe || {})};
+      this.effectState.cfg = c;
+      this.effectState.escudo = 0;
+      if (!pokemon.m.jefeListo) {
+        pokemon.m.jefeListo = true;
+        for (const s of ['atk', 'def', 'spa', 'spd', 'spe']) pokemon.storedStats[s] = Math.floor(pokemon.storedStats[s] * c.stats);
+        pokemon.baseMaxhp = pokemon.maxhp = Math.floor(pokemon.maxhp * c.hp);
+        pokemon.hp = pokemon.maxhp;
+      }
+      this.add('-message', msgDoble(`¡${pokemon.name} es un JEFE! Su barra tiene ${c.tramos} tramos y tienes ${c.turnos} turnos para vencerlo.`,
+        `${pokemon.name} is a BOSS! Its bar has ${c.tramos} sections and you have ${c.turnos} turns to beat it.`));
+    },
+    onTryHitPriority: 2,
+    onTryHit(this: any, target: any, source: any, move: any) {
+      if (target === source) return;
+      if (move.ohko || DANO_PORCENTAJE.includes(move.id)) {
+        this.add('-immune', target);
+        this.add('-message', msgDoble('¡El jefe es inmune a ese ataque!', 'The boss is immune to that move!'));
+        return null;
+      }
+    },
+    onDamagePriority: -101,   // después de todo lo demás: lo último que se decide es cuánto llega a la barra
+    onDamage(this: any, damage: number, target: any, source: any, effect: any) {
+      const st = this.effectState, c: ConfigJefe = st.cfg;
+      let d = damage;
+      if (st.escudo > 0 && effect?.effectType === 'Move') d = Math.max(1, Math.floor(d / 2));
+      // Bordes entre tramos (en PS); el «suelo» es el borde más alto que está POR DEBAJO de los PS actuales
+      const bordes = Array.from({length: c.tramos - 1}, (_, i) => Math.round((i + 1) * target.maxhp / c.tramos));
+      const suelo = Math.max(0, ...bordes.filter(b => b < target.hp));
+      if (suelo > 0 && target.hp - d <= suelo) {
+        d = target.hp - suelo;                           // el golpe se queda justo en el borde del tramo
+        st.escudo = c.escudo + 1;                        // +1 porque este mismo turno ya resta uno al final
+        this.add('-start', target, 'Telón');
+        this.add('-message', msgDoble(`¡La barra de ${target.name} se ha roto! Baja el Telón: recibirá la mitad de daño ${c.escudo} turnos.`,
+          `${target.name}'s bar broke! The Curtain falls: it takes half damage for ${c.escudo} turns.`));
+        for (const foe of target.side.foe.active) {
+          if (foe && !foe.fainted && Object.values(foe.boosts).some((v: any) => v > 0)) {
+            for (const s in foe.boosts) if (foe.boosts[s] > 0) foe.boosts[s] = 0;
+            this.add('-clearpositiveboost', foe, target, 'move: Telón');
+          }
+        }
+      }
+      return d;
+    },
+    onResidualOrder: 29,
+    onResidual(this: any, pokemon: any) {
+      const st = this.effectState, c: ConfigJefe = st.cfg;
+      if (st.escudo > 0) { st.escudo--; if (!st.escudo) this.add('-end', pokemon, 'Telón'); }
+      if (this.turn >= c.turnos && pokemon.hp > 0) {
+        this.add('-message', msgDoble(`¡Se acabó el tiempo! ${pokemon.name} ha terminado su película…`, `Time's up! ${pokemon.name} finished its movie…`));
+        this.win(pokemon.side);
+      }
+    },
+  };
   const dex = Dex.mod(MOD_ID, {Scripts, Pokedex, Learnsets, Abilities, Moves, Items, FormatsData, Conditions} as any);
   Dex.formats.extend(Formats as any);
   cached = dex;

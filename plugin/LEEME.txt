@@ -11,7 +11,7 @@ CONTENIDO
     Arena Fakemon - Objetos/       000_Base.rb + un archivo por objeto.
   PBS/
     abilities_custom.txt   10 habilidades
-    moves_custom.txt       18 movimientos
+    moves_custom.txt       22 movimientos
     items_custom.txt       24 objetos equipables + 4 de evolución + Metagrossita X
   Graphics/Items/          Los iconos de todos esos objetos, ya con el nombre del ID.
 
@@ -64,8 +64,20 @@ QUÉ HACE CADA COSA NUEVA
     MINDSNARE    (Trampa Mental)     Trampa de entrada Psíquica: confunde al entrar
                                      (si toca el suelo). Inmunes: tipo Siniestro,
                                      voladores/Levitación y Botas Gruesas.
+    Movimientos oscuros de Lugia Oscuro (no usan la tabla de tipos: x1,3 de
+    daño a todos y x0,5 a otros Pokémon oscuros; no se copian con Esquema)
+    XDSHADOWBLAST (Soplo Oscuro)  Especial 80, crítico alto
+    XDSHADOWSHED  (Muda Oscura)   Quita Reflejo, Pantalla de Luz y Velo Sagrado rivales
+    XDSHADOWDUSK  (Ocaso Oscuro)  Baja 2 la Defensa de todos los rivales
+    XDSHADOWSTORM (Tifón Oscuro)  Especial 95, sin efecto extra; en dobles a todos
 
 NOTAS
+- Movimientos oscuros: llevan IDs XDSHADOW... porque Essentials puede traer ya sus
+  propios SHADOWBLAST, SHADOWSHED y SHADOWSTORM (los de Pokémon XD, con otro
+  efecto). En el PBS van con tipo NORMAL: el plugin hace que ignoren la tabla
+  de tipos. Lugia Oscuro sale en la exportación de la web como forma 1 de Lugia
+  (pokemon_forms_custom.txt, [LUGIA,1]); si en tu juego tiene otro número de
+  forma, cámbialo en 000_Base.rb (SHADOW_FORMS).
 - Los plugins de habilidades y movimientos extra siguen el mismo código que usa
   Essentials 21.1 para Intimidación, Absorbe Savia, Púas, Liofilización, etc.
   No se han podido probar dentro de un juego real: si algo da error al compilar,

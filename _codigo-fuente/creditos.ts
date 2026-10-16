@@ -5,7 +5,7 @@ import {h, dex, spriteImg, nombreVisible} from './util';
 import {AVATARES, avatarImg} from './avatares';
 
 const W: any = window;
-export interface Autores {idea: string, diseno: string, sprites: string}
+export interface Autores {idea: string, diseno: string, sprites: string, spritesShiny?: string}
 
 /** Autores de un Fakemon (null si es un Pokémon oficial sin cambios de diseño) */
 export function creditosDe(especie: string): Autores | null {
@@ -25,7 +25,7 @@ export function bloqueCreditos(especie: string): HTMLElement | null {
   if (!c) return null;
   const fila = (etq: string, quien: string) => h('span', {}, h('span', {class: 'tenue'}, etq), ' ', h('b', {}, quien));
   return h('div', {class: 'dex-creditos'}, '✎ ',
-    fila(tr('Idea:', 'Idea:'), c.idea), ' · ', fila(tr('Diseño:', 'Design:'), c.diseno), ' · ', fila(tr('Sprites:', 'Sprites:'), c.sprites));
+    fila(tr('Idea:', 'Idea:'), c.idea), ' · ', fila(tr('Diseño:', 'Design:'), c.diseno), ' · ', fila(tr('Sprites:', 'Sprites:'), c.sprites), c.spritesShiny ? ' · ' : '', c.spritesShiny ? fila(tr('Sprites shiny:', 'Shiny sprites:'), c.spritesShiny) : '');
 }
 
 /** Pantalla de créditos */
@@ -39,7 +39,7 @@ export function pantallaCreditos(raiz: HTMLElement, volver: () => void) {
     if (!sp.exists || (sp.battleOnly && !sp.isMega && !sp.requiredItem)) continue;
     const a = creditosDe(sp.name);
     if (!a) continue;
-    const k = `${a.idea}|${a.diseno}|${a.sprites}`;
+    const k = `${a.idea}|${a.diseno}|${a.sprites}|${a.spritesShiny || ''}`;
     if (!grupos.has(k)) grupos.set(k, {a, especies: []});
     grupos.get(k)!.especies.push(sp.name);
   }
@@ -69,7 +69,8 @@ export function pantallaCreditos(raiz: HTMLElement, volver: () => void) {
           h('div', {class: 'cred-personas'},
             persona(tr('Idea del diseño', 'Design idea'), g.a.idea),
             persona(tr('Diseño final', 'Final design'), g.a.diseno),
-            persona(tr('Sprites', 'Sprites'), g.a.sprites)),
+            persona(tr('Sprites', 'Sprites'), g.a.sprites),
+            g.a.spritesShiny ? persona(tr('Sprites shiny', 'Shiny sprites'), g.a.spritesShiny) : null),
           h('div', {class: 'cred-sprites'}, ...g.especies.map(n => {
             const el = h('div', {class: 'cred-poke', title: nombreVisible(n)}, spriteImg(n), h('small', {}, nombreVisible(n)));
             return el;

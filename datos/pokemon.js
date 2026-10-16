@@ -310,6 +310,12 @@ window.DATOS_POKEMON = [
     movimientos: ['Ceniza Sofocante', ...MOV_DRAGON, 'Dragon Hammer', 'Scorching Sands'], sprite: 'HOOH' },
   { nombre: 'Lugia', base: 'Lugia', tipos: ['Dragon', 'Flying'], stats: [106, 110, 120, 100, 134, 110],
     movimientos: ['Golpe de Ventisca', ...MOV_DRAGON, 'Dragon Hammer'], sprite: 'LUGIA' },
+  // Lugia Oscuro (Pokémon XD: Tempestad Oscura). Mismos movimientos que Lugia + los 4 oscuros.
+  // Stats: los de Lugia algo más fuertes (PROVISIONAL, cámbialos si quieres). Se compra en la Tienda.
+  { nombre: 'Lugia-Oscuro', base: 'Lugia', forma: 'Oscuro', mostrar: 'Lugia Oscuro', tipos: ['Psychic', 'Flying'], stats: [115, 100, 140, 100, 164, 120],
+    habilidades: ['Pressure'], oculta: 'Multiscale',
+    movimientos: ['Soplo Oscuro', 'Muda Oscura', 'Ocaso Oscuro', 'Tifón Oscuro'], sprite: 'LUGIAOSCURO',
+    categoria: 'Shadow', nombreFormaEN: 'Shadow' },
   { nombre: 'Rayquaza', base: 'Rayquaza', tipos: ['Dragon', 'Flying'], stats: [110, 160, 95, 130, 90, 95], sprite: 'RAYQUAZA' },
   { nombre: 'Hoopa-Lampara', base: 'Hoopa', tipos: ['Psychic', 'Ghost'], forma: 'Lampara', regional: true,
     nombreForma: 'Genio Místico de la Lámpara', nombreFormaEN: 'Mystic Lamp Genie', stats: [80, 100, 80, 140, 120, 80],

@@ -9,7 +9,8 @@ export class Motor {
   private oyentes: {[k: string]: ((chunk: string) => void)[]} = {p1: [], p2: [], omni: []};
   terminado = false;
 
-  constructor(formato: 'singles' | 'doubles', p1: {nombre: string, equipo: string}, p2: {nombre: string, equipo: string}, sinPoderes: Poder[] = []) {
+  /** formatoId: un formato especial ya creado (p. ej. formatoJefe()); si se da, manda sobre «formato» */
+  constructor(formato: 'singles' | 'doubles', p1: {nombre: string, equipo: string}, p2: {nombre: string, equipo: string}, sinPoderes: Poder[] = [], formatoId = '') {
     buildMod();
     this.streams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
     for (const k of ['p1', 'p2', 'omniscient'] as const) {
@@ -23,7 +24,7 @@ export class Motor {
         }
       })();
     }
-    const spec = {formatid: formatoCon(formato, sinPoderes)};
+    const spec = {formatid: formatoId || formatoCon(formato, sinPoderes)};
     void this.streams.omniscient.write(`>start ${JSON.stringify(spec)}\n` +
       `>player p1 ${JSON.stringify({name: p1.nombre, team: p1.equipo})}\n` +
       `>player p2 ${JSON.stringify({name: p2.nombre, team: p2.equipo})}`);

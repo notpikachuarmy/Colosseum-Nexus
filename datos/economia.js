@@ -21,6 +21,12 @@ window.ECONOMIA = {
   // El precio depende de su rareza.
   avatarPorRareza: { comun: 150, raro: 250, epico: 400, legendario: 650 },
 
+  // Fakemon de la tienda: se desbloquean al comprarlos (hasta entonces no puedes
+  // usarlos en tus equipos; la IA y otros jugadores sí).
+  fakemon: [
+    { especie: 'Lugia-Oscuro', precio: 1000 },
+  ],
+
   // Pases: el precio depende de cuánto contenido traen (los pases no caducan).
   // precio = base + porRecompensa × número de recompensas del pase.
   // Un pase antiguo (cuando ya hay otros más nuevos) cuesta menos.

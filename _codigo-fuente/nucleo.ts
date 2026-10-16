@@ -18,8 +18,8 @@ export function cambiarPantalla(f: () => void) {
 }
 
 /** Navegación entre pantallas (se rellena en app.ts para evitar dependencias circulares) */
-export const nav: {inicio: () => void, online: () => void, practica: () => void, equipos: () => void, pokedex: () => void, avatares: () => void, creditos: () => void, pbs: () => void, perfil: () => void} = {
-  inicio() {}, online() {}, practica() {}, equipos() {}, pokedex() {}, avatares() {}, creditos() {}, pbs() {}, perfil() {},
+export const nav: {inicio: () => void, online: () => void, practica: () => void, equipos: () => void, pokedex: () => void, avatares: () => void, creditos: () => void, pbs: () => void, perfil: () => void, historia: () => void} = {
+  inicio() {}, online() {}, practica() {}, equipos() {}, pokedex() {}, avatares() {}, creditos() {}, pbs() {}, perfil() {}, historia() {},
 };
 
 export function nombreJugador(): string { return storage.get('cnx.nombre', ''); }

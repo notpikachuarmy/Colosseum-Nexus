@@ -216,3 +216,48 @@ Target = FoeSide
 FunctionCode = AddMindSnareToFoeSide
 Flags = CanMagicCoat
 Description = Sows illusions on the opposing side: Pokémon that switch in on the ground become confused. Dark types are immune. Removed like other entry hazards.
+#-------------------------------
+[XDSHADOWBLAST]
+Name = Shadow Blast
+Type = NORMAL
+Category = Special
+Power = 80
+Accuracy = 100
+TotalPP = 3
+Target = NearOther
+FunctionCode = ShadowMoveHighCritical
+Flags = CanProtect,CanMirrorMove,HighCriticalHitRate
+Description = Shadow move. High critical-hit ratio. Ignores type matchups: x1.3 against everyone (x0.5 against Shadow Pokémon).
+#-------------------------------
+[XDSHADOWSHED]
+Name = Shadow Shed
+Type = NORMAL
+Category = Status
+Accuracy = 100
+TotalPP = 3
+Target = FoeSide
+FunctionCode = ShadowRemoveScreensFoeSide
+Description = Shadow move. Removes Reflect, Light Screen and Safeguard from the opposing side.
+#-------------------------------
+[XDSHADOWDUSK]
+Name = Shadow Dusk
+Type = NORMAL
+Category = Status
+Accuracy = 100
+TotalPP = 5
+Target = AllNearFoes
+FunctionCode = ShadowLowerTargetsDefense2
+Flags = CanProtect,CanMagicCoat,CanMirrorMove
+Description = Shadow move. Harshly lowers all opponents' Defense.
+#-------------------------------
+[XDSHADOWSTORM]
+Name = Shadow Storm
+Type = NORMAL
+Category = Special
+Power = 95
+Accuracy = 100
+TotalPP = 3
+Target = AllNearFoes
+FunctionCode = ShadowMoveNoEffect
+Flags = CanProtect,CanMirrorMove,Wind
+Description = Shadow move with no extra effect. Hits all opponents in doubles. Ignores type matchups: x1.3 against everyone (x0.5 against Shadow Pokémon).

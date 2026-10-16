@@ -11,6 +11,7 @@ export const FONDOS: Fondo[] = ((W.FONDOS || []) as any[]).filter(f => f && f.id
 }));
 const CLIMA_IMG: {[k: string]: string} = W.CLIMA_IMAGEN || {};
 const PELIGRO_IMG: {[k: string]: string} = W.PELIGROS_IMAGEN || {};
+const NIEBLA = {imagen: String(W.NIEBLA?.imagen || ''), lado: (W.NIEBLA?.condicionesLado || []) as string[], movimientos: (W.NIEBLA?.movimientos || []) as string[]};
 const TINTE = {opacidad: Math.min(1, Math.max(0, +(W.TINTE_CAMPO?.opacidad ?? 0.22))), colores: (W.TINTE_CAMPO?.colores || {}) as {[k: string]: string}};
 
 // ---------------------------------------------------------------- guardado --
@@ -56,11 +57,14 @@ export function crearCapas() {
     yo: h('div', {class: 'capa-peligros peligros-yo', 'aria-hidden': 'true'}),
   };
   const clima = h('div', {class: 'capa-clima', 'aria-hidden': 'true'});
+  const niebla = h('div', {class: 'capa-niebla', 'aria-hidden': 'true'});
   let firma = '';
   const actualizar = (e: Estado) => {
     const terreno = [...e.campo.keys()].find(k => k.endsWith('terrain') && TINTE.colores[k]) || '';
     const lado = (l: LadoId) => [...e.lados[l].condiciones.entries()].filter(([k]) => PELIGRO_IMG[k]).map(([k, n]) => `${k}:${n}`).join(',');
-    const nueva = [terreno, CLIMA_IMG[e.clima] || '', lado(e.rival), lado(e.yo)].join('|');
+    // Niebla: Neblina activa en algún lado, o un movimiento de niebla usado este turno (Niebla Espejo)
+    const hayNiebla = !!NIEBLA.imagen && ((['p1', 'p2'] as LadoId[]).some(l => NIEBLA.lado.some(k => e.lados[l].condiciones.has(k))) || NIEBLA.movimientos.some(m => e.movimientosTurno.has(m)));
+    const nueva = [terreno, CLIMA_IMG[e.clima] || '', lado(e.rival), lado(e.yo), hayNiebla].join('|');
     if (nueva === firma) return;    // nada ha cambiado: no se toca la página
     firma = nueva;
     tinte.style.background = terreno ? TINTE.colores[terreno] : 'transparent';
@@ -69,6 +73,8 @@ export function crearCapas() {
     const img = CLIMA_IMG[e.clima];
     clima.style.backgroundImage = img ? `url("${img}")` : 'none';
     clima.dataset.clima = img ? e.clima : '';
+    niebla.style.backgroundImage = hayNiebla ? `url("${NIEBLA.imagen}")` : 'none';
+    niebla.classList.toggle('activa', hayNiebla);
     for (const [quien, l] of [['rival', e.rival], ['yo', e.yo]] as const) {
       const cont = peligros[quien];
       cont.innerHTML = '';
@@ -81,7 +87,7 @@ export function crearCapas() {
       }
     }
   };
-  return {tinte, peligros, clima, actualizar};
+  return {tinte, peligros, clima, niebla, actualizar};
 }
 
 // --------------------------------------------------------------- selector --

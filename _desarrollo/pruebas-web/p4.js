@@ -7,10 +7,14 @@ const {SHOTS, nuevaPagina, preparar} = require('./comun');
   const page = await nuevaPagina(ctx, errs, 'P');
   page.on('dialog', d => d.accept());
   await preparar(page);
+  // El equipo de prueba lleva Ferroantena, que se desbloquea en el modo historia: se da por conseguida
+  await page.evaluate(() => localStorage.setItem('cnx.pases.v1', JSON.stringify({desbloqueados: ['ferroantena', 'espinaferoz']})));
   for (const [eq, f] of [['e1', 'singles'], ['e2', 'doubles']]) {
     await page.click('.mp-tarjeta[data-id=practica]');
-    await page.selectOption('.formulario select >> nth=0', eq);
-    await page.selectOption('.formulario select >> nth=1', f);
+    await page.selectOption('.formulario select >> nth=1', 'mio-vs-mio');
+    await page.selectOption('.formulario select >> nth=2', eq);
+    await page.selectOption('.formulario select >> nth=3', eq);
+    await page.selectOption('.formulario select >> nth=4', f);
     await page.click('text=¡A combatir!');
     await page.waitForSelector('.preview');
     await page.screenshot({path: SHOTS + 'preview-' + f + '.png'});

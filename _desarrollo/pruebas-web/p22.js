@@ -28,9 +28,10 @@ const fallos = []; const ok = (n, c) => { console.log((c ? 'OK  ' : 'FAIL') + ' 
       await p.focus('.mp-tarjeta[data-id=online]'); await p.keyboard.press('ArrowRight'); await p.keyboard.press('ArrowRight');
       ok('flechas del teclado', await p.evaluate(() => document.activeElement?.dataset?.id) === 'equipos');
       ok('descripción de la opción', (await p.textContent('.mp-descripcion')).length > 5);
-      // Historia: próximamente
-      await p.click('.mp-tarjeta[data-id=historia]'); await p.waitForTimeout(200);
-      ok('historia avisa "próximamente"', (await p.textContent('body')).includes('próximamente'));
+      // Historia: ya está disponible (Fase 10) y se vuelve al menú
+      await p.click('.mp-tarjeta[data-id=historia]'); await p.waitForSelector('.hist-cap');
+      ok('historia abre la lista de historias', (await p.$$('.hist-cap')).length === 2);
+      await p.click('text=← Inicio'); await p.waitForSelector('.mp-fila');
       // Ajustes: volumen y nombre se guardan
       await p.click('.mp-ajustes'); await p.waitForSelector('.modal.ajustes');
       await p.screenshot({path: SHOTS + 'ajustes.png'});

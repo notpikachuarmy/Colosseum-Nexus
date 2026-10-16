@@ -38,7 +38,7 @@ export function menuPrincipal() {
     {id: 'online', img: 'online', titulo: tr('Combate online', 'Online battle'), texto: tr('Crea una sala y pasa el código a un amigo', 'Create a room and send the code to a friend'), ir: () => cambiarPantalla(nav.online)},
     {id: 'practica', img: 'practica', titulo: tr('Combate de práctica', 'Practice battle'), texto: tr('Combate contra holoentrenadores controlados por la IA', 'Battle hologram trainers controlled by the AI'), ir: () => cambiarPantalla(nav.practica)},
     {id: 'equipos', img: 'equipos', titulo: tr('Equipos', 'Teams'), texto: tr('Crea y edita tus equipos y plantillas de draft', 'Build and edit your teams and draft rosters'), ir: () => cambiarPantalla(nav.equipos)},
-    {id: 'historia', img: 'historia', titulo: tr('Historia', 'Story'), texto: tr('Próximamente', 'Coming soon'), pronto: true},
+    {id: 'historia', img: 'historia', titulo: tr('Historia', 'Story'), texto: tr('Recorre las rutas, vence a sus jefes y consigue recompensas', 'Travel the routes, beat their bosses and earn rewards'), ir: () => cambiarPantalla(nav.historia)},
     {id: 'pokedex', img: 'pokedex', titulo: tr('Pokédex', 'Pokédex'), texto: tr('Fakemon, movimientos, habilidades y objetos', 'Fakemon, moves, abilities and items'), ir: () => cambiarPantalla(nav.pokedex)},
     {id: 'gacha', img: 'gacha', titulo: tr('Gacha', 'Gacha'), texto: tr('Abre tickets y compra en la tienda con tus PV', 'Open tickets and spend your PV in the shop'), ir: () => cambiarPantalla(nav.avatares)},
     {id: 'creditos', img: 'creditos', titulo: tr('Créditos', 'Credits'), texto: tr('Quién ha hecho Colosseum Nexus', 'Who made Colosseum Nexus'), ir: () => cambiarPantalla(nav.creditos)},

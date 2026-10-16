@@ -1,8 +1,8 @@
 // Avatares de jugador: colección, tickets de gacha, Puntos Victoria (PV) y pantallas de colección y gacha.
 import {tr, EN} from './idioma';
-import {h, storage, toast, sleep} from './util';
+import {h, storage, toast, sleep, dex, spriteImg, nombreVisible, tipoBadge} from './util';
 import {registrarCombate, insignia, TipoNivel} from './nivel';
-import {experienciaPase, panelPases, PASES, precioPase, estadoPases} from './pases';
+import {experienciaPase, panelPases, PASES, precioPase, estadoPases, bloqueo, desbloquear} from './pases';
 import {titulosCombate, revisarTitulos} from './titulos';
 import type {Estado} from './estado';
 
@@ -32,6 +32,7 @@ export const ECO = {
   ticket: num(E.tickets?.uno, 50),
   pack10: num(E.tickets?.pack10, 450),
   avatarPorRareza: {comun: 150, raro: 250, epico: 400, legendario: 650, ...(E.avatarPorRareza || {})} as {[r: string]: number},
+  fakemon: ((E.fakemon || []) as any[]).filter(f => f && f.especie).map(f => ({especie: String(f.especie), precio: num(f.precio, 1000)})),
   pase: {base: num(E.pase?.base, 300), porRecompensa: num(E.pase?.porRecompensa, 45), descuentoAntiguo: Math.min(1, Math.max(0, +(E.pase?.descuentoAntiguo ?? 0.7)))},
 };
 /** Turnos mínimos para que un combate dé premio (evita rendiciones al momento) */
@@ -187,6 +188,18 @@ export function comprarAvatar(id: string): ResultadoCompra {
     c.pv -= precio; c.tengo[id] = 1;
   });
   return ok ? {ok: true, texto: tr(`¡${a.nombre} es tuyo!`, `${a.nombre} is yours!`)} : {ok: false, texto: motivo};
+}
+
+/** Compra un Fakemon de la tienda: lo desbloquea para tus equipos */
+export function comprarFakemon(especie: string): ResultadoCompra {
+  const f = ECO.fakemon.find(x => x.especie === especie);
+  if (!f) return {ok: false, texto: tr('Ese Fakemon no está en la tienda', 'That Fakemon is not in the shop')};
+  if (!bloqueo(especie)) return {ok: false, texto: tr('Ya lo tienes', 'You already own it')};
+  if (coleccion().pv < f.precio) return {ok: false, texto: tr('No tienes PV suficientes', 'Not enough PV')};
+  // Todo seguido: primero se desbloquea y luego se cobra (así la tienda se repinta ya desbloqueado)
+  desbloquear([especie]);
+  cambiarColeccion(c => { c.pv -= f.precio; });
+  return {ok: true, texto: tr(`¡${nombreVisible(especie)} ya puede ir en tus equipos!`, `${nombreVisible(especie)} can now join your teams!`)};
 }
 
 // ---------------------------------------------------------------- gacha --
@@ -420,6 +433,18 @@ export function pantallaAvatares(raiz: HTMLElement, volver: () => void) {
       fila(h('span', {class: 'pack-tickets'}, iconoTicket('grande'), h('b', {}, '×10')), tr('Pack de 10 tickets', 'Pack of 10 tickets'),
         tr(`Sale a ${Math.round(ECO.pack10 / 10)} PV cada uno`, `${Math.round(ECO.pack10 / 10)} PV each`), ECO.pack10,
         botonCompra(tr('Comprar', 'Buy'), ECO.pack10, c.pv >= ECO.pack10, () => comprarTickets(10))),
+      ECO.fakemon.length ? h('h3', {class: 'seccion-titulo'}, tr('Fakemon', 'Fakemon')) : null,
+      ECO.fakemon.length ? h('small', {class: 'tenue'}, tr('Al comprarlos puedes usarlos en tus equipos. Hasta entonces solo la IA y otros jugadores pueden usarlos.', 'Buy them to use them in your teams. Until then only the AI and other players can use them.')) : null,
+      ECO.fakemon.length ? h('div', {class: 'tienda-avatares tienda-fakemon'}, ...ECO.fakemon.map(f => {
+        const tengo = !bloqueo(f.especie);
+        const sp = dex().species.get(f.especie);
+        return h('div', {class: 'avatar-carta tienda-avatar' + (tengo ? ' poseido' : ''), style: {'--rc': RAREZAS.legendario.color}, 'data-fakemon': f.especie},
+          spriteImg(f.especie, 'front', false, 'tienda-sprite'),
+          h('div', {class: 'avatar-nombre'}, nombreVisible(f.especie)),
+          h('div', {class: 'tienda-tipos'}, ...(sp.exists ? sp.types : []).map(t => tipoBadge(t, true))),
+          tengo ? h('span', {class: 'tienda-tengo'}, tr('Ya lo tienes', 'Owned'))
+            : botonCompra(textoPV(f.precio), f.precio, c.pv >= f.precio, () => comprarFakemon(f.especie)));
+      })) : null,
       h('h3', {class: 'seccion-titulo'}, tr('Entrenadores de la tienda', 'Shop trainers')),
       h('small', {class: 'tenue'}, tr('Solo se consiguen aquí, no salen en el gacha. El precio depende de la rareza.', 'Only available here, never in the gacha. Price depends on rarity.')),
       h('div', {class: 'tienda-avatares'}, ...AVATARES_TIENDA().map(a => {

@@ -51,6 +51,8 @@ export class Estado {
   especiesIniciales: string[] = [];
   /** Te has quedado con un solo Pokémon mientras al rival le quedaban 3 o más (título «Remontada») */
   remontada = false;
+  /** Movimientos usados en el turno actual (para efectos visuales de un turno, como Niebla Espejo) */
+  movimientosTurno = new Set<string>();
 
   constructor(yo: LadoId) {
     this.yo = yo;
@@ -147,6 +149,7 @@ export class Estado {
       const m = /^\[(\w+)\](?: ?(.*))?$/.exec(a);
       if (m) kw[m[1]] = m[2] ?? ''; else pos.push(a);
     }
+    if (cmd === 'move' && pos[1]) this.movimientosTurno.add(toID(pos[1]));
     // Poderes usados (para los títulos)
     const poder = cmd === '-mega' ? 'mega' : cmd === '-zpower' ? 'z' : cmd === '-terastallize' ? 'tera' : cmd === '-start' && /dynamax/i.test(pos[1] || '') ? 'dynamax' : '';
     if (poder) { const l = (pos[0] || '').slice(0, 2); if (l === 'p1' || l === 'p2') this.poderes[l].add(poder); }
@@ -189,7 +192,7 @@ export class Estado {
     }
     case 'teampreview': return {texto: tr('Elige el orden de tu equipo.', 'Choose your team order.'), clase: 'sistema'};
     case 'start': return {texto: tr('¡Comienza el combate!', 'The battle begins!'), clase: 'sistema'};
-    case 'turn': this.turno = +pos[0]; return {texto: tr(`Turno ${pos[0]}`, `Turn ${pos[0]}`), clase: 'turno'};
+    case 'turn': this.movimientosTurno.clear(); this.turno = +pos[0]; return {texto: tr(`Turno ${pos[0]}`, `Turn ${pos[0]}`), clase: 'turno'};
     case 'win': this.ganador = pos[0]; this.terminado = true; return {texto: tr(`¡${pos[0]} ha ganado el combate!`, `${pos[0]} won the battle!`), clase: 'fin'};
     case 'tie': this.terminado = true; return {texto: tr('¡Empate!', 'Tie!'), clase: 'fin'};
     case 'switch': case 'drag': case 'replace': {

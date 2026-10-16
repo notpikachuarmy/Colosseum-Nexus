@@ -275,7 +275,7 @@ export function pbsObjetos(): string {
 
 export const ARCHIVOS_PBS: [string, string, () => string][] = [
   ['pokemon_custom.txt', tr('Pokémon (stats, tipos, habilidades, movimientos, evoluciones)', 'Pokémon (stats, types, abilities, moves, evolutions)'), pbsPokemon],
-  ['pokemon_forms_custom.txt', tr('Formas alternativas (Railspike Ballesta, Hoopa Lámpara, Mega Metagross X)', 'Alternate forms (Railspike Ballesta, Hoopa Lámpara, Mega Metagross X)'), pbsFormas],
+  ['pokemon_forms_custom.txt', tr('Formas alternativas (Railspike Ballesta, Hoopa Lámpara, Mega Metagross X, Lugia Oscuro)', 'Alternate forms (Railspike Ballesta, Hoopa Lámpara, Mega Metagross X, Shadow Lugia)'), pbsFormas],
   ['moves_custom.txt', tr('Movimientos personalizados', 'Custom moves'), pbsMovimientos],
   ['abilities_custom.txt', tr('Habilidades personalizadas', 'Custom abilities'), pbsHabilidades],
   ['items_custom.txt', tr('Objetos personalizados', 'Custom items'), pbsObjetos],

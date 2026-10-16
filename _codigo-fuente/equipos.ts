@@ -65,6 +65,12 @@ export function movimientosDe(species: string): string[] {
       if (sp.id !== propio && quitar.length && quitar.includes(d.moves.get(m).type)) continue;
       out.add(m);
     }
+    // Formas que «vienen de» otra (Rotom-Lavado, Necrozma Melena Crepuscular, Ogerpon…) también
+    // aprenden todo lo de esa otra, igual que en Showdown
+    if (sp.changesFrom && sp.changesFrom !== sp.name) {
+      const padre = (d.data.Learnsets as any)[toID(sp.changesFrom)]?.learnset;
+      if (padre) for (const m of Object.keys(padre)) out.add(m);
+    }
     const prevo = sp.prevo || (sp.baseSpecies !== sp.name ? d.species.get(sp.baseSpecies).prevo : '');
     if (!prevo) break;
     sp = d.species.get(prevo);

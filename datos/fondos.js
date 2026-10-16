@@ -35,3 +35,11 @@ window.PELIGROS_IMAGEN = {
   spikes: 'img/hazards/puas.png', toxicspikes: 'img/hazards/puastoxicas.png', stealthrock: 'img/hazards/tramparocas.png',
   stickyweb: 'img/hazards/stickyweb.png', trampamental: 'img/hazards/trampamental.png',
 };
+
+/* Capa de niebla (encima de los Pokémon, como el clima). Sale mientras Neblina esté activa
+   en algún lado y durante el turno en que se usa un movimiento de la lista. */
+window.NIEBLA = {
+  imagen: 'img/clima/niebla.png',
+  condicionesLado: ['mist'],          // Neblina
+  movimientos: ['nieblaespejo'],      // Niebla Espejo (id del movimiento, sin espacios ni tildes)
+};

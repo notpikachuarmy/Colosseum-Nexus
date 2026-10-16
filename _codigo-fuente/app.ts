@@ -12,6 +12,7 @@ import {pantallaCreditos} from './creditos';
 import {menuPrincipal} from './menu';
 import {iniciarMusica} from './musica';
 import {pantallaPerfil} from './perfil';
+import {pantallaHistoria} from './historia';
 
 const inicio = menuPrincipal;
 nav.inicio = inicio;
@@ -20,6 +21,7 @@ nav.practica = practica;
 nav.pokedex = () => pokedex();
 nav.pbs = () => pokedex(true);
 nav.avatares = () => pantallaAvatares(app, () => cambiarPantalla(inicio));
+nav.historia = pantallaHistoria;
 nav.perfil = () => pantallaPerfil(app, () => cambiarPantalla(inicio));
 nav.creditos = () => pantallaCreditos(app, () => cambiarPantalla(inicio));
 nav.equipos = () => pantallaEquipos(app, () => cambiarPantalla(inicio));

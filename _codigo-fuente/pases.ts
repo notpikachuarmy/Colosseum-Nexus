@@ -67,6 +67,7 @@ function origenesBloqueo(): Map<string, string> {
   const m = origenesCache = new Map<string, string>();
   for (const p of PASES) for (const r of p.niveles) if (r.tipo === 'pokemon') for (const e of r.especies || []) m.set(claveEsp(e), p.nombre);
   for (const e of (W.FAKEMON_HISTORIA || []) as string[]) if (!m.has(claveEsp(e))) m.set(claveEsp(e), tr('Modo historia', 'Story mode'));
+  for (const f of (W.ECONOMIA?.fakemon || []) as any[]) if (f?.especie && !m.has(claveEsp(f.especie))) m.set(claveEsp(f.especie), tr('Tienda', 'Shop'));
   return m;
 }
 /** Si TÚ no puedes usar esa especie todavía, devuelve dónde se consigue; si no, null */

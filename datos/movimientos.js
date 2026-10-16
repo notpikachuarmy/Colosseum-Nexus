@@ -8,6 +8,9 @@
  * ========================================================================== */
 /** Mensajes de combate en los dos idiomas: MSG('texto en español', 'English text') */
 window.MSG = window.MSG || function (es, en) { return es + ' ‖ ' + en; };
+/* Pokémon oscuros: los movimientos oscuros les hacen poco daño (×0,5). Ids sin guiones. */
+const OSCUROS = ['lugiaoscuro'];
+
 window.DATOS_MOVIMIENTOS = {
 
   // Sueño dulce: duerme al objetivo y, si lo consigue, cura 1/8 de PS al usuario.
@@ -332,6 +335,51 @@ window.DATOS_MOVIMIENTOS = {
         pokemon.addVolatile('confusion');
       },
     },
+  },
+
+  // ===== Movimientos oscuros (Lugia Oscuro) ===================================
+  // No usan la tabla de tipos (nunca son supereficaces, poco eficaces ni fallan por
+  // inmunidad): hacen ×1,3 de daño a todos, salvo a otros Pokémon oscuros (×0,5).
+  // No se pueden copiar con Esquema. Se muestran como tipo Normal.
+  // En el PBS van con IDs XDSHADOW... porque Essentials puede traer ya SHADOWBLAST, SHADOWSHED y
+  // SHADOWSTORM (los de Pokémon XD, con otro efecto) y dos IDs iguales no compilan.
+  'Soplo Oscuro': {
+    desc: 'Movimiento oscuro. Alta probabilidad de golpe crítico. ×1,3 contra todos (×0,5 contra Pokémon oscuros).',
+    nombreEN: 'Shadow Blast', descEN: 'Shadow move. High critical-hit ratio. ×1.3 against everyone (×0.5 against Shadow Pokémon).',
+    idPBS: 'XDSHADOWBLAST', funcionPBS: 'ShadowMoveHighCritical',
+    type: 'Normal', category: 'Special', basePower: 80, accuracy: 100, pp: 3, critRatio: 2, target: 'normal',
+    flags: { protect: 1, mirror: 1, nosketch: 1 }, ignoreImmunity: true,
+    onEffectiveness() { return 0; },
+    onBasePower(bp, source, target) { return this.chainModify(OSCUROS.includes(target.species.id) ? 0.5 : 1.3); },
+  },
+  'Muda Oscura': {
+    desc: 'Movimiento oscuro. Quita Reflejo, Pantalla de Luz y Velo Sagrado del equipo rival.',
+    nombreEN: 'Shadow Shed', descEN: "Shadow move. Removes Reflect, Light Screen and Safeguard from the opposing side.",
+    idPBS: 'XDSHADOWSHED', funcionPBS: 'ShadowRemoveScreensFoeSide',
+    type: 'Normal', category: 'Status', basePower: 0, accuracy: 100, pp: 3, target: 'foeSide',
+    flags: { nosketch: 1 },
+    onHitSide(side, source) {
+      let alguno = false;
+      for (const c of ['reflect', 'lightscreen', 'safeguard']) if (side.removeSideCondition(c)) { this.add('-sideend', side, c); alguno = true; }
+      if (!alguno) this.add('-message', MSG('¡Pero no había nada que quitar!', 'But there was nothing to remove!'));
+    },
+  },
+  'Ocaso Oscuro': {
+    desc: 'Movimiento oscuro. Baja dos niveles la Defensa de todos los rivales.',
+    nombreEN: 'Shadow Dusk', descEN: "Shadow move. Harshly lowers all opponents' Defense.",
+    idPBS: 'XDSHADOWDUSK', funcionPBS: 'ShadowLowerTargetsDefense2',
+    type: 'Normal', category: 'Status', basePower: 0, accuracy: 100, pp: 5, target: 'allAdjacentFoes',
+    flags: { protect: 1, reflectable: 1, mirror: 1, nosketch: 1 }, ignoreImmunity: true,
+    boosts: { def: -2 },
+  },
+  'Tifón Oscuro': {
+    desc: 'Movimiento oscuro sin efecto extra. En dobles golpea a todos los rivales. ×1,3 contra todos (×0,5 contra Pokémon oscuros).',
+    nombreEN: 'Shadow Storm', descEN: 'Shadow move with no extra effect. Hits all opponents in doubles. ×1.3 against everyone (×0.5 against Shadow Pokémon).',
+    idPBS: 'XDSHADOWSTORM', funcionPBS: 'ShadowMoveNoEffect',
+    type: 'Normal', category: 'Special', basePower: 95, accuracy: 100, pp: 3, target: 'allAdjacentFoes',
+    flags: { protect: 1, mirror: 1, wind: 1, nosketch: 1 }, ignoreImmunity: true,
+    onEffectiveness() { return 0; },
+    onBasePower(bp, source, target) { return this.chainModify(OSCUROS.includes(target.species.id) ? 0.5 : 1.3); },
   },
 };
 

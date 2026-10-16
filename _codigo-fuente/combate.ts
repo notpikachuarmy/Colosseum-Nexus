@@ -32,12 +32,17 @@ export interface OpcionesCombate {
   titulos?: {p1?: string, p2?: string};
   /** Fondo fijo para este combate (p. ej. un jefe del modo historia). Si no, el que elija el jugador. */
   fondo?: string;
+  /** Rival que es un Pokémon (modo historia): se enseña su sprite en vez de un avatar */
+  caras?: {p1?: string, p2?: string};
+  /** Jefe de incursión: barra de PS partida en tramos para ese lado */
+  jefe?: {lado: LadoId, tramos: number};
 }
 
 const BOOST_CORTO: {[k: string]: string} = {...STATS_CORTO, accuracy: tr('Pre', 'Acc'), evasion: tr('Eva', 'Eva')};
 const VOLATILES_ES: {[k: string]: string} = {
   dynamax: tr('Dinamax', 'Dynamax'),
   substitute: tr('Sustituto', 'Substitute'), confusion: tr('Confuso', 'Confused'), leechseed: tr('Drenadoras', 'Leech Seed'), taunt: tr('Mofa', 'Taunt'), encore: tr('Otra vez', 'Encore'),
+  jefeincursion: tr('Jefe', 'Boss'), teln: tr('Telón', 'Curtain'), telon: tr('Telón', 'Curtain'),
   attract: tr('Enamorado', 'Attracted'), yawn: tr('Somnoliento', 'Drowsy'), curse: tr('Maldición', 'Curse'), nightmare: tr('Pesadilla', 'Nightmare'), focusenergy: tr('Foco energía', 'Focus Energy'),
   perish3: tr('Canto mortal 3', 'Perish 3'), perish2: tr('Canto mortal 2', 'Perish 2'), perish1: tr('Canto mortal 1', 'Perish 1'), disable: tr('Anulación', 'Disable'),
   protosynthesis: tr('Paleosíntesis', 'Protosynthesis'), quarkdrive: tr('Carga Cuark', 'Quark Drive'), slowstart: tr('Inicio lento', 'Slow Start'), typechange: tr('Cambio de tipo', 'Type change'),
@@ -145,6 +150,14 @@ export class PantallaCombate {
     return n ? insignia(n[0], n[1], conRango) : null;
   }
 
+  /** Imagen de un jugador: su avatar, o el sprite del Pokémon si el rival es un Pokémon */
+  cara(l: 'p1' | 'p2', cls = '', modo: 'entero' | 'busto' = 'entero') {
+    const pk = this.op.caras?.[l];
+    if (pk) return spriteImg(pk, 'front', false, 'cara-pokemon ' + cls);
+    const av = this.op.avatares?.[l];
+    return av ? avatarImg(av, cls, modo) : null;
+  }
+
   /** Presentación de los entrenadores al empezar (como en Showdown) */
   presentacion() {
     const av = this.op.avatares;
@@ -153,7 +166,7 @@ export class PantallaCombate {
     if (!esc) return;
     const yo = this.op.yo, rival = yo === 'p1' ? 'p2' : 'p1';
     const nombre = (l: 'p1' | 'p2') => this.estado.lados[l].nombre || (l === yo ? tr('Tú', 'You') : tr('Rival', 'Opponent'));
-    const tarjeta = (l: 'p1' | 'p2', cls: string) => { const t = tituloDe(this.op.titulos?.[l]); return h('div', {class: 'vs-entrenador ' + cls}, avatarImg(av[l] || ''), h('b', {class: 'vs-nombre'}, nombre(l)), t ? h('span', {class: 'titulo-jugador'}, t.nombre) : null, this.insigniaDe(l, true)); };
+    const tarjeta = (l: 'p1' | 'p2', cls: string) => { const t = tituloDe(this.op.titulos?.[l]); return h('div', {class: 'vs-entrenador ' + cls}, this.cara(l) || avatarImg(av[l] || ''), h('b', {class: 'vs-nombre'}, nombre(l)), t ? h('span', {class: 'titulo-jugador'}, t.nombre) : null, this.insigniaDe(l, true)); };
     const capa = h('div', {class: 'vs-capa'}, tarjeta(yo, 'vs-yo'), h('div', {class: 'vs-texto'}, 'VS'), tarjeta(rival, 'vs-rival'));
     esc.append(capa);
     // los nombres llegan con el primer mensaje del combate
@@ -216,6 +229,7 @@ export class PantallaCombate {
         }
         let res: any = {};
         try { res = this.estado.aplicar(line); } catch (e) { console.error('Error en línea', line, e); }
+        this.capas.actualizar(this.estado);   // capas visuales al día (solo repinta si algo cambió)
         if (res.texto) this.log(res.texto, res.clase || '');
         if (res.anim) await this.animar(res.anim);
         else if (res.texto && res.clase !== 'turno' && res.clase !== 'dano-num') await sleep(this.ms(220));
@@ -330,7 +344,7 @@ export class PantallaCombate {
       }
       this.campoEl.append(ladoEl);
     }
-    this.campoEl.append(this.capas.clima);
+    this.campoEl.append(this.capas.niebla, this.capas.clima);
     this.dibujarInfoCampo();
   }
 
@@ -345,7 +359,7 @@ export class PantallaCombate {
         mon.tera ? h('span', {class: 'tera-tag', style: {background: TIPO_COLOR[mon.tera]}, title: tr('Teracristalizado', 'Terastallized')}, '◆ ' + (TIPOS_ES[mon.tera] || mon.tera)) : null,
         h('span', {class: 'hud-nivel'}, tr('Nv. ', 'Lv. ') + mon.level)),
       h('div', {class: 'hud-tipos'}, ...tiposEfectivos(mon).map(t => tipoBadge(t, true))),
-      h('div', {class: 'barra-ps'}, h('div', {class: 'relleno ' + color, style: {width: (pct * 100).toFixed(1) + '%'}})),
+      this.barraPs(mon, clave, color, pct),
       h('div', {class: 'hud-fila hud-sub'},
         mon.status ? h('span', {class: 'estado-tag', style: {background: ESTADO_COLOR[mon.status]}}, ESTADOS_ES[mon.status] || mon.status) : null,
         h('span', {class: 'hud-ps'}, esYo && mon.maxhp !== 100 ? `${mon.hp}/${mon.maxhp}` : `${Math.round(pct * 100)}%`)),
@@ -354,6 +368,15 @@ export class PantallaCombate {
         ...vols.map(v => h('span', {class: 'vol'}, v))) : null);
     adjuntarInfo(hud, () => fichaPokemon(mon, esYo));
     return hud;
+  }
+
+  /** Barra de PS. Si es el jefe de incursión, va partida en tramos (cada tramo levanta el Telón). */
+  barraPs(mon: Pkm, clave: string, color: string, pct: number) {
+    const relleno = h('div', {class: 'relleno ' + color, style: {width: (pct * 100).toFixed(1) + '%'}});
+    const j = this.op.jefe;
+    if (!j || !clave.startsWith(j.lado) || j.tramos < 2) return h('div', {class: 'barra-ps'}, relleno);
+    const marcas = Array.from({length: j.tramos - 1}, (_, i) => h('span', {class: 'marca-tramo', style: {left: ((i + 1) / j.tramos * 100).toFixed(2) + '%'}}));
+    return h('div', {class: 'barra-ps barra-jefe' + (mon.volatiles.has('teln') || mon.volatiles.has('telon') ? ' con-telon' : ''), 'data-tramos': String(j.tramos)}, relleno, ...marcas);
   }
 
   tooltip(mon: Pkm, esYo: boolean) {
@@ -404,8 +427,8 @@ export class PantallaCombate {
         iconos.push(caja);
       }
       const av = this.op.avatares?.[ladoId as 'p1' | 'p2'];
-      const busto = av ? avatarImg(av, 'en-combate', 'busto') : null;
-      if (busto) busto.title = `${lado.nombre} · ${datosAvatar(av!).nombre}`;
+      const busto = this.cara(ladoId as 'p1' | 'p2', 'en-combate', 'busto');
+      if (busto) busto.title = this.op.caras?.[ladoId as 'p1' | 'p2'] ? lado.nombre : `${lado.nombre} · ${datosAvatar(av!).nombre}`;
       this.infoCampoEl.append(h('div', {class: 'equipo-iconos ' + (ladoId === e.yo ? 'mio' : 'rival') + (busto ? ' con-avatar' : '')},
         busto, h('div', {class: 'eq-cuerpo'}, h('span', {class: 'jugador'}, lado.nombre, this.insigniaDe(ladoId as 'p1' | 'p2')), h('div', {class: 'eq-iconos-fila'}, ...iconos))));
       if (conds.length) filasLado.push(h('div', {class: 'fila-lado ' + (ladoId === e.yo ? 'mio' : 'rival')},
