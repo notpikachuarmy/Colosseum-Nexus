@@ -136,10 +136,11 @@ if defined?(Battle::Move::RemoveEntryHazardsTrapTargetOneTurn)
       return __arenafakemon_pbHazardsOnSide?(side)
     end
 
-    alias __arenafakemon_pbEffectAgainstTarget pbEffectAgainstTarget unless method_defined?(:__arenafakemon_pbEffectAgainstTarget)
+    # Las trampas se quitan en pbEffectGeneral (funciona aunque el rival use Protección)
+    alias __arenafakemon_pit_pbEffectGeneral pbEffectGeneral unless method_defined?(:__arenafakemon_pit_pbEffectGeneral)
 
-    def pbEffectAgainstTarget(user, target)
-      __arenafakemon_pbEffectAgainstTarget(user, target)
+    def pbEffectGeneral(user)
+      __arenafakemon_pit_pbEffectGeneral(user)
       [user.pbOwnSide, user.pbOpposingSide].each { |side| side.effects[PBEffects::MindSnare] = false }
     end
   end

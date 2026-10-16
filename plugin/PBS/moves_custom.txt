@@ -167,7 +167,7 @@ TotalPP = 10
 Target = NearOther
 FunctionCode = RemoveEntryHazardsTrapTargetOneTurn
 Flags = CanProtect,CanMirrorMove
-Description = Removes hazards from both sides of the field and traps the target until the end of the next turn.
+Description = Removes hazards from both sides of the field and traps the target until the end of the next turn. Protect only stops the trapping.
 #-------------------------------
 [GALESTRIKE]
 Name = Gale Strike

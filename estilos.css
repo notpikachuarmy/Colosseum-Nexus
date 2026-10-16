@@ -721,3 +721,15 @@ input[type=range] { accent-color: var(--acento); width: 100%; }
 .recompensa { flex-wrap: wrap; }
 .sube-nivel { color: #fff; background: var(--acento2); padding: 0 8px; border-radius: 999px; }
 .rival-cab { flex-wrap: wrap; }
+
+/* Iconos del equipo: se pueden mirar (ficha) y enseñan el estado (DOR, PAR...) */
+.equipo-iconos .icono-eq { position: relative; display: inline-flex; pointer-events: auto; cursor: help; border-radius: 6px; }
+.equipo-iconos .icono-eq:hover { background: rgba(255,255,255,.15); }
+.icono-estado { position: absolute; left: 50%; bottom: -3px; transform: translateX(-50%); color: #fff; font-size: 8px; font-weight: 900; line-height: 1; padding: 1px 3px; border-radius: 3px; pointer-events: none; }
+.mov-bloqueo { display: block; font-size: 11px; font-weight: 800; color: #ffd0d0; margin-top: 2px; }
+@media (max-width: 680px) {
+  /* En el móvil se ve el equipo del rival abajo a la derecha (tocar un icono = ver su ficha) */
+  .equipo-iconos.rival { display: flex; top: auto !important; bottom: 8px; left: auto; right: 52px; max-width: calc(100% - 210px); padding: 2px 4px; z-index: 5; }
+  .equipo-iconos.rival .avatar-busto, .equipo-iconos.rival .jugador { display: none; }
+  .equipo-iconos.rival .icono { width: 26px; height: 26px; }
+}

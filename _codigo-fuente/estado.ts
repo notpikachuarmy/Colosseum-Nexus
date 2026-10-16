@@ -7,7 +7,7 @@ export type LadoId = 'p1' | 'p2';
 export interface Pkm {
   name: string; species: string; level: number; shiny: boolean; gender: string;
   hp: number; maxhp: number; status: string; fainted: boolean;
-  boosts: {[k: string]: number}; volatiles: Set<string>;
+  boosts: {[k: string]: number}; volatiles: Set<string>; movAnulado?: string;
   item?: string; ability?: string; tera?: string; types?: string[];
   conocido: boolean;
   movesVistos?: string[]; itemPerdido?: boolean;
@@ -346,7 +346,10 @@ export class Estado {
     }
     case '-fieldstart': {
       const e = efecto(pos[0]);
-      this.campo.set(toID(pos[0].replace(/^move: /, '')), this.turno);
+      const idCampo = toID(pos[0].replace(/^move: /, ''));
+      // Solo puede haber un campo (eléctrico, hierba, niebla, psíquico): el nuevo sustituye al anterior
+      if (idCampo.endsWith('terrain')) for (const k of [...this.campo.keys()]) if (k.endsWith('terrain')) this.campo.delete(k);
+      this.campo.set(idCampo, this.turno);
       const t: {[k: string]: string} = {
         electricterrain: tr('¡Se ha formado un campo de corriente eléctrica!', 'An electric current ran across the battlefield!'), grassyterrain: tr('¡Ha crecido hierba por todo el terreno!', 'Grass grew to cover the battlefield!'),
         mistyterrain: tr('¡La niebla ha envuelto el terreno de combate!', 'Mist swirled around the battlefield!'), psychicterrain: tr('¡El terreno se ha vuelto muy extraño!', 'The battlefield got weird!'),
@@ -380,7 +383,13 @@ export class Estado {
       lado.condiciones.delete(id);
       return {texto: tr(`¡${e} ha desaparecido de ${equipo}!`, `${e} wore off for ${equipo}!`), clase: 'clima', anim: {tipo: 'lado'}};
     }
-    case '-swapsideconditions': return {texto: tr('¡Se intercambiaron los efectos de ambos lados del campo!', 'The effects on each side of the field were swapped!')};
+    case '-swapsideconditions': {
+      // Cambio de Cancha: las condiciones de cada lado pasan al otro
+      const a = this.lados.p1.condiciones;
+      this.lados.p1.condiciones = this.lados.p2.condiciones;
+      this.lados.p2.condiciones = a;
+      return {texto: tr('¡Se intercambiaron los efectos de ambos lados del campo!', 'The effects on each side of the field were swapped!')};
+    }
     case '-crit': return {texto: tr('¡Un golpe crítico!', 'A critical hit!'), clase: 'crit'};
     case '-supereffective': return {texto: tr('¡Es supereficaz!', "It's super effective!"), clase: 'super'};
     case '-resisted': return {texto: tr('No es muy eficaz…', "It's not very effective…"), clase: 'resist'};
@@ -435,6 +444,7 @@ export class Estado {
       const mon = this.pkm(pos[0]);
       const id = toID(pos[1].replace(/^(move|ability|item): ?/, ''));
       if (mon) mon.volatiles.add(id);
+      if (mon && id === 'disable') mon.movAnulado = pos[2] || '';
       if (id === 'typechange' && mon) { mon.types = pos[2].split('/'); return {texto: tr(`¡${N(pos[0])} ahora es de tipo ${pos[2].split('/').map(t => TIPOS_ES[t] || t).join('/')}!`, `${N(pos[0])}'s type changed to ${pos[2].split('/').map(t => TIPOS_ES[t] || t).join('/')}!`)}; }
       const t: {[k: string]: string} = {
         dynamax: pos[2] === 'Gmax' ? tr(`¡${N(pos[0])} se ha gigamaximizado!`, `${N(pos[0])} has Gigantamaxed!`) : tr(`¡${N(pos[0])} se ha dinamaximizado!`, `${N(pos[0])} has Dynamaxed!`),

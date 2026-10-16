@@ -218,15 +218,15 @@ window.DATOS_MOVIMIENTOS = {
   },
 
   'Fisura Táctica': {
-    desc: 'Elimina las trampas de ambos lados del campo y el objetivo no puede cambiar hasta el final del turno siguiente.',
-    nombreEN: 'Tectonic Pit', descEN: 'Removes hazards from both sides of the field and traps the target until the end of the next turn.',
+    desc: 'Elimina las trampas de ambos lados del campo y el objetivo no puede cambiar hasta el final del turno siguiente. Protección solo evita lo de atrapar: las trampas se quitan igual.',
+    nombreEN: 'Tectonic Pit', descEN: 'Removes hazards from both sides of the field and traps the target until the end of the next turn. Protect only stops the trapping: hazards are removed anyway.',
     idPBS: 'TECTONICPIT', funcionPBS: 'RemoveEntryHazardsTrapTargetOneTurn',
     type: 'Ground', category: 'Status', basePower: 0, accuracy: 100, pp: 10, target: 'normal',
     flags: { protect: 1, mirror: 1, metronome: 1 },
-    onHit(target, source, move) {
+    // Las trampas se quitan ANTES de comprobar Protección (no afectan directamente al rival)
+    onPrepareHit(target, source, move) {
       const trampas = ['spikes', 'toxicspikes', 'stealthrock', 'stickyweb', 'gmaxsteelsurge', 'trampamental'];
-      let algo = false;
-      for (const side of [source.side, target.side]) {
+      for (const side of [source.side, source.side.foe]) {
         let quitada = false;
         for (const t of trampas) {
           if (side.removeSideCondition(t)) {
@@ -234,13 +234,15 @@ window.DATOS_MOVIMIENTOS = {
             this.add('-sideend', side, this.dex.conditions.get(t).name, '[from] move: ' + move.name, '[of] ' + source);
           }
         }
-        if (quitada) { algo = true; this.add('-message', MSG(`¡La fisura aplastó las trampas del campo de ${side.name}!`, `The fissure crushed the hazards on ${side.name}'s side!`)); }
+        if (quitada) { move.quitoTrampas = true; this.add('-message', MSG(`¡La fisura aplastó las trampas del campo de ${side.name}!`, `The fissure crushed the hazards on ${side.name}'s side!`)); }
       }
+    },
+    onHit(target, source, move) {
       if (!target.hasType('Ghost') && !target.volatiles[move.id]) {
         target.addVolatile(move.id, source);
-        algo = true;
+        return;
       }
-      if (!algo) return false;
+      if (!move.quitoTrampas) return false;
     },
     condition: {
       duration: 2,

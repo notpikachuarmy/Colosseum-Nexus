@@ -13,7 +13,7 @@
 #   Target = NearOther
 #   FunctionCode = RemoveEntryHazardsTrapTargetOneTurn
 #   Flags = CanProtect,CanMirrorMove
-#   Description = Removes hazards from both sides of the field and traps the target until the end of the next turn.
+#   Description = Removes hazards from both sides of the field and traps the target until the end of the next turn. Protect only stops the trapping.
 #===============================================================================
 
 #===============================================================================
@@ -40,7 +40,10 @@ class Battle::Move::RemoveEntryHazardsTrapTargetOneTurn < Battle::Move
     return true
   end
 
-  def pbEffectAgainstTarget(user, target)
+  # Protección solo para lo de atrapar: las trampas se quitan aunque el rival se proteja
+  def worksWithNoTargets?; return true; end
+
+  def pbEffectGeneral(user)
     [user.pbOwnSide, user.pbOpposingSide].each do |side|
       next if !pbHazardsOnSide?(side)
       side.effects[PBEffects::StealthRock] = false
@@ -53,6 +56,9 @@ class Battle::Move::RemoveEntryHazardsTrapTargetOneTurn < Battle::Move
         @battle.pbDisplay(_INTL("¡La fisura aplastó las trampas del campo rival!"))
       end
     end
+  end
+
+  def pbEffectAgainstTarget(user, target)
     return if !pbCanTrap?(target)
     target.effects[PBEffects::TectonicPit] = 2
     @battle.pbDisplay(_INTL("¡{1} quedó atrapado en la zanja y no puede huir!", target.pbThis))

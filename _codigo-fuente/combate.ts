@@ -322,7 +322,7 @@ export class PantallaCombate {
     const pct = mon.maxhp ? Math.max(0, mon.hp / mon.maxhp) : 0;
     const color = pct > 0.5 ? 'verde' : pct > 0.2 ? 'amarillo' : 'rojo';
     const boosts = Object.entries(mon.boosts).filter(([, v]) => v);
-    const vols = [...mon.volatiles].map(v => VOLATILES_ES[v]).filter(Boolean);
+    const vols = [...mon.volatiles].map(v => v === 'disable' && mon.movAnulado ? tr('Anulado: ', 'Disabled: ') + nomMov(mon.movAnulado) : VOLATILES_ES[v]).filter(Boolean);
     const hud = h('div', {class: 'hud' + (mon.fainted ? ' hud-fnt' : ''), 'data-clave': clave},
       h('div', {class: 'hud-fila'},
         h('span', {class: 'hud-nombre'}, mon.name),
@@ -380,8 +380,11 @@ export class PantallaCombate {
         const m = lado.equipo[i];
         if (!m) { iconos.push(h('span', {class: 'pokeball'})); continue; }
         const ic = iconImg(m.species, m.fainted ? 'gris' : '');
-        if (m.status && !m.fainted) ic.classList.add('con-estado');
-        iconos.push(ic);
+        // Cada icono del equipo enseña su ficha (también los del rival que no están en el campo)
+        const caja = h('span', {class: 'icono-eq' + (m.fainted ? ' fnt' : '')}, ic,
+          m.status && !m.fainted ? h('span', {class: 'icono-estado', style: {background: ESTADO_COLOR[m.status]}}, ESTADOS_ES[m.status] || m.status) : null);
+        adjuntarInfo(caja, () => fichaPokemon(m, ladoId === e.yo));
+        iconos.push(caja);
       }
       const av = this.op.avatares?.[ladoId as 'p1' | 'p2'];
       const busto = av ? avatarImg(av, 'en-combate', 'busto') : null;
@@ -393,6 +396,19 @@ export class PantallaCombate {
     }
     // Trampas y protecciones de cada lado (Púas, Púas tóxicas, Trampa Rocas, Reflejo...): todas a la vez
     if (filasLado.length) this.infoCampoEl.append(h('div', {class: 'condiciones-lados'}, ...filasLado));
+  }
+
+  /** Por qué no se puede usar un movimiento (se explica en el botón) */
+  motivoBloqueo(req: any, slot: number, m: any) {
+    if (m.pp === 0) return tr('Sin PP', 'No PP');
+    const ident = req.side?.pokemon?.[slot]?.ident;
+    const p = ident ? this.estado.parseIdent(ident) : null;
+    const mon = p ? p.lado.activos[p.pos] : null;
+    if (mon?.volatiles.has('disable') && (!mon.movAnulado || toID(mon.movAnulado) === m.id)) return tr('🚫 Anulado', '🚫 Disabled');
+    if (mon?.volatiles.has('taunt') && dex().moves.get(m.id).category === 'Status') return tr('🚫 Mofa', '🚫 Taunt');
+    if (mon?.volatiles.has('encore')) return tr('🚫 Otra vez', '🚫 Encore');
+    if (mon?.volatiles.has('torment')) return tr('🚫 Tormento', '🚫 Torment');
+    return tr('🚫 No disponible', '🚫 Unavailable');
   }
 
   // ------------------------------------------------------------ controles --
@@ -560,7 +576,7 @@ export class PantallaCombate {
         if (z && !z.move.startsWith('Z-')) { potencia = mv.zMove?.basePower; }
       } else if (poder === 'dynamax' || yaDinamax) {
         const mx = act.maxMoves?.maxMoves?.[i];
-        if (mx) { usar = d.moves.get(mx.move).name; objetivo = mx.target; if (mx.disabled) disabled = true; idReal = mx.move; potencia = mv.maxMove?.basePower; }
+        if (mx) { usar = d.moves.get(mx.move).name; objetivo = mx.target; disabled = !!mx.disabled || m.pp === 0; idReal = mx.move; potencia = mv.maxMove?.basePower; }
       }
       const mvReal = d.moves.get(idReal);
       const tipo = mvReal.exists && mvReal.type !== '???' ? mvReal.type : (mv.exists ? mv.type : 'Normal');
@@ -590,7 +606,8 @@ export class PantallaCombate {
         }},
       h('span', {class: 'mov-nombre'}, nomMov(usar)),
       h('span', {class: 'mov-sub'}, h('span', {class: 'mov-tipo'}, TIPOS_ES[tipo] || tipo),
-        m.maxpp ? h('span', {class: 'mov-pp'}, `${m.pp}/${m.maxpp}`) : null, efi));
+        m.maxpp ? h('span', {class: 'mov-pp'}, `${m.pp}/${m.maxpp}`) : null, efi),
+      disabled && !poder ? h('span', {class: 'mov-bloqueo'}, this.motivoBloqueo(req, slot, m)) : null);
       adjuntarInfo(boton, () => {
         if (idReal !== m.id && mvReal.exists) return fichaMovimiento(idReal, {pp: m.pp, maxpp: m.maxpp, nombre: nomMov(usar), potencia});
         return fichaMovimiento(m.id, {pp: m.pp, maxpp: m.maxpp});
