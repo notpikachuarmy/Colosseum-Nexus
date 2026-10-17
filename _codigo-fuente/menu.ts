@@ -40,7 +40,7 @@ export function menuPrincipal() {
     {id: 'equipos', img: 'equipos', titulo: tr('Equipos', 'Teams'), texto: tr('Crea y edita tus equipos y plantillas de draft', 'Build and edit your teams and draft rosters'), ir: () => cambiarPantalla(nav.equipos)},
     {id: 'historia', img: 'historia', titulo: tr('Historia', 'Story'), texto: tr('Recorre las rutas, vence a sus jefes y consigue recompensas', 'Travel the routes, beat their bosses and earn rewards'), ir: () => cambiarPantalla(nav.historia)},
     {id: 'pokedex', img: 'pokedex', titulo: tr('Pokédex', 'Pokédex'), texto: tr('Fakemon, movimientos, habilidades y objetos', 'Fakemon, moves, abilities and items'), ir: () => cambiarPantalla(nav.pokedex)},
-    {id: 'gacha', img: 'gacha', titulo: tr('Gacha', 'Gacha'), texto: tr('Abre tickets y compra en la tienda con tus PV', 'Open tickets and spend your PV in the shop'), ir: () => cambiarPantalla(nav.avatares)},
+    {id: 'gacha', img: 'gacha', titulo: tr('Gacha/Tienda', 'Gacha/Shop'), texto: tr('Abre tickets y compra en la tienda con tus PV', 'Open tickets and spend your PV in the shop'), ir: () => cambiarPantalla(nav.avatares)},
     {id: 'creditos', img: 'creditos', titulo: tr('Créditos', 'Credits'), texto: tr('Quién ha hecho Colosseum Nexus', 'Who made Colosseum Nexus'), ir: () => cambiarPantalla(nav.creditos)},
   ];
 
